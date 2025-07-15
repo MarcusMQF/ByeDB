@@ -1,4 +1,4 @@
-# Product Requirements Document: ByeDB.ai (Hackathon Version)
+# Product Requirements Document
 
 ## 1. Introduction
 
