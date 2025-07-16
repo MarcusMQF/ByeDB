@@ -412,22 +412,27 @@ export default function Chat() {
                 <div className="flex items-center gap-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className={`rounded-full size-8 border-none transition-[box-shadow] ${!inputValue.trim() || isEnhancing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-background hover:shadow-md'}`}
-                        disabled={!inputValue.trim() || isEnhancing}
-                        onDoubleClick={(e) => e.preventDefault()}
-                        onClick={enhancePrompt}
-                      >
-                        <img
-                          src={inputValue.trim() && !isEnhancing ? "/gemini.png" : "/gemini-disabled.png"}
-                          alt={inputValue.trim() && !isEnhancing ? "Gemini" : ""}
-                          className="w-5 h-5 object-contain select-none"
-                          draggable={false}
-                        />
-                        <span className="sr-only">Generate</span>
-                      </Button>
+                      <div className="relative">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className={`rounded-full size-8 border-none transition-[box-shadow] ${!inputValue.trim() || isEnhancing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-background hover:shadow-md'}`}
+                          disabled={!inputValue.trim() || isEnhancing}
+                          onDoubleClick={(e) => e.preventDefault()}
+                          onClick={enhancePrompt}
+                        >
+                          <img
+                            src={inputValue.trim() && !isEnhancing ? "/gemini.png" : "/gemini-disabled.png"}
+                            alt={inputValue.trim() && !isEnhancing ? "Gemini" : ""}
+                            className="w-5 h-5 object-contain select-none"
+                            draggable={false}
+                          />
+                          <span className="sr-only">Generate</span>
+                        </Button>
+                        {isEnhancing && (
+                          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin pointer-events-none"></div>
+                        )}
+                      </div>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="dark px-2 py-1 text-xs">
                       <p>Enhance Prompt</p>
