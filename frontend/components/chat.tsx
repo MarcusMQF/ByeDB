@@ -1,6 +1,6 @@
 "use client";
 
-import { SettingsPanelTrigger } from "@/components/settings-panel";
+import { SettingsPanelTrigger } from "@/components/data_panel";
 import {
   Breadcrumb,
   BreadcrumbItem,

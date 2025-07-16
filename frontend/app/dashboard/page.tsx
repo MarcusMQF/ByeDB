@@ -14,7 +14,7 @@ import UserDropdown from "@/components/user-dropdown";
 import {
   SettingsPanelProvider,
   SettingsPanel,
-} from "@/components/settings-panel";
+} from "@/components/data_panel";
 import Chat from "@/components/chat";
 
 export default function Page() {
