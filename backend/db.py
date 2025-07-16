@@ -1,5 +1,5 @@
 import os 
-from supabase import create_client, Client
+from supabase._sync.client import create_client, SyncClient as Client
 from dotenv import load_dotenv
 from typing import Dict, List, Any, Optional
 
@@ -9,8 +9,8 @@ from supabase._sync.client import create_client
 from supabase._sync.client import SyncClient as Client
 
 class SupabaseClient:
-    _instance: 'SupabaseClient' = None
-    _client: Client = None
+    _instance: Optional['SupabaseClient'] = None
+    _client: Optional[Client] = None
 
     def __new__(cls):
         if cls._instance is None:
@@ -30,6 +30,8 @@ class SupabaseClient:
     
     @property
     def client(self) -> Client:
+        if self._client is None:
+            raise ValueError("Client not initialized")
         return self._client
     
     def create_table(self, table_name: str, columns: Dict[str, str]) -> Dict[str, Any]:
@@ -40,22 +42,22 @@ class SupabaseClient:
             
             sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(column_definitions)})"
             
-            result = self._client.rpc('execute_sql', {'sql': sql}).execute()
+            result = self.client.rpc('execute_sql', {'sql': sql}).execute()
             return {"success": True, "message": f"Table {table_name} created successfully", "data": result.data}
         except Exception as e:
             return {"success": False, "error": str(e)}
     
     def create(self, table_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
         try:
-            result = self._client.table(table_name).insert(data).execute()
+            result = self.client.table(table_name).insert(data).execute()
             return {"success": True, "data": result.data}
         except Exception as e:
             return {"success": False, "error": str(e)}
     
     def read(self, table_name: str, filters: Optional[Dict[str, Any]] = None, 
-             columns: Optional[str] = "*", limit: Optional[int] = None) -> Dict[str, Any]:
+             columns: str = "*", limit: Optional[int] = None) -> Dict[str, Any]:
         try:
-            query = self._client.table(table_name).select(columns)
+            query = self.client.table(table_name).select(columns)
             
             # Apply filters
             if filters:
@@ -74,7 +76,7 @@ class SupabaseClient:
     def update(self, table_name: str, data: Dict[str, Any], 
                filters: Dict[str, Any]) -> Dict[str, Any]:
         try:
-            query = self._client.table(table_name).update(data)
+            query = self.client.table(table_name).update(data)
             
             # Apply filters
             for key, value in filters.items():
@@ -87,7 +89,7 @@ class SupabaseClient:
     
     def delete(self, table_name: str, filters: Dict[str, Any]) -> Dict[str, Any]:
         try:
-            query = self._client.table(table_name).delete()
+            query = self.client.table(table_name).delete()
             
             # Apply filters
             for key, value in filters.items():
@@ -100,7 +102,7 @@ class SupabaseClient:
     
     def execute_query(self, query: str) -> Dict[str, Any]:
         try:
-            result = self._client.rpc('execute_sql', {'sql': query}).execute()
+            result = self.client.rpc('execute_sql', {'sql': query}).execute()
             return {"success": True, "data": result.data}
         except Exception as e:
             return {"success": False, "error": str(e)}

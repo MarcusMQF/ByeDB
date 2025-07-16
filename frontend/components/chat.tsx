@@ -22,6 +22,7 @@ import {
 import { ChatMessage } from "@/components/chat-message";
 import { useRef, useEffect, useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/tooltip";
+import MarkdownResponse from "@/components/markdown-response";
 
 type Message = {
   id: string;
@@ -81,6 +82,7 @@ export default function Chat() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const question = inputValue.trim();
     setInputValue("");
     setIsLoading(true);
     
@@ -91,18 +93,46 @@ export default function Chat() {
       }
     }, 0);
 
-    // Simulate AI response delay
-    setTimeout(() => {
+    try {
+      // Call the backend API
+      const response = await fetch('http://localhost:8000/api/sql-question', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: question,
+          context: uploadedFile ? `File uploaded: ${uploadedFile.name}` : undefined
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: "How can I help you?",
+        content: data.success ? data.response : `Error: ${data.error}`,
         isUser: false,
         timestamp: new Date(),
       };
 
       setMessages(prev => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('Error calling API:', error);
+      const errorResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        content: "Sorry, I'm having trouble connecting to the server. Please make sure the backend is running on http://localhost:8000",
+        isUser: false,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -211,54 +241,54 @@ export default function Chat() {
   };
 
   return (
-    <ScrollArea className="flex-1 [&>div>div]:h-full w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background">
-      <div className="h-full flex flex-col px-4 md:px-6 lg:px-8">
-        {/* Header */}
-        <div className="py-5 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06]">
-          <div className="flex items-center justify-between gap-2">
-            <Breadcrumb>
-              <BreadcrumbList className="sm:gap-1.5">
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="#">Playground</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Chat</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-            <div className="flex items-center gap-1 -my-2 -me-2">
-              <Button variant="ghost" className="px-2" onClick={handleClearChat}>
-                <RiCloseLine
-                  className="text-muted-foreground sm:text-muted-foreground/70 size-5"
-                  size={20}
-                  aria-hidden="true"
-                />
-                <span className="max-sm:sr-only">Clear</span>
-              </Button>
-              <Button variant="ghost" className="px-2">
-                <RiShareLine
-                  className="text-muted-foreground sm:text-muted-foreground/70 size-5"
-                  size={20}
-                  aria-hidden="true"
-                />
-                <span className="max-sm:sr-only">Share</span>
-              </Button>
-              <Button variant="ghost" className="px-2">
-                <RiShareCircleLine
-                  className="text-muted-foreground sm:text-muted-foreground/70 size-5"
-                  size={20}
-                  aria-hidden="true"
-                />
-                <span className="max-sm:sr-only">Export</span>
-              </Button>
-              <SettingsPanelTrigger />
-            </div>
+    <div className="flex-1 w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background flex flex-col">
+      {/* Header */}
+      <div className="py-5 px-4 md:px-6 lg:px-8 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06] shrink-0">
+        <div className="flex items-center justify-between gap-2">
+          <Breadcrumb>
+            <BreadcrumbList className="sm:gap-1.5">
+              <BreadcrumbItem>
+                <BreadcrumbLink href="#">Playground</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Chat</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearChat}
+              className="text-xs"
+            >
+              Clear Chat
+            </Button>
+            <Button variant="outline" size="icon" className="size-8">
+              <RiShareLine
+                className="text-muted-foreground/70"
+                size={16}
+                aria-hidden="true"
+              />
+              <span className="sr-only">Share</span>
+            </Button>
+            <Button variant="outline" size="icon" className="size-8">
+              <RiShareCircleLine
+                className="text-muted-foreground/70"
+                size={16}
+                aria-hidden="true"
+              />
+              <span className="sr-only">Share publicly</span>
+            </Button>
+            <SettingsPanelTrigger />
           </div>
         </div>
-        
-        {/* Chat */}
-        <div className="relative grow">
+      </div>
+
+      {/* Messages - Scrollable area */}
+      <ScrollArea className="flex-1 overflow-y-auto">
+        <div className="px-4 md:px-6 lg:px-8 pb-4">
           <div className="max-w-3xl mx-auto mt-6 space-y-6">
             {messages.length === 0 ? (
               <div className="text-center my-8">
@@ -285,9 +315,14 @@ export default function Chat() {
                 </div>
                 {messages.map((message) => (
                   <ChatMessage key={message.id} isUser={message.isUser}>
-                    <p>{message.content}</p>
+                    {message.isUser ? (
+                      <p>{message.content}</p>
+                    ) : (
+                      <MarkdownResponse content={message.content} />
+                    )}
                   </ChatMessage>
                 ))}
+                
                 {isLoading && (
                   <ChatMessage isUser={false}>
                     <div className="flex items-center gap-2">
@@ -305,89 +340,91 @@ export default function Chat() {
             <div ref={messagesEndRef} aria-hidden="true" />
           </div>
         </div>
-        
-        {/* Footer */}
-        <div className="sticky bottom-0 pt-4 md:pt-8 z-50">
-          <div className="max-w-3xl mx-auto bg-background rounded-[20px] pb-4 md:pb-8">
-            <div className="relative rounded-[20px] border border-transparent bg-muted transition-colors focus-within:bg-muted/50 focus-within:border-input">
-              {uploadedFile && (
-                <div className="px-4 pt-3 pb-2">
-                  <div className="inline-flex items-center gap-3 px-4 py-2.5 rounded-xl border border-slate-700/50 dark:border-slate-600/50 shadow-lg backdrop-blur-sm max-w-full" style={{ backgroundColor: '#262626' }}>
-                    <img
-                      src={getFileIcon(uploadedFile)}
-                      alt={getFileTypeLabel(uploadedFile)}
-                      className="w-8 h-8 object-contain flex-shrink-0"
-                    />
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-white dark:text-slate-100 whitespace-nowrap tracking-wide">
-                        {uploadedFile.name}
-                      </p>
-                      <p className="text-xs text-slate-300 dark:text-slate-400 mt-1 font-medium whitespace-nowrap">
-                        {getFileTypeLabel(uploadedFile)}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 text-slate-300 hover:text-white dark:text-slate-400 dark:hover:text-slate-200 hover:bg-white/10 dark:hover:bg-white/5 rounded-lg transition-all duration-200 border border-transparent hover:border-white/20 dark:hover:border-white/10 flex-shrink-0"
-                      onClick={() => setUploadedFile(null)}
-                    >
-                      <RiCloseLine size={18} />
-                      <span className="sr-only">Remove file</span>
-                    </Button>
-                  </div>
-                </div>
-              )}
-              <textarea
-                ref={textareaRef}
-                className="flex w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-none resize-none overflow-hidden transition-all duration-200"
-                placeholder={uploadedFile ? "What do you want to know?" : "Ask me anything..."}
-                aria-label="Enter your prompt"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                rows={1}
-                style={{ 
-                  height: uploadedFile ? '60px' : '84px',
-                  minHeight: uploadedFile ? '60px' : '84px'
-                }}
-              />
-              {/* Textarea buttons */}
-              <div className="flex items-center justify-between gap-2 p-3">
-                {/* Left buttons */}
-                <div className="flex items-center gap-2">
-                  <TooltipProvider delayDuration={0}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="relative">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className={`rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow] ${uploadedFile ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            onClick={handleFileUpload}
-                            disabled={!!uploadedFile}
-                          >
-                            <RiAttachment2
-                              className="text-muted-foreground/70 size-5"
-                              size={20}
-                              aria-hidden="true"
-                            />
-                            <span className="sr-only">Attach</span>
-                          </Button>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="dark px-2 py-1 text-xs">
-                        <p>{uploadedFile ? 'Only 1 file available to upload' : 'Attach file'}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
-                    onChange={handleFileChange}
-                    className="hidden"
+      </ScrollArea>
+      
+      {/* Fixed Input Area */}
+      <div className="shrink-0 py-6 md:py-12 px-4 md:px-6 lg:px-8 bg-background">
+        <div className="max-w-3xl mx-auto">
+          <div className="relative rounded-[20px] border border-transparent bg-muted transition-colors focus-within:bg-muted/50 focus-within:border-input">
+            {uploadedFile && (
+              <div className="px-4 pt-3 pb-2">
+                <div className="inline-flex items-center gap-3 px-4 py-2.5 rounded-xl border border-slate-700/50 dark:border-slate-600/50 shadow-lg backdrop-blur-sm max-w-full" style={{ backgroundColor: '#262626' }}>
+                  <img
+                    src={getFileIcon(uploadedFile)}
+                    alt={getFileTypeLabel(uploadedFile)}
+                    className="w-8 h-8 object-contain flex-shrink-0"
                   />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white dark:text-slate-100 whitespace-nowrap tracking-wide">
+                      {uploadedFile.name}
+                    </p>
+                    <p className="text-xs text-slate-300 dark:text-slate-400 mt-1 font-medium whitespace-nowrap">
+                      {getFileTypeLabel(uploadedFile)}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-slate-300 hover:text-white dark:text-slate-400 dark:hover:text-slate-200 hover:bg-white/10 dark:hover:bg-white/5 rounded-lg transition-all duration-200 border border-transparent hover:border-white/20 dark:hover:border-white/10 flex-shrink-0"
+                    onClick={() => setUploadedFile(null)}
+                  >
+                    <RiCloseLine size={18} />
+                    <span className="sr-only">Remove file</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+            <textarea
+              ref={textareaRef}
+              className="flex w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-none resize-none overflow-hidden transition-all duration-200"
+              placeholder={uploadedFile ? "What do you want to know?" : "Ask me anything..."}
+              aria-label="Enter your prompt"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              rows={1}
+              style={{ 
+                height: uploadedFile ? '60px' : '84px',
+                minHeight: uploadedFile ? '60px' : '84px'
+              }}
+            />
+            {/* Textarea buttons */}
+            <div className="flex items-center justify-between gap-2 px-4 pb-3">
+              {/* Left buttons */}
+              <div className="flex items-center gap-2">
+                <TooltipProvider delayDuration={0}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="relative">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className={`rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow] ${uploadedFile ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={handleFileUpload}
+                          disabled={!!uploadedFile}
+                        >
+                          <RiAttachment2
+                            className="text-muted-foreground/70 size-5"
+                            size={20}
+                            aria-hidden="true"
+                          />
+                          <span className="sr-only">Attach</span>
+                        </Button>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="dark px-2 py-1 text-xs">
+                      <p>{uploadedFile ? 'Only 1 file available to upload' : 'Attach file'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <TooltipProvider delayDuration={0}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -407,9 +444,11 @@ export default function Chat() {
                       <p>Speech to Text</p>
                     </TooltipContent>
                   </Tooltip>
-                </div>
-                {/* Right buttons */}
-                <div className="flex items-center gap-2">
+                </TooltipProvider>
+              </div>
+              {/* Right buttons */}
+              <div className="flex items-center gap-2">
+                <TooltipProvider delayDuration={0}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="relative">
@@ -438,19 +477,19 @@ export default function Chat() {
                       <p>Enhance Prompt</p>
                     </TooltipContent>
                   </Tooltip>
-                  <Button 
-                    className="rounded-full h-8" 
-                    onClick={handleSendMessage}
-                    disabled={!inputValue.trim() || isLoading}
-                  >
-                    {isLoading ? "Sending..." : "Ask ByeDB"}
-                  </Button>
-                </div>
+                </TooltipProvider>
+                <Button 
+                  className="rounded-full h-8" 
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || isLoading}
+                >
+                  {isLoading ? "Sending..." : "Ask ByeDB"}
+                </Button>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </ScrollArea>
+    </div>
   );
 }

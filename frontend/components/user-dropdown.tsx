@@ -42,14 +42,7 @@ export default function UserDropdown() {
             {userConfig.email}
           </span>
         </DropdownMenuLabel>
-        <DropdownMenuItem className="gap-3 px-1">
-          <RiTimer2Line
-            size={20}
-            className="text-muted-foreground/70"
-            aria-hidden="true"
-          />
-          <span>Dashboard</span>
-        </DropdownMenuItem>
+
         <DropdownMenuItem className="gap-3 px-1">
           <RiUserLine
             size={20}
