@@ -1,5 +1,6 @@
 import os 
-from supabase import create_client, Client
+from supabase._sync.client import create_client
+from supabase._sync.client import SyncClient as Client
 
 class SupabaseClient:
     _instance: Client | None = None
