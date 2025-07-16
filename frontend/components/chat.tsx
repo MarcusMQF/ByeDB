@@ -38,10 +38,37 @@ export default function Chat() {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Auto-resize textarea based on content
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Calculate the minimum height based on whether file is uploaded
+    const minHeight = uploadedFile ? 60 : 84;
+    
+    // Calculate the line height (assuming 1.5 line-height and 15px font size)
+    const lineHeight = 22.5; // 15px * 1.5
+    
+    // Calculate max height (about 8 lines)
+    const maxHeight = Math.max(minHeight, lineHeight * 8);
+    
+    // Set the height based on content, but within min/max bounds
+    const newHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
+    textarea.style.height = `${newHeight}px`;
+  };
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [inputValue, uploadedFile]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -56,6 +83,13 @@ export default function Chat() {
     setMessages(prev => [...prev, userMessage]);
     setInputValue("");
     setIsLoading(true);
+    
+    // Reset textarea height after sending message
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = uploadedFile ? '60px' : '84px';
+      }
+    }, 0);
 
     // Simulate AI response delay
     setTimeout(() => {
@@ -129,6 +163,51 @@ export default function Chat() {
       return 'Excel File';
     }
     return 'Spreadsheet File';
+  };
+
+  const enhancePrompt = async () => {
+    if (!inputValue.trim() || isEnhancing) return;
+    
+    setIsEnhancing(true);
+    
+    try {
+      const response = await fetch('/api/enhance-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: inputValue.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to enhance prompt');
+      }
+
+      const data = await response.json();
+      const enhancedText = data.enhancedPrompt;
+
+      // Clear current input and start typing animation
+      setInputValue("");
+      
+      // Typing animation effect
+      let currentIndex = 0;
+      const typingInterval = setInterval(() => {
+        if (currentIndex < enhancedText.length) {
+          setInputValue(enhancedText.substring(0, currentIndex + 1));
+          currentIndex++;
+        } else {
+          clearInterval(typingInterval);
+          setIsEnhancing(false);
+        }
+      }, 30); // Adjust speed as needed (30ms per character)
+
+    } catch (error) {
+      console.error('Error enhancing prompt:', error);
+      setIsEnhancing(false);
+      // Optionally show error message to user
+    }
   };
 
   return (
@@ -261,12 +340,17 @@ export default function Chat() {
               )}
               <textarea
                 ref={textareaRef}
-                className={`flex w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-none [resize:none] ${uploadedFile ? 'min-h-[60px]' : 'sm:min-h-[84px]'}`}
+                className="flex w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-none resize-none overflow-hidden transition-all duration-200"
                 placeholder={uploadedFile ? "What do you want to know?" : "Ask me anything..."}
                 aria-label="Enter your prompt"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
+                rows={1}
+                style={{ 
+                  height: uploadedFile ? '60px' : '84px',
+                  minHeight: uploadedFile ? '60px' : '84px'
+                }}
               />
               {/* Textarea buttons */}
               <div className="flex items-center justify-between gap-2 p-3">
@@ -331,12 +415,16 @@ export default function Chat() {
                       <Button
                         variant="outline"
                         size="icon"
-                        className="rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow]"
+                        className={`rounded-full size-8 border-none transition-[box-shadow] ${!inputValue.trim() || isEnhancing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-background hover:shadow-md'}`}
+                        disabled={!inputValue.trim() || isEnhancing}
+                        onDoubleClick={(e) => e.preventDefault()}
+                        onClick={enhancePrompt}
                       >
                         <img
-                          src="/gemini.png"
-                          alt="Gemini"
-                          className="w-5 h-5 object-contain"
+                          src={inputValue.trim() && !isEnhancing ? "/gemini.png" : "/gemini-disabled.png"}
+                          alt={inputValue.trim() && !isEnhancing ? "Gemini" : ""}
+                          className="w-5 h-5 object-contain select-none"
+                          draggable={false}
                         />
                         <span className="sr-only">Generate</span>
                       </Button>
