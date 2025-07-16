@@ -34,7 +34,7 @@ export function ChatMessage({ isUser, children }: ChatMessageProps) {
             ? userConfig.avatar
             : "/chat.png"
         }
-        alt={isUser ? "User profile" : "Bart logo"}
+        alt={isUser ? "User profile" : "ByeDB logo"}
         width={40}
         height={40}
       />
@@ -42,7 +42,7 @@ export function ChatMessage({ isUser, children }: ChatMessageProps) {
         className={cn(isUser ? "bg-muted px-4 py-3 rounded-xl" : "space-y-4")}
       >
         <div className="flex flex-col gap-3">
-          <p className="sr-only">{isUser ? "You" : "Bart"} said:</p>
+          <p className="sr-only">{isUser ? "You" : "ByeDB"} said:</p>
           {children}
         </div>
         {!isUser && <MessageActions />}
