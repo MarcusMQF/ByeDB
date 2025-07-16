@@ -28,13 +28,13 @@ export function ChatMessage({ isUser, children }: ChatMessageProps) {
     >
       <img
         className={cn(
-          "rounded-full",
+          "rounded-full w-10 h-10 object-cover flex-shrink-0",
           isUser ? "order-1" : "border border-black/[0.08] shadow-sm",
         )}
         src={
           isUser
             ? userConfig.avatar
-            : "https://raw.githubusercontent.com/origin-space/origin-images/refs/heads/main/exp2/user-01_i5l7tp.png"
+            : "/chat.png"
         }
         alt={isUser ? "User profile" : "Bart logo"}
         width={40}

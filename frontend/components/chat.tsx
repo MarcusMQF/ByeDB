@@ -21,14 +21,64 @@ import {
   RiLeafLine,
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
+
+type Message = {
+  id: string;
+  content: string;
+  isUser: boolean;
+  timestamp: Date;
+};
 
 export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView();
-  }, []);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: inputValue.trim(),
+      isUser: true,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue("");
+    setIsLoading(true);
+
+    // Simulate AI response delay
+    setTimeout(() => {
+      const aiResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        content: "How can I help you?",
+        isUser: false,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, aiResponse]);
+      setIsLoading(false);
+    }, 1000);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleClearChat = () => {
+    setMessages([]);
+  };
 
   return (
     <ScrollArea className="flex-1 [&>div>div]:h-full w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background">
@@ -48,13 +98,13 @@ export default function Chat() {
               </BreadcrumbList>
             </Breadcrumb>
             <div className="flex items-center gap-1 -my-2 -me-2">
-              <Button variant="ghost" className="px-2">
+              <Button variant="ghost" className="px-2" onClick={handleClearChat}>
                 <RiCodeSSlashLine
                   className="text-muted-foreground sm:text-muted-foreground/70 size-5"
                   size={20}
                   aria-hidden="true"
                 />
-                <span className="max-sm:sr-only">Code</span>
+                <span className="max-sm:sr-only">Clear</span>
               </Button>
               <Button variant="ghost" className="px-2">
                 <RiShareLine
@@ -76,46 +126,69 @@ export default function Chat() {
             </div>
           </div>
         </div>
+        
         {/* Chat */}
         <div className="relative grow">
           <div className="max-w-3xl mx-auto mt-6 space-y-6">
-            <div className="text-center my-8">
-              <div className="inline-flex items-center bg-white rounded-full border border-black/[0.08] shadow-xs text-xs font-medium py-1 px-3 text-foreground/80">
-                <RiShining2Line
-                  className="me-1.5 text-muted-foreground/70 -ms-1"
-                  size={14}
-                  aria-hidden="true"
-                />
-                Today
+            {messages.length === 0 ? (
+              <div className="text-center my-8">
+                <div className="inline-flex items-center bg-white rounded-full border border-black/[0.08] shadow-xs text-xs font-medium py-1 px-3 text-foreground/80">
+                  <RiShining2Line
+                    className="me-1.5 text-muted-foreground/70 -ms-1"
+                    size={14}
+                    aria-hidden="true"
+                  />
+                  Start a conversation
+                </div>
               </div>
-            </div>
-            <ChatMessage isUser>
-              <p>Hey Bolt, can you tell me more about AI Agents?</p>
-            </ChatMessage>
-            <ChatMessage>
-              <p>
-                AI agents are software that perceive their environment and act
-                autonomously to achieve goals, making decisions, learning, and
-                interacting. For example, an AI agent might schedule meetings by
-                resolving conflicts, contacting participants, and finding
-                optimal times—all without constant supervision.
-              </p>
-              <p>Let me know if you&lsquo;d like more details!</p>
-            </ChatMessage>
-            <ChatMessage isUser>
-              <p>All clear, thank you!</p>
-            </ChatMessage>
+            ) : (
+              <>
+                <div className="text-center my-8">
+                  <div className="inline-flex items-center bg-white rounded-full border border-black/[0.08] shadow-xs text-xs font-medium py-1 px-3 text-foreground/80">
+                    <RiShining2Line
+                      className="me-1.5 text-muted-foreground/70 -ms-1"
+                      size={14}
+                      aria-hidden="true"
+                    />
+                    Today
+                  </div>
+                </div>
+                {messages.map((message) => (
+                  <ChatMessage key={message.id} isUser={message.isUser}>
+                    <p>{message.content}</p>
+                  </ChatMessage>
+                ))}
+                {isLoading && (
+                  <ChatMessage isUser={false}>
+                    <div className="flex items-center gap-2">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                        <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"></div>
+                      </div>
+                      <span className="text-muted-foreground/70">Thinking...</span>
+                    </div>
+                  </ChatMessage>
+                )}
+              </>
+            )}
             <div ref={messagesEndRef} aria-hidden="true" />
           </div>
         </div>
+        
         {/* Footer */}
         <div className="sticky bottom-0 pt-4 md:pt-8 z-50">
           <div className="max-w-3xl mx-auto bg-background rounded-[20px] pb-4 md:pb-8">
             <div className="relative rounded-[20px] border border-transparent bg-muted transition-colors focus-within:bg-muted/50 focus-within:border-input has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 [&:has(input:is(:disabled))_*]:pointer-events-none">
               <textarea
+                ref={textareaRef}
                 className="flex sm:min-h-[84px] w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-none [resize:none]"
                 placeholder="Ask me anything..."
                 aria-label="Enter your prompt"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isLoading}
               />
               {/* Textarea buttons */}
               <div className="flex items-center justify-between gap-2 p-3">
@@ -201,7 +274,13 @@ export default function Chat() {
                     </svg>
                     <span className="sr-only">Generate</span>
                   </Button>
-                  <Button className="rounded-full h-8">Ask Bart</Button>
+                  <Button 
+                    className="rounded-full h-8" 
+                    onClick={handleSendMessage}
+                    disabled={!inputValue.trim() || isLoading}
+                  >
+                    {isLoading ? "Sending..." : "Ask Bart"}
+                  </Button>
                 </div>
               </div>
             </div>
