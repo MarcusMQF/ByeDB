@@ -8,7 +8,16 @@ const nextConfig = {
         hostname: 'raw.githubusercontent.com',
       },
     ],    
-  },  
+  },
+  // Disable all development indicators and overlays
+  devIndicators: {
+    buildActivity: false,
+    buildActivityPosition: 'bottom-right',
+  },
+  // Disable development overlay completely
+  experimental: {
+    disableOptimizedLoading: true,
+  },
 }
 
 export default nextConfig

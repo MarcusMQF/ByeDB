@@ -1,5 +1,6 @@
 import os
 from azure.ai.inference import ChatCompletionsClient
+from azure.ai.inference.models import SystemMessage, UserMessage
 from azure.core.credentials import AzureKeyCredential
 import dotenv
 
@@ -11,6 +12,9 @@ endpoint = os.getenv("AZURE_INFERENCE_ENDPOINT", "https://models.github.ai/infer
 model_name = os.getenv("MODEL_NAME", "deepseek/DeepSeek-R1")
 token = os.getenv("AZURE_INFERENCE_KEY")
 
+if not token:
+    raise ValueError("AZURE_INFERENCE_KEY must be set in environment variables")
+
 # Initialize client
 client = ChatCompletionsClient(
     endpoint=endpoint,
@@ -20,7 +24,7 @@ client = ChatCompletionsClient(
 def response(prompt):
     try:
         response = client.complete(
-            messages=[{"role": "user", "content": prompt}],
+            messages=[UserMessage(content=prompt)],
             max_tokens=1000,
             model=model_name,
             temperature=0.3

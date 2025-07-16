@@ -117,9 +117,77 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: var(--color-border);
+    outline-color: color-mix(in srgb, var(--color-ring) 50%, transparent);
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
   }
+}
+
+/* Hide Next.js development indicators and floating buttons */
+#__next-build-watcher,
+.__next-dev-overlay,
+.__next-dev-overlay-backdrop,
+[data-nextjs-toast-errors],
+[data-nextjs-dialog-overlay],
+[data-nextjs-scroll-focus-boundary],
+.__next-dev-overlay-backdrop,
+.__next-dev-overlay-overlay,
+.__next-dev-overlay-content,
+.__next-dev-overlay-footer,
+.__next-dev-overlay-header,
+.__next-dev-overlay-left-half,
+.__next-dev-overlay-right-half,
+.__next-dev-overlay-middle,
+.__next-dev-overlay-tab,
+.__next-dev-overlay-tab-content,
+.__next-dev-overlay-tab-body,
+.__next-dev-overlay-tab-active,
+.__next-dev-overlay-tab-inactive,
+.__next-dev-overlay-tab-disabled,
+.__next-dev-overlay-tab-button,
+.__next-dev-overlay-tab-button-active,
+.__next-dev-overlay-tab-button-inactive,
+.__next-dev-overlay-tab-button-disabled,
+.__next-dev-overlay-tab-button-text,
+.__next-dev-overlay-tab-button-icon,
+.__next-dev-overlay-tab-button-icon-active,
+.__next-dev-overlay-tab-button-icon-inactive,
+.__next-dev-overlay-tab-button-icon-disabled,
+#__next-dev-overlay-refresh-button,
+#__next-dev-overlay-close-button,
+.__next-dev-overlay-refresh-button,
+.__next-dev-overlay-close-button,
+[data-nextjs-dev-overlay],
+[data-nextjs-dev-overlay-backdrop],
+[data-nextjs-dev-overlay-content],
+[data-nextjs-dev-overlay-footer],
+[data-nextjs-dev-overlay-header],
+[data-nextjs-dev-overlay-left-half],
+[data-nextjs-dev-overlay-right-half],
+[data-nextjs-dev-overlay-middle],
+[data-nextjs-dev-overlay-tab],
+[data-nextjs-dev-overlay-tab-content],
+[data-nextjs-dev-overlay-tab-body],
+[data-nextjs-dev-overlay-tab-active],
+[data-nextjs-dev-overlay-tab-inactive],
+[data-nextjs-dev-overlay-tab-disabled],
+[data-nextjs-dev-overlay-tab-button],
+[data-nextjs-dev-overlay-tab-button-active],
+[data-nextjs-dev-overlay-tab-button-inactive],
+[data-nextjs-dev-overlay-tab-button-disabled],
+[data-nextjs-dev-overlay-tab-button-text],
+[data-nextjs-dev-overlay-tab-button-icon],
+[data-nextjs-dev-overlay-tab-button-icon-active],
+[data-nextjs-dev-overlay-tab-button-icon-inactive],
+[data-nextjs-dev-overlay-tab-button-icon-disabled],
+[data-nextjs-dev-overlay-refresh-button],
+[data-nextjs-dev-overlay-close-button] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -9999 !important;
 }

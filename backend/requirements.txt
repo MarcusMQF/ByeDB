@@ -1,0 +1,8 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+supabase==2.3.4
+azure-ai-inference==1.0.0b4
+azure-core>=1.30.0
+python-dotenv==1.0.0
+python-multipart==0.0.6
+pydantic==2.5.0 

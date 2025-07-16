@@ -12,23 +12,203 @@ import {
 import { Button } from "@/components/button";
 import { ScrollArea } from "@/components/scroll-area";
 import {
-  RiCodeSSlashLine,
+  RiCloseLine,
   RiShareLine,
   RiShareCircleLine,
   RiShining2Line,
   RiAttachment2,
   RiMicLine,
-  RiLeafLine,
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/tooltip";
+
+type Message = {
+  id: string;
+  content: string;
+  isUser: boolean;
+  timestamp: Date;
+};
 
 export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView();
-  }, []);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Auto-resize textarea based on content
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Calculate the minimum height based on whether file is uploaded
+    const minHeight = uploadedFile ? 60 : 84;
+    
+    // Calculate the line height (assuming 1.5 line-height and 15px font size)
+    const lineHeight = 22.5; // 15px * 1.5
+    
+    // Calculate max height (about 8 lines)
+    const maxHeight = Math.max(minHeight, lineHeight * 8);
+    
+    // Set the height based on content, but within min/max bounds
+    const newHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
+    textarea.style.height = `${newHeight}px`;
+  };
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [inputValue, uploadedFile]);
+
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: inputValue.trim(),
+      isUser: true,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue("");
+    setIsLoading(true);
+    
+    // Reset textarea height after sending message
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = uploadedFile ? '60px' : '84px';
+      }
+    }, 0);
+
+    // Simulate AI response delay
+    setTimeout(() => {
+      const aiResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        content: "How can I help you?",
+        isUser: false,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, aiResponse]);
+      setIsLoading(false);
+    }, 1000);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleClearChat = () => {
+    setMessages([]);
+  };
+
+  const handleFileUpload = () => {
+    if (uploadedFile) return; // Don't allow upload if file already exists
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    const allowedTypes = [
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+    const allowedExtensions = ['.csv', '.xls', '.xlsx'];
+    
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+      alert('Only CSV and Excel files are allowed.');
+      return;
+    }
+
+    setUploadedFile(file);
+    // Clear the input value so the same file can be selected again if needed
+    event.target.value = '';
+  };
+
+  const getFileIcon = (file: File) => {
+    const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    if (extension === '.csv') {
+      return '/csv-file.png';
+    } else if (extension === '.xls' || extension === '.xlsx') {
+      return '/xlsx-file.png';
+    }
+    return '/csv-file.png'; // fallback
+  };
+
+  const getFileTypeLabel = (file: File) => {
+    const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    if (extension === '.csv') {
+      return 'CSV File';
+    } else if (extension === '.xls' || extension === '.xlsx') {
+      return 'Excel File';
+    }
+    return 'Spreadsheet File';
+  };
+
+  const enhancePrompt = async () => {
+    if (!inputValue.trim() || isEnhancing) return;
+    
+    setIsEnhancing(true);
+    
+    try {
+      const response = await fetch('/api/enhance-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: inputValue.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to enhance prompt');
+      }
+
+      const data = await response.json();
+      const enhancedText = data.enhancedPrompt;
+
+      // Clear current input and start typing animation
+      setInputValue("");
+      
+      // Typing animation effect
+      let currentIndex = 0;
+      const typingInterval = setInterval(() => {
+        if (currentIndex < enhancedText.length) {
+          setInputValue(enhancedText.substring(0, currentIndex + 1));
+          currentIndex++;
+        } else {
+          clearInterval(typingInterval);
+          setIsEnhancing(false);
+        }
+      }, 30); // Adjust speed as needed (30ms per character)
+
+    } catch (error) {
+      console.error('Error enhancing prompt:', error);
+      setIsEnhancing(false);
+      // Optionally show error message to user
+    }
+  };
 
   return (
     <ScrollArea className="flex-1 [&>div>div]:h-full w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background">
@@ -48,13 +228,13 @@ export default function Chat() {
               </BreadcrumbList>
             </Breadcrumb>
             <div className="flex items-center gap-1 -my-2 -me-2">
-              <Button variant="ghost" className="px-2">
-                <RiCodeSSlashLine
+              <Button variant="ghost" className="px-2" onClick={handleClearChat}>
+                <RiCloseLine
                   className="text-muted-foreground sm:text-muted-foreground/70 size-5"
                   size={20}
                   aria-hidden="true"
                 />
-                <span className="max-sm:sr-only">Code</span>
+                <span className="max-sm:sr-only">Clear</span>
               </Button>
               <Button variant="ghost" className="px-2">
                 <RiShareLine
@@ -76,132 +256,195 @@ export default function Chat() {
             </div>
           </div>
         </div>
+        
         {/* Chat */}
         <div className="relative grow">
           <div className="max-w-3xl mx-auto mt-6 space-y-6">
-            <div className="text-center my-8">
-              <div className="inline-flex items-center bg-white rounded-full border border-black/[0.08] shadow-xs text-xs font-medium py-1 px-3 text-foreground/80">
-                <RiShining2Line
-                  className="me-1.5 text-muted-foreground/70 -ms-1"
-                  size={14}
-                  aria-hidden="true"
-                />
-                Today
+            {messages.length === 0 ? (
+              <div className="text-center my-8">
+                <div className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-full border border-blue-200/60 dark:border-blue-800/40 shadow-sm text-xs font-medium py-1.5 px-3 text-blue-700 dark:text-blue-300">
+                  <RiShining2Line
+                    className="me-1.5 text-blue-600 dark:text-blue-400 animate-pulse"
+                    size={14}
+                    aria-hidden="true"
+                  />
+                  Start a conversation
+                </div>
               </div>
-            </div>
-            <ChatMessage isUser>
-              <p>Hey Bolt, can you tell me more about AI Agents?</p>
-            </ChatMessage>
-            <ChatMessage>
-              <p>
-                AI agents are software that perceive their environment and act
-                autonomously to achieve goals, making decisions, learning, and
-                interacting. For example, an AI agent might schedule meetings by
-                resolving conflicts, contacting participants, and finding
-                optimal times—all without constant supervision.
-              </p>
-              <p>Let me know if you&lsquo;d like more details!</p>
-            </ChatMessage>
-            <ChatMessage isUser>
-              <p>All clear, thank you!</p>
-            </ChatMessage>
+            ) : (
+              <>
+                <div className="text-center my-8">
+                  <div className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-full border border-blue-200/60 dark:border-blue-800/40 shadow-sm text-xs font-medium py-1.5 px-3 text-blue-700 dark:text-blue-300">
+                    <RiShining2Line
+                      className="me-1.5 text-blue-600 dark:text-blue-400 animate-pulse"
+                      size={14}
+                      aria-hidden="true"
+                    />
+                    Today
+                  </div>
+                </div>
+                {messages.map((message) => (
+                  <ChatMessage key={message.id} isUser={message.isUser}>
+                    <p>{message.content}</p>
+                  </ChatMessage>
+                ))}
+                {isLoading && (
+                  <ChatMessage isUser={false}>
+                    <div className="flex items-center gap-2">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                        <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"></div>
+                      </div>
+                      <span className="text-muted-foreground/70">Thinking...</span>
+                    </div>
+                  </ChatMessage>
+                )}
+              </>
+            )}
             <div ref={messagesEndRef} aria-hidden="true" />
           </div>
         </div>
+        
         {/* Footer */}
         <div className="sticky bottom-0 pt-4 md:pt-8 z-50">
           <div className="max-w-3xl mx-auto bg-background rounded-[20px] pb-4 md:pb-8">
-            <div className="relative rounded-[20px] border border-transparent bg-muted transition-colors focus-within:bg-muted/50 focus-within:border-input has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 [&:has(input:is(:disabled))_*]:pointer-events-none">
+            <div className="relative rounded-[20px] border border-transparent bg-muted transition-colors focus-within:bg-muted/50 focus-within:border-input">
+              {uploadedFile && (
+                <div className="px-4 pt-3 pb-2">
+                  <div className="inline-flex items-center gap-3 px-4 py-2.5 rounded-xl border border-slate-700/50 dark:border-slate-600/50 shadow-lg backdrop-blur-sm max-w-full" style={{ backgroundColor: '#262626' }}>
+                    <img
+                      src={getFileIcon(uploadedFile)}
+                      alt={getFileTypeLabel(uploadedFile)}
+                      className="w-8 h-8 object-contain flex-shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white dark:text-slate-100 whitespace-nowrap tracking-wide">
+                        {uploadedFile.name}
+                      </p>
+                      <p className="text-xs text-slate-300 dark:text-slate-400 mt-1 font-medium whitespace-nowrap">
+                        {getFileTypeLabel(uploadedFile)}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 text-slate-300 hover:text-white dark:text-slate-400 dark:hover:text-slate-200 hover:bg-white/10 dark:hover:bg-white/5 rounded-lg transition-all duration-200 border border-transparent hover:border-white/20 dark:hover:border-white/10 flex-shrink-0"
+                      onClick={() => setUploadedFile(null)}
+                    >
+                      <RiCloseLine size={18} />
+                      <span className="sr-only">Remove file</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
               <textarea
-                className="flex sm:min-h-[84px] w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-none [resize:none]"
-                placeholder="Ask me anything..."
+                ref={textareaRef}
+                className="flex w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-none resize-none overflow-hidden transition-all duration-200"
+                placeholder={uploadedFile ? "What do you want to know?" : "Ask me anything..."}
                 aria-label="Enter your prompt"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                rows={1}
+                style={{ 
+                  height: uploadedFile ? '60px' : '84px',
+                  minHeight: uploadedFile ? '60px' : '84px'
+                }}
               />
               {/* Textarea buttons */}
               <div className="flex items-center justify-between gap-2 p-3">
                 {/* Left buttons */}
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow]"
-                  >
-                    <RiAttachment2
-                      className="text-muted-foreground/70 size-5"
-                      size={20}
-                      aria-hidden="true"
-                    />
-                    <span className="sr-only">Attach</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow]"
-                  >
-                    <RiMicLine
-                      className="text-muted-foreground/70 size-5"
-                      size={20}
-                      aria-hidden="true"
-                    />
-                    <span className="sr-only">Audio</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow]"
-                  >
-                    <RiLeafLine
-                      className="text-muted-foreground/70 size-5"
-                      size={20}
-                      aria-hidden="true"
-                    />
-                    <span className="sr-only">Action</span>
-                  </Button>
+                  <TooltipProvider delayDuration={0}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="relative">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className={`rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow] ${uploadedFile ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onClick={handleFileUpload}
+                            disabled={!!uploadedFile}
+                          >
+                            <RiAttachment2
+                              className="text-muted-foreground/70 size-5"
+                              size={20}
+                              aria-hidden="true"
+                            />
+                            <span className="sr-only">Attach</span>
+                          </Button>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="dark px-2 py-1 text-xs">
+                        <p>{uploadedFile ? 'Only 1 file available to upload' : 'Attach file'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow]"
+                      >
+                        <RiMicLine
+                          className="text-muted-foreground/70 size-5"
+                          size={20}
+                          aria-hidden="true"
+                        />
+                        <span className="sr-only">Audio</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="dark px-2 py-1 text-xs">
+                      <p>Speech to Text</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 {/* Right buttons */}
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow]"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      fill="none"
-                    >
-                      <g clipPath="url(#icon-a)">
-                        <path
-                          fill="url(#icon-b)"
-                          d="m8 .333 2.667 5 5 2.667-5 2.667-2.667 5-2.667-5L.333 8l5-2.667L8 .333Z"
-                        />
-                        <path
-                          stroke="#451A03"
-                          strokeOpacity=".04"
-                          d="m8 1.396 2.225 4.173.072.134.134.071L14.604 8l-4.173 2.226-.134.071-.072.134L8 14.604l-2.226-4.173-.071-.134-.134-.072L1.396 8l4.173-2.226.134-.071.071-.134L8 1.396Z"
-                        />
-                      </g>
-                      <defs>
-                        <linearGradient
-                          id="icon-b"
-                          x1="8"
-                          x2="8"
-                          y1=".333"
-                          y2="15.667"
-                          gradientUnits="userSpaceOnUse"
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="relative">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className={`rounded-full size-8 border-none transition-[box-shadow] ${!inputValue.trim() || isEnhancing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-background hover:shadow-md'}`}
+                          disabled={!inputValue.trim() || isEnhancing}
+                          onDoubleClick={(e) => e.preventDefault()}
+                          onClick={enhancePrompt}
                         >
-                          <stop stopColor="#FDE68A" />
-                          <stop offset="1" stopColor="#F59E0B" />
-                        </linearGradient>
-                        <clipPath id="icon-a">
-                          <path fill="#fff" d="M0 0h16v16H0z" />
-                        </clipPath>
-                      </defs>
-                    </svg>
-                    <span className="sr-only">Generate</span>
+                          <img
+                            src={inputValue.trim() && !isEnhancing ? "/gemini.png" : "/gemini-disabled.png"}
+                            alt={inputValue.trim() && !isEnhancing ? "Gemini" : ""}
+                            className="w-5 h-5 object-contain select-none"
+                            draggable={false}
+                          />
+                          <span className="sr-only">Generate</span>
+                        </Button>
+                        {isEnhancing && (
+                          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin pointer-events-none"></div>
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="dark px-2 py-1 text-xs">
+                      <p>Enhance Prompt</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Button 
+                    className="rounded-full h-8" 
+                    onClick={handleSendMessage}
+                    disabled={!inputValue.trim() || isLoading}
+                  >
+                    {isLoading ? "Sending..." : "Ask ByeDB"}
                   </Button>
-                  <Button className="rounded-full h-8">Ask Bart</Button>
                 </div>
               </div>
             </div>

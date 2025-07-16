@@ -5,6 +5,8 @@ from typing import Dict, List, Any, Optional
 
 # Load environment variables
 load_dotenv()
+from supabase._sync.client import create_client
+from supabase._sync.client import SyncClient as Client
 
 class SupabaseClient:
     _instance: 'SupabaseClient' = None
