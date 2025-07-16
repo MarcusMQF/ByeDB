@@ -7,10 +7,8 @@ import {
   TooltipTrigger,
 } from "@/components/tooltip";
 import {
-  RiCodeSSlashLine,
-  RiBookLine,
   RiLoopRightFill,
-  RiCheckLine,
+  RiFileCopyLine,
 } from "@remixicon/react";
 
 type ChatMessageProps = {
@@ -78,10 +76,8 @@ function MessageActions() {
   return (
     <div className="relative inline-flex bg-white rounded-md border border-black/[0.08] shadow-sm -space-x-px">
       <TooltipProvider delayDuration={0}>
-        <ActionButton icon={<RiCodeSSlashLine size={16} />} label="Show code" />
-        <ActionButton icon={<RiBookLine size={16} />} label="Bookmark" />
         <ActionButton icon={<RiLoopRightFill size={16} />} label="Refresh" />
-        <ActionButton icon={<RiCheckLine size={16} />} label="Approve" />
+        <ActionButton icon={<RiFileCopyLine size={16} />} label="Copy" />
       </TooltipProvider>
     </div>
   );

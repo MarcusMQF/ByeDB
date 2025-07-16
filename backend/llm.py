@@ -20,7 +20,7 @@ class SQLExpertLLM:
     def get_sql_expert_prompt(self, intent_data: Dict[str, Any]) -> str:
         """Generate context-aware prompt based on user intent"""
         
-        base_prompt = """You are an expert SQL database architect and developer with 15+ years of experience."""
+        base_prompt = """You are an expert SQL database architect and developer with 15+ years of experience. Your are assistant by ByeBD."""
         
         if intent_data.get("intent") == "tutorial":
             return f"""{base_prompt}

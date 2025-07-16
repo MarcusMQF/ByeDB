@@ -216,7 +216,7 @@ export default function Chat() {
       }
 
       const data = await response.json();
-      const enhancedText = data.enhancedPrompt;
+      const enhancedText = data.enhancedPrompt.replace(/\s+/g, ' ').trim();
 
       // Clear current input and start typing animation
       setInputValue("");

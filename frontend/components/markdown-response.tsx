@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Button } from './button';
 import { RiFileCopyLine, RiCheckLine } from '@remixicon/react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 
 interface MarkdownResponseProps {
   content: string;
@@ -28,35 +27,26 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language = 'sql' }) => {
   };
 
   return (
-    <div className="relative my-4 rounded-lg border bg-slate-50 dark:bg-slate-900 dark:border-slate-700">
+    <div className="relative my-2 rounded-lg border bg-slate-50 dark:bg-slate-900 dark:border-slate-700">
       <div className="flex items-center justify-between px-4 py-2 border-b dark:border-slate-700">
         <span className="text-sm font-medium text-slate-600 dark:text-slate-400 uppercase">
           {language}
         </span>
-        <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={copyToClipboard}
-                className="h-8 px-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-              >
-                {copied ? (
-                  <RiCheckLine size={16} className="text-green-600" />
-                ) : (
-                  <RiFileCopyLine size={16} />
-                )}
-                <span className="ml-1 text-xs">
-                  {copied ? 'Copied!' : 'Copy'}
-                </span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="dark px-2 py-1 text-xs">
-              <p>{copied ? 'Copied to clipboard!' : 'Copy code'}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={copyToClipboard}
+          className="h-8 px-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+        >
+          {copied ? (
+            <RiCheckLine size={16} className="text-green-600" />
+          ) : (
+            <RiFileCopyLine size={16} />
+          )}
+          <span className="ml-1 text-xs">
+            {copied ? 'Copied!' : 'Copy'}
+          </span>
+        </Button>
       </div>
       <pre className="p-4 overflow-x-auto text-sm">
         <code className="text-slate-800 dark:text-slate-200 font-mono">
