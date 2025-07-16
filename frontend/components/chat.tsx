@@ -12,16 +12,16 @@ import {
 import { Button } from "@/components/button";
 import { ScrollArea } from "@/components/scroll-area";
 import {
-  RiCodeSSlashLine,
+  RiCloseLine,
   RiShareLine,
   RiShareCircleLine,
   RiShining2Line,
   RiAttachment2,
   RiMicLine,
-  RiLeafLine,
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
 import { useRef, useEffect, useState } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/tooltip";
 
 type Message = {
   id: string;
@@ -33,9 +33,11 @@ type Message = {
 export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -80,6 +82,55 @@ export default function Chat() {
     setMessages([]);
   };
 
+  const handleFileUpload = () => {
+    if (uploadedFile) return; // Don't allow upload if file already exists
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    const allowedTypes = [
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+    const allowedExtensions = ['.csv', '.xls', '.xlsx'];
+    
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+      alert('Only CSV and Excel files are allowed.');
+      return;
+    }
+
+    setUploadedFile(file);
+    // Clear the input value so the same file can be selected again if needed
+    event.target.value = '';
+  };
+
+  const getFileIcon = (file: File) => {
+    const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    if (extension === '.csv') {
+      return '/csv-file.png';
+    } else if (extension === '.xls' || extension === '.xlsx') {
+      return '/xlsx-file.png';
+    }
+    return '/csv-file.png'; // fallback
+  };
+
+  const getFileTypeLabel = (file: File) => {
+    const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    if (extension === '.csv') {
+      return 'CSV File';
+    } else if (extension === '.xls' || extension === '.xlsx') {
+      return 'Excel File';
+    }
+    return 'Spreadsheet File';
+  };
+
   return (
     <ScrollArea className="flex-1 [&>div>div]:h-full w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background">
       <div className="h-full flex flex-col px-4 md:px-6 lg:px-8">
@@ -99,7 +150,7 @@ export default function Chat() {
             </Breadcrumb>
             <div className="flex items-center gap-1 -my-2 -me-2">
               <Button variant="ghost" className="px-2" onClick={handleClearChat}>
-                <RiCodeSSlashLine
+                <RiCloseLine
                   className="text-muted-foreground sm:text-muted-foreground/70 size-5"
                   size={20}
                   aria-hidden="true"
@@ -132,9 +183,9 @@ export default function Chat() {
           <div className="max-w-3xl mx-auto mt-6 space-y-6">
             {messages.length === 0 ? (
               <div className="text-center my-8">
-                <div className="inline-flex items-center bg-white rounded-full border border-black/[0.08] shadow-xs text-xs font-medium py-1 px-3 text-foreground/80">
+                <div className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-full border border-blue-200/60 dark:border-blue-800/40 shadow-sm text-xs font-medium py-1.5 px-3 text-blue-700 dark:text-blue-300">
                   <RiShining2Line
-                    className="me-1.5 text-muted-foreground/70 -ms-1"
+                    className="me-1.5 text-blue-600 dark:text-blue-400 animate-pulse"
                     size={14}
                     aria-hidden="true"
                   />
@@ -144,9 +195,9 @@ export default function Chat() {
             ) : (
               <>
                 <div className="text-center my-8">
-                  <div className="inline-flex items-center bg-white rounded-full border border-black/[0.08] shadow-xs text-xs font-medium py-1 px-3 text-foreground/80">
+                  <div className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-full border border-blue-200/60 dark:border-blue-800/40 shadow-sm text-xs font-medium py-1.5 px-3 text-blue-700 dark:text-blue-300">
                     <RiShining2Line
-                      className="me-1.5 text-muted-foreground/70 -ms-1"
+                      className="me-1.5 text-blue-600 dark:text-blue-400 animate-pulse"
                       size={14}
                       aria-hidden="true"
                     />
@@ -179,107 +230,127 @@ export default function Chat() {
         {/* Footer */}
         <div className="sticky bottom-0 pt-4 md:pt-8 z-50">
           <div className="max-w-3xl mx-auto bg-background rounded-[20px] pb-4 md:pb-8">
-            <div className="relative rounded-[20px] border border-transparent bg-muted transition-colors focus-within:bg-muted/50 focus-within:border-input has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 [&:has(input:is(:disabled))_*]:pointer-events-none">
+            <div className="relative rounded-[20px] border border-transparent bg-muted transition-colors focus-within:bg-muted/50 focus-within:border-input">
+              {uploadedFile && (
+                <div className="px-4 pt-3 pb-2">
+                  <div className="inline-flex items-center gap-3 px-4 py-2.5 rounded-xl border border-slate-700/50 dark:border-slate-600/50 shadow-lg backdrop-blur-sm max-w-full" style={{ backgroundColor: '#262626' }}>
+                    <img
+                      src={getFileIcon(uploadedFile)}
+                      alt={getFileTypeLabel(uploadedFile)}
+                      className="w-8 h-8 object-contain flex-shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white dark:text-slate-100 whitespace-nowrap tracking-wide">
+                        {uploadedFile.name}
+                      </p>
+                      <p className="text-xs text-slate-300 dark:text-slate-400 mt-1 font-medium whitespace-nowrap">
+                        {getFileTypeLabel(uploadedFile)}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 text-slate-300 hover:text-white dark:text-slate-400 dark:hover:text-slate-200 hover:bg-white/10 dark:hover:bg-white/5 rounded-lg transition-all duration-200 border border-transparent hover:border-white/20 dark:hover:border-white/10 flex-shrink-0"
+                      onClick={() => setUploadedFile(null)}
+                    >
+                      <RiCloseLine size={18} />
+                      <span className="sr-only">Remove file</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
               <textarea
                 ref={textareaRef}
-                className="flex sm:min-h-[84px] w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-none [resize:none]"
-                placeholder="Ask me anything..."
+                className={`flex w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-none [resize:none] ${uploadedFile ? 'min-h-[60px]' : 'sm:min-h-[84px]'}`}
+                placeholder={uploadedFile ? "What do you want to know?" : "Ask me anything..."}
                 aria-label="Enter your prompt"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                disabled={isLoading}
               />
               {/* Textarea buttons */}
               <div className="flex items-center justify-between gap-2 p-3">
                 {/* Left buttons */}
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow]"
-                  >
-                    <RiAttachment2
-                      className="text-muted-foreground/70 size-5"
-                      size={20}
-                      aria-hidden="true"
-                    />
-                    <span className="sr-only">Attach</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow]"
-                  >
-                    <RiMicLine
-                      className="text-muted-foreground/70 size-5"
-                      size={20}
-                      aria-hidden="true"
-                    />
-                    <span className="sr-only">Audio</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow]"
-                  >
-                    <RiLeafLine
-                      className="text-muted-foreground/70 size-5"
-                      size={20}
-                      aria-hidden="true"
-                    />
-                    <span className="sr-only">Action</span>
-                  </Button>
+                  <TooltipProvider delayDuration={0}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="relative">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className={`rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow] ${uploadedFile ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onClick={handleFileUpload}
+                            disabled={!!uploadedFile}
+                          >
+                            <RiAttachment2
+                              className="text-muted-foreground/70 size-5"
+                              size={20}
+                              aria-hidden="true"
+                            />
+                            <span className="sr-only">Attach</span>
+                          </Button>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="dark px-2 py-1 text-xs">
+                        <p>{uploadedFile ? 'Only 1 file available to upload' : 'Attach file'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow]"
+                      >
+                        <RiMicLine
+                          className="text-muted-foreground/70 size-5"
+                          size={20}
+                          aria-hidden="true"
+                        />
+                        <span className="sr-only">Audio</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="dark px-2 py-1 text-xs">
+                      <p>Speech to Text</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 {/* Right buttons */}
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow]"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      fill="none"
-                    >
-                      <g clipPath="url(#icon-a)">
-                        <path
-                          fill="url(#icon-b)"
-                          d="m8 .333 2.667 5 5 2.667-5 2.667-2.667 5-2.667-5L.333 8l5-2.667L8 .333Z"
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow]"
+                      >
+                        <img
+                          src="/gemini.png"
+                          alt="Gemini"
+                          className="w-5 h-5 object-contain"
                         />
-                        <path
-                          stroke="#451A03"
-                          strokeOpacity=".04"
-                          d="m8 1.396 2.225 4.173.072.134.134.071L14.604 8l-4.173 2.226-.134.071-.072.134L8 14.604l-2.226-4.173-.071-.134-.134-.072L1.396 8l4.173-2.226.134-.071.071-.134L8 1.396Z"
-                        />
-                      </g>
-                      <defs>
-                        <linearGradient
-                          id="icon-b"
-                          x1="8"
-                          x2="8"
-                          y1=".333"
-                          y2="15.667"
-                          gradientUnits="userSpaceOnUse"
-                        >
-                          <stop stopColor="#FDE68A" />
-                          <stop offset="1" stopColor="#F59E0B" />
-                        </linearGradient>
-                        <clipPath id="icon-a">
-                          <path fill="#fff" d="M0 0h16v16H0z" />
-                        </clipPath>
-                      </defs>
-                    </svg>
-                    <span className="sr-only">Generate</span>
-                  </Button>
+                        <span className="sr-only">Generate</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="dark px-2 py-1 text-xs">
+                      <p>Enhance Prompt</p>
+                    </TooltipContent>
+                  </Tooltip>
                   <Button 
                     className="rounded-full h-8" 
                     onClick={handleSendMessage}
                     disabled={!inputValue.trim() || isLoading}
                   >
-                    {isLoading ? "Sending..." : "Ask Bart"}
+                    {isLoading ? "Sending..." : "Ask ByeDB"}
                   </Button>
                 </div>
               </div>
