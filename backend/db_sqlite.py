@@ -312,6 +312,50 @@ class LocalSQLiteDatabase:
         self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
         return [row[0] for row in self.cursor.fetchall()]
 
+    def clear_database(self) -> Dict[str, Any]:
+        """
+        Clears all tables and data from the database.
+
+        Returns:
+            Dict[str, Any]: A dictionary indicating success/failure and a message.
+        """
+        if not self.conn:
+            return {"success": False, "error": "Database not connected."}
+
+        try:
+            tables_result = self.list_tables()
+            if not tables_result["success"]:
+                return {"success": False, "error": "Failed to retrieve table list."}
+
+            tables = [row["name"] for row in tables_result.get("data", [])]
+            dropped_tables = []
+            errors = []
+
+            for table in tables:
+                try:
+                    self.cursor.execute(f"DROP TABLE IF EXISTS {table};")
+                    dropped_tables.append(table)
+                except sqlite3.Error as e:
+                    errors.append({"table": table, "error": str(e)})
+
+            self.conn.commit()
+
+            if errors:
+                return {
+                    "success": False,
+                    "message": f"Cleared some tables, but encountered errors: {len(errors)} errors.",
+                    "dropped_tables": dropped_tables,
+                    "errors": errors
+                }
+            else:
+                return {
+                    "success": True,
+                    "message": f"Successfully cleared all {len(dropped_tables)} tables.",
+                    "dropped_tables": dropped_tables
+                }
+        except Exception as e:
+            self.conn.rollback()
+            return {"success": False, "error": f"An unexpected error occurred: {e}"}
 
 if __name__ == "__main__":
     import json

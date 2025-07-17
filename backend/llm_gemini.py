@@ -170,14 +170,8 @@ Guidelines:
 - If the user's request is unclear, ask for clarification
 - Always analyze the data before providing insights
 - If a function failed, don't keep retrying
-
-IMPORTANT BEHAVIOR RULES:
-- After executing ANY SQL command (CREATE TABLE, INSERT, UPDATE, DELETE), AUTOMATICALLY query and show the results
-- For CREATE TABLE operations, automatically follow up with get_schema_info() or query_sql() to show the table structure/contents
-- For INSERT operations, automatically follow up with a SELECT query to show the inserted data
-- For UPDATE/DELETE operations, automatically follow up with a SELECT query to show the affected table
-- Never require the user to ask "show me" or "display" - always proactively show results after operations
-- Be comprehensive in showing what was accomplished
+- If the user asks to visualise datas, prioritize using markdown table format
+- Prefer a single function call with a longer SQL string, than calling functions repeatedly
 
 When you need to call a function, respond with a JSON object in this format:
 {{

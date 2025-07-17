@@ -155,42 +155,6 @@ async def upload_database(file: UploadFile = File(...), truncate: bool = Form(Tr
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/upload-csv")
-async def upload_csv(files: list[UploadFile] = File(...), truncate: bool = True):
-    try:
-        loaded_tables = []
-        for file in files:
-            filename = file.filename or "table"
-            table_name = filename.rsplit(".", 1)[0]  # remove extension
-            content = await file.read()
-            decoded = content.decode("utf-8")
-            reader = csv.DictReader(io.StringIO(decoded))
-            rows = list(reader)
-
-            if not rows:
-                continue
-
-            # Create table if it doesn't exist
-            columns = rows[0].keys()
-            create_table_sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join([f'{col} TEXT' for col in columns])});"
-            database.execute_sql(create_table_sql)
-
-            if truncate:
-                database.execute_sql(f"DELETE FROM {table_name}")
-
-            # Insert rows
-            for row in rows:
-                placeholders = ", ".join(["?"] * len(columns))
-                insert_sql = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
-                database.execute_sql(insert_sql, tuple(row.values()))
-
-            loaded_tables.append(table_name)
-
-        return {"success": True, "loaded_tables": loaded_tables}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 from fastapi.responses import StreamingResponse
 import zipfile
 import io
@@ -271,5 +235,13 @@ async def clear_memory():
     try:
         sql_expert.clear_memory()
         return {"success": True, "message": "Memory cleared successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/clear-database")
+async def clear_memory():
+    try:
+        database.clear_database()
+        return {"success": True, "message": "Database cleared successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
