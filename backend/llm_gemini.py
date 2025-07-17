@@ -257,19 +257,19 @@ When you need to call a function, respond with a JSON object in this format:
                             "requires_approval": True
                         }
 
-                    # query_sql: execute immediately and return result
-                    elif fn_name == "query_sql":
-                        function_result = self.execute_function(fn_name, fn_args)
-                        context.add_function_call(fn_name, fn_args, function_result)
-                        self.previous_context = context  # Store for continue_respond
-                        return {
-                            "success": True,
-                            "response": function_result.get("result", ""),
-                            "function_called": [{"call": fn_name, "args": fn_args}],
-                            "data": function_result.get("data", []),
-                            "usage": {"note": "Gemini API doesn't provide detailed usage stats"},
-                            "requires_continue": True
-                        }
+                    # # query_sql: execute immediately and return result
+                    # elif fn_name == "query_sql":
+                    #     function_result = self.execute_function(fn_name, fn_args)
+                    #     context.add_function_call(fn_name, fn_args, function_result)
+                    #     self.previous_context = context  # Store for continue_respond
+                    #     return {
+                    #         "success": True,
+                    #         "response": function_result.get("result", ""),
+                    #         "function_called": [{"call": fn_name, "args": fn_args}],
+                    #         "data": function_result.get("data", []),
+                    #         "usage": {"note": "Gemini API doesn't provide detailed usage stats"},
+                    #         "requires_continue": True
+                    #     }
 
                     function_result = self.execute_function(fn_name, fn_args)
                     context.add_function_call(fn_name, fn_args, function_result)
