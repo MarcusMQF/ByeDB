@@ -1,8 +1,5 @@
 import os
 import json
-from azure.ai.inference import ChatCompletionsClient
-from azure.ai.inference.models import SystemMessage, UserMessage
-from azure.core.credentials import AzureKeyCredential
 from typing import Dict, Any, List
 from openai import OpenAI
 from dotenv import load_dotenv
