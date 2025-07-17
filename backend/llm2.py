@@ -1,7 +1,9 @@
 import os
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any, List, cast
 from openai import OpenAI
+from openai.types.chat import ChatCompletionMessageParam
+from openai.types.chat.completion_create_params import Function
 from dotenv import load_dotenv
 from collections import deque
 
@@ -15,7 +17,7 @@ class SQLExpertLLM:
             base_url=os.getenv("OPENAI_BASE_URL", "https://models.github.ai/inference"),
             api_key=os.environ["GITHUB_TOKEN"]
         )
-        self.model = "openai/gpt-4.1"
+        self.model = "openai/gpt-4o"
 
         # Memory to store last 3 conversations
         self.conversation_memory = deque(maxlen=3)
@@ -185,8 +187,8 @@ Guidelines:
         for i in range(max_depth):
             response = self.client.chat.completions.create(
                 model=self.model,
-                messages=messages,
-                functions=self.functions,
+                messages=cast(List[ChatCompletionMessageParam], messages),
+                functions=cast(List[Function], self.functions),
                 function_call="auto",
                 temperature=0
             )
@@ -198,7 +200,7 @@ Guidelines:
             usage["completion_tokens"] += response.usage.completion_tokens if response.usage else 0
             usage["total_tokens"] += response.usage.total_tokens if response.usage else 0
 
-            if choice.finish_reason == "function_call":
+            if choice.finish_reason == "function_call" and message.function_call is not None:
                 fn_call = message.function_call
                 fn_name = fn_call.name
                 fn_args = json.loads(fn_call.arguments)
