@@ -424,7 +424,7 @@ if __name__ == '__main__':
 
         while response.get("requires_approval"):
             print(f"Response: {response['response']}")
-            print(f"Functions to execute: {response["function_called"]}")
+            print(f"Functions to execute: {response['function_called']}")
 
             approval = input("Do you want to proceed? (y/n): ").lower().strip()
             if approval in ['y', 'yes']:
