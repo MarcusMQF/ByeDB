@@ -42,7 +42,9 @@ export default function Chat() {
   const [isEnhancing, setIsEnhancing] = useState(false);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
   }, [messages]);
 
   // Auto-resize textarea based on content
@@ -241,7 +243,7 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex-1 w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background flex flex-col">
+    <div className="flex-1 w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="py-5 px-4 md:px-6 lg:px-8 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06] shrink-0">
         <div className="flex items-center justify-between gap-2">
@@ -287,9 +289,9 @@ export default function Chat() {
       </div>
 
       {/* Messages - Scrollable area */}
-      <ScrollArea className="flex-1 overflow-y-auto">
-        <div className="px-4 md:px-6 lg:px-8 pb-4">
-          <div className="max-w-3xl mx-auto mt-6 space-y-6">
+      <ScrollArea className="flex-1 overflow-hidden">
+        <div className="px-4 md:px-6 lg:px-8 pb-4 h-full">
+          <div className="max-w-3xl mx-auto mt-6 space-y-4 pb-6">
             {messages.length === 0 ? (
               <div className="text-center my-8">
                 <div className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-full border border-blue-200/60 dark:border-blue-800/40 shadow-sm text-xs font-medium py-1.5 px-3 text-blue-700 dark:text-blue-300">
@@ -313,14 +315,16 @@ export default function Chat() {
                     Today
                   </div>
                 </div>
-                {messages.map((message) => (
-                  <ChatMessage key={message.id} isUser={message.isUser}>
-                    {message.isUser ? (
-                      <p>{message.content}</p>
-                    ) : (
-                      <MarkdownResponse content={message.content} />
-                    )}
-                  </ChatMessage>
+                {messages.map((message, index) => (
+                  <div key={message.id} className={index > 0 && messages[index-1].isUser !== message.isUser ? "mt-6" : ""}>
+                    <ChatMessage isUser={message.isUser}>
+                      {message.isUser ? (
+                        <p>{message.content}</p>
+                      ) : (
+                        <MarkdownResponse content={message.content} />
+                      )}
+                    </ChatMessage>
+                  </div>
                 ))}
                 
                 {isLoading && (

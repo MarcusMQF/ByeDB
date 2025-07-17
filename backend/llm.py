@@ -190,28 +190,7 @@ def test_sql_expert():
     llm = SQLExpertLLM()
     
     print("=== SQL Expert LLM Test ===\n")
-    
-    # Test questions
-    test_questions = [
-        "How to use SQL to store user authentication?",
-        "Create a secure login system with SQL",
-        "How to optimize SQL queries for better performance?",
-        "Design a database schema for an e-commerce system"
-    ]
-    
-    for i, question in enumerate(test_questions, 1):
-        print(f"Test {i}: {question}")
-        print("-" * 50)
-        
-        # Generate response (intent analysis happens internally)
-        result = llm.generate_sql_response(question)
-        
-        if result["success"]:
-            print(result["response"])
-        else:
-            print(f"Error: {result['error']}")
-        
-        print("\n" + "="*80 + "\n")
+    print("Test function ready. Add your test questions here if needed.")
 
 def interactive_sql_expert():
     """Interactive mode for testing"""
