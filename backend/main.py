@@ -1,6 +1,10 @@
-import csv
 import json
 from typing import Optional
+
+import pandas as pd
+import io
+import os
+import csv
 
 from fastapi import FastAPI, HTTPException
 from fastapi import UploadFile, File, Form
@@ -88,21 +92,63 @@ async def export_database():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
 @app.post("/api/upload-db")
 async def upload_database(file: UploadFile = File(...), truncate: bool = Form(True)):
     try:
+        filename = file.filename.lower()
         contents = await file.read()
-        data = json.loads(contents.decode("utf-8"))
 
-        load_result = database.load_all_data(data, truncate=truncate)
+        if filename.endswith(".json"):
+            # Load JSON content into tables
+            data = json.loads(contents.decode("utf-8"))
+            load_result = database.load_all_data(data, truncate=truncate)
+
+        elif filename.endswith(".csv"):
+            # Load single CSV as one table
+            df = pd.read_csv(io.BytesIO(contents))
+            table_name = os.path.splitext(file.filename)[0]
+            load_result = database.load_dataframe(df, table_name=table_name, truncate=truncate)
+
+        elif filename.endswith((".xlsx", ".xls")):
+            # Load each sheet as one table
+            excel_data = pd.read_excel(io.BytesIO(contents), sheet_name=None)
+            results = []
+            for sheet_name, df in excel_data.items():
+                result = database.load_dataframe(df, table_name=sheet_name, truncate=truncate)
+                results.append(result)
+
+            load_result = {
+                "success": all(r["success"] for r in results),
+                "loaded_tables": [r["table"] for r in results if r["success"]],
+                "errors": [r for r in results if not r["success"]],
+            }
+
+        elif filename.endswith(".db"):
+            # Import all tables from another SQLite .db file
+            db_path = f"/tmp/{file.filename}"
+            with open(db_path, "wb") as f:
+                f.write(contents)
+
+            database.import_from_sqlite_file(db_path)
+
+            load_result = {
+                "success": True,
+                "loaded_tables": database.get_table_names()
+            }
+
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file format.")
+
         if not load_result["success"]:
-            raise HTTPException(status_code=400, detail=load_result["errors"])
+            raise HTTPException(status_code=400, detail=load_result.get("errors", "Failed to load data."))
 
         return {
             "success": True,
             "message": "Database data loaded successfully.",
             "loaded_tables": load_result["loaded_tables"]
         }
+
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON format.")
     except Exception as e:
@@ -185,6 +231,7 @@ class ContinueRequest(BaseModel):
     approve: bool  # Whether to proceed with execution
     context: Optional[str] = None  # Optional conversation context (e.g., user confirmation notes)
 
+
 @app.post("/api/confirm-execution", response_model=SQLQuestionResponse)
 async def confirm_execution(request: ContinueRequest):
     """
@@ -217,3 +264,12 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "ByeDB API"}
+
+
+@app.post("/api/clear-memory")
+async def clear_memory():
+    try:
+        sql_expert.clear_memory()
+        return {"success": True, "message": "Memory cleared successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

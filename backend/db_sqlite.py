@@ -1,6 +1,6 @@
 import sqlite3
 from typing import Dict, Any, List, Optional, Tuple
-
+import pandas as pd
 
 class LocalSQLiteDatabase:
     """
@@ -262,9 +262,58 @@ class LocalSQLiteDatabase:
             "errors": errors
         }
 
+    def load_dataframe(self, df: pd.DataFrame, table_name: str, truncate: bool = True) -> dict:
+        """
+        Load a pandas DataFrame into a database table.
+        """
+        if not self.conn:
+            return {"success": False, "error": "Database not connected."}
+
+        try:
+            if truncate:
+                self.cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
+
+            df.to_sql(table_name, self.conn, index=False, if_exists="replace" if truncate else "append")
+            self.conn.commit()
+            return {"success": True, "table": table_name}
+        except Exception as e:
+            return {"success": False, "error": str(e), "table": table_name}
+
+    def import_from_sqlite_file(self, file_path: str) -> None:
+        """
+        Attach another SQLite database file and copy its tables into the current DB.
+        """
+        if not self.conn:
+            raise ValueError("Database not connected.")
+
+        try:
+            self.cursor.execute(f"ATTACH DATABASE '{file_path}' AS imported_db")
+
+            # Get all table names from the attached DB
+            self.cursor.execute("SELECT name FROM imported_db.sqlite_master WHERE type='table'")
+            tables = [row[0] for row in self.cursor.fetchall()]
+
+            for table in tables:
+                self.cursor.execute(f"DROP TABLE IF EXISTS {table}")
+                self.cursor.execute(f"CREATE TABLE {table} AS SELECT * FROM imported_db.{table}")
+
+            self.cursor.execute("DETACH DATABASE imported_db")
+            self.conn.commit()
+        except Exception as e:
+            raise RuntimeError(f"Failed to import .db file: {str(e)}")
+
+    def get_table_names(self) -> list:
+        """
+        Return the list of tables in the database.
+        """
+        if not self.conn:
+            return []
+
+        self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        return [row[0] for row in self.cursor.fetchall()]
+
 
 if __name__ == "__main__":
-    import os
     import json
 
 
