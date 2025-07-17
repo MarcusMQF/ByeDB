@@ -1,5 +1,8 @@
 import os
 import json
+from azure.ai.inference import ChatCompletionsClient
+from azure.ai.inference.models import SystemMessage, UserMessage
+from azure.core.credentials import AzureKeyCredential
 from typing import Dict, Any, List
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -15,7 +18,7 @@ class SQLExpertLLM:
             base_url=os.getenv("OPENAI_BASE_URL", "https://models.github.ai/inference"),
             api_key=os.environ["GITHUB_TOKEN"]
         )
-        self.model = "openai/gpt-4.1"
+        self.model = "openai/gpt-4o"
 
         # Memory to store last 3 conversations
         self.conversation_memory = deque(maxlen=3)
@@ -235,7 +238,6 @@ Guidelines:
                 "success": True,
                 "response": final_response,
                 "function_called": function_called,
-                "function_result": None,
                 "usage": usage
             }
 
@@ -247,7 +249,6 @@ Guidelines:
             "success": False,
             "response": final_response,
             "function_called": function_called,
-            "function_result": None,
             "usage": usage
         }
 
