@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/table";
 import { useState } from "react";
-import { RiAddLine, RiDeleteBinLine, RiEditLine, RiSearchLine, RiShareLine, RiRefreshLine, RiShareCircleLine } from "@remixicon/react";
+import { RiAddLine, RiDeleteBinLine, RiEditLine, RiSearchLine, RiShareLine, RiRefreshLine, RiShareCircleLine, RiDownloadLine } from "@remixicon/react";
 import { Input } from "@/components/input";
 import Link from "next/link";
 import {
@@ -22,19 +22,19 @@ import {
   BreadcrumbSeparator,
 } from "@/components/breadcrumb";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
-
-// Mock data for the table
-const mockData = [
-  { id: 1, name: "Sales Data 2023", rows: 1250, columns: 8, lastModified: "2023-12-10" },
-  { id: 2, name: "Customer Analytics", rows: 3420, columns: 12, lastModified: "2023-11-28" },
-  { id: 3, name: "Product Inventory", rows: 876, columns: 6, lastModified: "2023-12-05" },
-  { id: 4, name: "Marketing Campaign Results", rows: 542, columns: 9, lastModified: "2023-12-01" },
-  { id: 5, name: "Financial Report Q4", rows: 1890, columns: 15, lastModified: "2023-12-08" },
-];
+import { useDatasets } from "@/hooks/use-datasets";
 
 export default function TablePage() {
-  // State management
-  const [datasets, setDatasets] = useState(mockData);
+  // Use the datasets hook instead of mock data
+  const { 
+    datasets, 
+    isLoading, 
+    error, 
+    refreshDatasets, 
+    clearAllDatasets, 
+    exportDatabase 
+  } = useDatasets();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [showClearDialog, setShowClearDialog] = useState(false);
   
@@ -43,15 +43,38 @@ export default function TablePage() {
     dataset.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
-  // Handle dataset deletion
-  const handleDelete = (id: number) => {
-    setDatasets(datasets.filter(dataset => dataset.id !== id));
+  // Handle dataset deletion (individual table deletion would need backend implementation)
+  const handleDelete = (id: string) => {
+    // TODO: Implement individual table deletion on backend
+    console.log('Delete dataset:', id);
   };
   
   // Handle clear all datasets
-  const handleClearAllDatasets = () => {
-    setDatasets([]);
-    setShowClearDialog(false);
+  const handleClearAllDatasets = async () => {
+    try {
+      await clearAllDatasets();
+      setShowClearDialog(false);
+    } catch (error) {
+      console.error('Failed to clear datasets:', error);
+    }
+  };
+
+  // Handle refresh
+  const handleRefresh = async () => {
+    try {
+      await refreshDatasets();
+    } catch (error) {
+      console.error('Failed to refresh datasets:', error);
+    }
+  };
+
+  // Handle export
+  const handleExport = async () => {
+    try {
+      await exportDatabase();
+    } catch (error) {
+      console.error('Failed to export database:', error);
+    }
   };
   
   return (
@@ -85,9 +108,29 @@ export default function TablePage() {
             <Button
               variant="outline"
               size="sm"
+              onClick={handleRefresh}
+              className="text-xs"
+              disabled={isLoading}
+            >
+              <RiRefreshLine className="w-4 h-4 mr-1" />
+              Refresh
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              className="text-xs"
+              disabled={datasets.length === 0 || isLoading}
+            >
+              <RiDownloadLine className="w-4 h-4 mr-1" />
+              Export
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowClearDialog(true)}
               className="text-xs"
-              disabled={datasets.length === 0}
+              disabled={datasets.length === 0 || isLoading}
             >
               Clear Dataset
             </Button>
@@ -143,7 +186,33 @@ export default function TablePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDatasets.length > 0 ? (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                        Loading datasets...
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                      <div className="text-red-500">
+                        Error: {error}
+                        <br />
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handleRefresh}
+                          className="mt-2"
+                        >
+                          Try Again
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredDatasets.length > 0 ? (
                   filteredDatasets.map((dataset) => (
                     <TableRow key={dataset.id} className="border-b hover:bg-gray-50">
                       <TableCell className="py-4 font-medium">{dataset.name}</TableCell>
@@ -170,7 +239,14 @@ export default function TablePage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center">
-                      No datasets found
+                      <div className="text-gray-500">
+                        No datasets found
+                        {searchTerm && (
+                          <div className="mt-1 text-sm">
+                            Try adjusting your search terms
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 )}

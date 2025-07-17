@@ -31,6 +31,7 @@ import { Badge } from "@/components/badge";
 import { Card } from "@/components/card";
 import { Separator } from "@/components/separator";
 import { parseFile, ParsedFileData } from "@/lib/file-parser";
+import { useDatasets } from "@/hooks/use-datasets";
 
 type SettingsPanelContext = {
   openMobile: boolean;
@@ -87,16 +88,29 @@ const SettingsPanelContent = () => {
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [uploadingFile, setUploadingFile] = React.useState<{name: string, size: string} | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const { uploadFile, error: apiError, exportDatabase } = useDatasets();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleExport = async () => {
+    try {
+      await exportDatabase();
+    } catch (error) {
+      setError(`Failed to export database: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
 
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     
     const file = files[0];
-    const validTypes = ['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
     
-    if (!validTypes.includes(file.type)) {
-      setError('Please upload only CSV or XLSX files');
+    // Check file type by extension (more flexible than MIME type)
+    const fileName = file.name.toLowerCase();
+    const validExtensions = ['.csv', '.xlsx', '.xls', '.json', '.db'];
+    const isValidFile = validExtensions.some(ext => fileName.endsWith(ext));
+    
+    if (!isValidFile) {
+      setError('Please upload a CSV, Excel (.xlsx/.xls), JSON, or SQLite (.db) file.');
       return;
     }
 
@@ -109,28 +123,60 @@ const SettingsPanelContent = () => {
     });
     
     try {
-      // Simulate progress while parsing
+      // Simulate progress during upload
       const progressInterval = setInterval(() => {
-        setUploadProgress(prev => Math.min(prev + Math.random() * 10, 90));
-      }, 100);
+        setUploadProgress(prev => Math.min(prev + Math.random() * 15, 85));
+      }, 200);
 
-      // Parse the actual file
-      const parsedData = await parseFile(file);
+      // Upload file to backend API
+      await uploadFile(file, true);
       
       // Complete the progress
       clearInterval(progressInterval);
       setUploadProgress(100);
       
+      // Parse file locally for immediate preview (if possible)
+      try {
+        if (fileName.endsWith('.csv') || fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+          const parsedData = await parseFile(file);
+          setDataset(parsedData);
+        } else {
+          // For JSON/DB files, create basic dataset info
+          setDataset({
+            name: file.name,
+            type: 'csv', // Default type for display
+            size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+            rows: 0, // Will be updated when backend data is fetched
+            columns: 0,
+            data: [],
+            headers: []
+          });
+        }
+      } catch (parseError) {
+        console.warn('Could not parse file for preview:', parseError);
+        // Still set a basic dataset info since upload succeeded
+        setDataset({
+          name: file.name,
+          type: 'csv', // Default type for display
+          size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+          rows: 0,
+          columns: 0,
+          data: [],
+          headers: []
+        });
+      }
+      
       // Small delay to show 100% completion
       setTimeout(() => {
-        setDataset(parsedData);
         setIsUploading(false);
         setUploadingFile(null);
         setUploadProgress(0);
       }, 500);
       
     } catch (error) {
-      setError(`Failed to parse file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('File upload error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(`Failed to upload file: ${errorMessage}`);
       setIsUploading(false);
       setUploadingFile(null);
       setUploadProgress(0);
@@ -189,9 +235,9 @@ const SettingsPanelContent = () => {
           )}
         </div>
 
-        {error && (
+        {(error || apiError) && (
           <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4">
-            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+            <p className="text-sm text-red-700 dark:text-red-300">{error || apiError}</p>
           </div>
         )}
 
@@ -244,7 +290,7 @@ const SettingsPanelContent = () => {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".csv,.xlsx"
+                accept=".csv,.xlsx,.xls,.json,.db"
                 onChange={(e) => handleFileUpload(e.target.files)}
                 className="hidden"
               />
@@ -325,6 +371,7 @@ const SettingsPanelContent = () => {
                 <Button 
                   size="sm" 
                   className="flex-1 bg-gradient-to-r from-gray-900 to-black hover:from-black hover:to-gray-900 text-white shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-700 hover:border-gray-600"
+                  onClick={handleExport}
                 >
                   <RiDownloadLine className="w-4 h-4 mr-2" />
                   Export
