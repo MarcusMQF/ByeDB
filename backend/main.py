@@ -2,8 +2,8 @@ import csv
 import json
 from typing import Optional
 
-from fastapi import UploadFile, File, Form
 from fastapi import FastAPI, HTTPException
+from fastapi import UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -21,6 +21,10 @@ app.add_middleware(
 )
 
 # Initialize the SQL Expert LLM
+contexts = {
+    "user_id": []
+}
+
 database = LocalSQLiteDatabase()
 sql_expert = SQLExpertLLM(database)
 
@@ -33,9 +37,9 @@ class SQLQuestionRequest(BaseModel):
 
 class SQLQuestionResponse(BaseModel):
     success: bool
+    meta: dict
     response: Optional[str] = None
     error: Optional[str] = None
-    usage: Optional[dict] = None
 
 
 @app.post("/api/sql-question", response_model=SQLQuestionResponse)
@@ -54,12 +58,14 @@ async def ask_sql_question(request: SQLQuestionRequest):
         if result["success"]:
             return SQLQuestionResponse(
                 success=True,
+                meta=result,
                 response=result["response"],
                 usage=result.get("usage")
             )
         else:
             return SQLQuestionResponse(
                 success=False,
+                meta=result,
                 error=result["error"]
             )
 
@@ -101,6 +107,7 @@ async def upload_database(file: UploadFile = File(...), truncate: bool = Form(Tr
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/api/upload-csv")
 async def upload_csv(files: list[UploadFile] = File(...), truncate: bool = True):
     try:
@@ -135,9 +142,11 @@ async def upload_csv(files: list[UploadFile] = File(...), truncate: bool = True)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 from fastapi.responses import StreamingResponse
 import zipfile
 import io
+
 
 @app.get("/api/export-csv")
 async def export_csv():
@@ -156,7 +165,8 @@ async def export_csv():
                     continue
 
                 output = io.StringIO()
-                writer = csv.DictWriter(output, fieldnames=query_result["data"][0].keys() if query_result["data"] else [])
+                writer = csv.DictWriter(output,
+                                        fieldnames=query_result["data"][0].keys() if query_result["data"] else [])
                 writer.writeheader()
                 writer.writerows(query_result["data"])
                 zipf.writestr(f"{table}.csv", output.getvalue())
@@ -168,13 +178,20 @@ async def export_csv():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-class ContinueRequest(BaseModel):
-    follow_up: str
-    context: Optional[str] = None
 
-@app.post("/api/continue-chat", response_model=SQLQuestionResponse)
-async def continue_chat(request: ContinueRequest):
+class ContinueRequest(BaseModel):
+    approve: bool  # Whether to proceed with execution
+    context: Optional[str] = None  # Optional conversation context (e.g., user confirmation notes)
+
+@app.post("/api/confirm-execution", response_model=SQLQuestionResponse)
+async def confirm_execution(request: ContinueRequest):
+    """
+    Confirms whether to proceed with the last generated SQL query and executes it if approved.
+    """
     try:
+        if not request.approve:
+            return SQLQuestionResponse(success=False, error="Execution not approved.")
+
         result = sql_expert.continue_respond()
         if result["success"]:
             return SQLQuestionResponse(
@@ -184,8 +201,10 @@ async def continue_chat(request: ContinueRequest):
             )
         else:
             return SQLQuestionResponse(success=False, error=result["error"])
+
     except Exception as e:
         return SQLQuestionResponse(success=False, error=str(e))
+
 
 @app.get("/")
 async def root():

@@ -206,7 +206,6 @@ When you need to call a function, respond with a JSON object in this format:
                 response_text = response.text
 
                 parsed_response = self.parse_gemini_response(response_text)
-
                 if parsed_response["type"] == "function_call":
                     fn_call = parsed_response["function_call"]
                     fn_name = fn_call["name"]
@@ -223,6 +222,7 @@ When you need to call a function, respond with a JSON object in this format:
 
                     function_called.append({
                         "call": f"{fn_name}",
+                        "args": fn_args,
                         "content": json.dumps(function_result)
                     })
                     current_conversation.append({
