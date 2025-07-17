@@ -138,7 +138,7 @@ Guidelines:
 - If a function failed, don't keep retrying
 - If the user asks to visualise datas, prioritize using markdown table format
 - Prefer a single function call with a longer SQL string, than calling functions repeatedly
-- Do not repeat the same function and arguments unless necessary
+- Do not repeat the same query if result is known
 
 When you need to call a function, respond with a JSON object in this format:
 {{
