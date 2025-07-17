@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from openai import OpenAI
 from dotenv import load_dotenv
 from collections import deque
@@ -155,7 +155,7 @@ Guidelines:
 - Use `get_schema_info` to get current table structure or list all tables
 - If the user's request is unclear, ask for clarification
 - Always analyze the data before providing insights
-- Remember previous conversations in this session
+- If a function failed, do not keep retrying
 """
         })
 
@@ -171,16 +171,18 @@ Guidelines:
 
         return messages
 
-    def generate_sql_response(self, user_question: str) -> Dict[str, Any]:
-        """Generate response with memory and database integration"""
+    def generate_response_in_loop(self, user_question:str, max_depth:int) -> Dict[str, Any]:
         current_conversation = []
-
-        # Build messages with memory
         messages = self.build_messages_with_memory(user_question)
         current_conversation.append({"role": "user", "content": user_question})
-
-        try:
-            # Get initial response
+        usage = {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+        }
+        function_called = []
+        
+        for i in range(max_depth):
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
@@ -192,77 +194,67 @@ Guidelines:
             choice = response.choices[0]
             message = choice.message
 
-            # Handle function calls
+            usage["prompt_tokens"] += response.usage.prompt_tokens if response.usage else 0
+            usage["completion_tokens"] += response.usage.completion_tokens if response.usage else 0
+            usage["total_tokens"] += response.usage.total_tokens if response.usage else 0
+
             if choice.finish_reason == "function_call":
                 fn_call = message.function_call
                 fn_name = fn_call.name
                 fn_args = json.loads(fn_call.arguments)
 
+                print(f"Loop {i + 1}: Function call detected: {fn_name}")
                 # Execute the function
-                result = self.execute_function(fn_name, fn_args)
+                function_result = self.execute_function(fn_name, fn_args)
 
-                # Add function call and result to messages
+                # Add function call and result to messages for the next LLM turn
                 messages.append({
                     "role": "assistant",
-                    "function_call": fn_call
+                    "function_call": {"name": fn_name, "arguments": json.dumps(fn_args)}
+                    # Reconstruct function_call correctly
                 })
                 messages.append({
                     "role": "function",
                     "name": fn_name,
-                    "content": json.dumps(result)
+                    "content": json.dumps(function_result)
                 })
-
-                # Get follow-up response
-                followup_response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    temperature=0
-                )
-
-                followup_message = followup_response.choices[0].message
-                final_response = followup_message.content
-
-                # Add to current conversation
-                current_conversation.append({
-                    "role": "assistant",
-                    "content": final_response
+                function_called.append({
+                    "call": f"{fn_name}({fn_args})",
+                    "content": json.dumps(function_result)
                 })
-
-                # Store in memory
-                self.conversation_memory.append(current_conversation)
-
-                return {
-                    "success": True,
-                    "response": final_response,
-                    "function_called": fn_name,
-                    "function_result": result,
-                    "usage": {
-                        "prompt_tokens": followup_response.usage.prompt_tokens if followup_response.usage else 0,
-                        "completion_tokens": followup_response.usage.completion_tokens if followup_response.usage else 0,
-                        "total_tokens": followup_response.usage.total_tokens if followup_response.usage else 0
-                    }
-                }
-
-            # No function call - direct response
+                continue
+                
+            # No function call - direct response, so we are done
             final_response = message.content
             current_conversation.append({
                 "role": "assistant",
                 "content": final_response
             })
-
-            # Store in memory
             self.conversation_memory.append(current_conversation)
-
             return {
                 "success": True,
                 "response": final_response,
-                "usage": {
-                    "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
-                    "completion_tokens": response.usage.completion_tokens if response.usage else 0,
-                    "total_tokens": response.usage.total_tokens if response.usage else 0
-                }
+                "function_called": function_called,
+                "function_result": None,
+                "usage": usage
             }
 
+        # If we reach here, it means MAX_LOOPS were hit without a final direct response
+        final_response = "Maximum function call iterations reached. Please refine your query or try again."
+        current_conversation.append({"role": "assistant", "content": final_response})
+        self.conversation_memory.append(current_conversation)
+        return {
+            "success": False,
+            "response": final_response,
+            "function_called": function_called,
+            "function_result": None,
+            "usage": usage
+        }
+
+    def generate_sql_response(self, user_question: str) -> Dict[str, Any]:
+        """Generate response with memory and database integration, allowing for multiple function calls."""
+        try:
+            return self.generate_response_in_loop(user_question, 5)
         except Exception as e:
             return {
                 "success": False,
