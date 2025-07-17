@@ -113,39 +113,7 @@ class SQLExpertLLM:
                         "error": result.get("error", "Unknown error")
                     }
 
-            elif name == "get_schema_info":
-                table_name = arguments.get("table_name")
-
-                if table_name:
-                    # Get specific table info
-                    result = self.database_client.get_table_info(table_name)
-                    if result.get("success"):
-                        return {
-                            "success": True,
-                            "result": f"Table info for {table_name}",
-                            "data": result.get("data", [])
-                        }
-                    else:
-                        return {
-                            "success": False,
-                            "error": result.get("error", "Table not found")
-                        }
-                else:
-                    result = self.database_client.list_tables()
-                    if result.get("success"):
-                        return {
-                            "success": True,
-                            "result": "All tables in database",
-                            "data": result.get("data", [])
-                        }
-                    else:
-                        return {
-                            "success": False,
-                            "error": result.get("error", "Could not retrieve tables")
-                        }
-
             return {"success": False, "error": f"Function {name} not recognized."}
-
         except Exception as e:
             return {"success": False, "error": f"Error executing {name}: {str(e)}"}
 
@@ -161,12 +129,10 @@ You must respond with function calls when the user asks for database operations.
 Available functions:
 1. execute_sql(text): Execute SQL commands that modify the database (INSERT, UPDATE, DELETE, CREATE TABLE, etc.)
 2. query_sql(text): Query the database for information (SELECT statements). Safe and no confirmation needed.
-3. get_schema_info(table_name): Get information about database tables and their structure
 
 Guidelines:
 - Use `execute_sql` for queries that modify the database (INSERT, UPDATE, DELETE, CREATE TABLE, etc.)
 - Use `query_sql` for SELECT statements and data inspection
-- Use `get_schema_info` to get current table structure or list all tables
 - If the user's request is unclear, ask for clarification
 - Always analyze the data before providing insights
 - If a function failed, don't keep retrying
@@ -335,7 +301,7 @@ When you need to call a function, respond with a JSON object in this format:
             context = ExecutionContext()
             context.add_user_message(user_question)
 
-            return self.generate_response_in_loop(context, 10)
+            return self.generate_response_in_loop(context, 20)
         except Exception as e:
             return {
                 "success": False,
@@ -365,7 +331,7 @@ When you need to call a function, respond with a JSON object in this format:
             context.clear_pending_function()
 
             # Continue with the loop to get final response
-            return self.generate_response_in_loop(context, 10)
+            return self.generate_response_in_loop(context, 20)
 
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -424,7 +390,7 @@ if __name__ == '__main__':
 
         while response.get("requires_approval"):
             print(f"Response: {response['response']}")
-            print(f"Functions to execute: {response["function_called"]}")
+            print(f"Functions to execute: {response['function_called']}")
 
             approval = input("Do you want to proceed? (y/n): ").lower().strip()
             if approval in ['y', 'yes']:
