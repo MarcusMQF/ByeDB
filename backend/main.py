@@ -96,8 +96,13 @@ async def export_database():
 @app.post("/api/upload-db")
 async def upload_database(file: UploadFile = File(...), truncate: bool = Form(True)):
     try:
+        print(f"Received file: {file.filename}, size: {file.size}")
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No filename provided")
+        
         filename = file.filename.lower()
         contents = await file.read()
+        print(f"File contents size: {len(contents)} bytes")
 
         if filename.endswith(".json"):
             # Load JSON content into tables
@@ -108,7 +113,12 @@ async def upload_database(file: UploadFile = File(...), truncate: bool = Form(Tr
             # Load single CSV as one table
             df = pd.read_csv(io.BytesIO(contents))
             table_name = os.path.splitext(file.filename)[0]
-            load_result = database.load_dataframe(df, table_name=table_name, truncate=truncate)
+            result = database.load_dataframe(df, table_name=table_name, truncate=truncate)
+            load_result = {
+                "success": result["success"],
+                "loaded_tables": [result["table"]] if result["success"] else [],
+                "errors": result.get("error") if not result["success"] else None
+            }
 
         elif filename.endswith((".xlsx", ".xls")):
             # Load each sheet as one table
@@ -126,32 +136,44 @@ async def upload_database(file: UploadFile = File(...), truncate: bool = Form(Tr
 
         elif filename.endswith(".db"):
             # Import all tables from another SQLite .db file
-            db_path = f"/tmp/{file.filename}"
-            with open(db_path, "wb") as f:
-                f.write(contents)
+            import tempfile
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as tmp_file:
+                tmp_file.write(contents)
+                db_path = tmp_file.name
 
-            database.import_from_sqlite_file(db_path)
-
-            load_result = {
-                "success": True,
-                "loaded_tables": database.get_table_names()
-            }
+            try:
+                database.import_from_sqlite_file(db_path)
+                load_result = {
+                    "success": True,
+                    "loaded_tables": database.get_table_names()
+                }
+            finally:
+                # Clean up the temporary file
+                try:
+                    os.unlink(db_path)
+                except:
+                    pass
 
         else:
-            raise HTTPException(status_code=400, detail="Unsupported file format.")
+            raise HTTPException(status_code=400, detail=f"Unsupported file format: {filename}")
 
-        if not load_result["success"]:
-            raise HTTPException(status_code=400, detail=load_result.get("errors", "Failed to load data."))
+        if not load_result.get("success", False):
+            error_detail = load_result.get("errors", load_result.get("error", "Failed to load data."))
+            print(f"Load failed: {error_detail}")
+            raise HTTPException(status_code=400, detail=str(error_detail))
 
+        loaded_tables = load_result.get("loaded_tables", [])
         return {
             "success": True,
             "message": "Database data loaded successfully.",
-            "loaded_tables": load_result["loaded_tables"]
+            "loaded_tables": loaded_tables
         }
 
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {e}")
         raise HTTPException(status_code=400, detail="Invalid JSON format.")
     except Exception as e:
+        print(f"Upload error: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
