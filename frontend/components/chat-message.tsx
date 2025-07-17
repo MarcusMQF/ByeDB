@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import { userConfig } from "@/lib/user-config";
 import {
@@ -9,14 +11,18 @@ import {
 import {
   RiLoopRightFill,
   RiFileCopyLine,
+  RiCheckLine,
 } from "@remixicon/react";
+import { useState } from "react";
+import MarkdownResponse from "./markdown-response";
 
 type ChatMessageProps = {
   isUser?: boolean;
   children: React.ReactNode;
+  content?: string;
 };
 
-export function ChatMessage({ isUser, children }: ChatMessageProps) {
+export function ChatMessage({ isUser, children, content }: ChatMessageProps) {
   return (
     <article
       className={cn(
@@ -45,7 +51,7 @@ export function ChatMessage({ isUser, children }: ChatMessageProps) {
           <p className="sr-only">{isUser ? "You" : "ByeDB"} said:</p>
           {children}
         </div>
-        {!isUser && <MessageActions />}
+        {!isUser && <MessageActions rawContent={content} />}
       </div>
     </article>
   );
@@ -54,13 +60,17 @@ export function ChatMessage({ isUser, children }: ChatMessageProps) {
 type ActionButtonProps = {
   icon: React.ReactNode;
   label: string;
+  onClick?: () => void;
 };
 
-function ActionButton({ icon, label }: ActionButtonProps) {
+function ActionButton({ icon, label, onClick }: ActionButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button className="relative text-muted-foreground/80 hover:text-foreground transition-colors size-8 flex items-center justify-center before:absolute before:inset-y-1.5 before:left-0 before:w-px before:bg-border first:before:hidden first-of-type:rounded-s-lg last-of-type:rounded-e-lg focus-visible:z-10 outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring/70">
+        <button 
+          className="relative text-muted-foreground/80 hover:text-foreground transition-colors size-8 flex items-center justify-center before:absolute before:inset-y-1.5 before:left-0 before:w-px before:bg-border first:before:hidden first-of-type:rounded-s-lg last-of-type:rounded-e-lg focus-visible:z-10 outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring/70"
+          onClick={onClick}
+        >
           {icon}
           <span className="sr-only">{label}</span>
         </button>
@@ -72,12 +82,33 @@ function ActionButton({ icon, label }: ActionButtonProps) {
   );
 }
 
-function MessageActions() {
+function MessageActions({ rawContent }: { rawContent?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copyToClipboard = async () => {
+    try {
+      if (rawContent) {
+        await navigator.clipboard.writeText(rawContent);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+    }
+  };
+
   return (
-    <div className="relative inline-flex bg-white rounded-md border border-black/[0.08] shadow-sm -space-x-px">
+    <div className="relative inline-flex bg-white dark:bg-slate-800 rounded-md border border-black/[0.08] dark:border-slate-700 shadow-sm -space-x-px">
       <TooltipProvider delayDuration={0}>
         <ActionButton icon={<RiLoopRightFill size={16} />} label="Refresh" />
-        <ActionButton icon={<RiFileCopyLine size={16} />} label="Copy" />
+        <ActionButton 
+          icon={copied ? 
+            <RiCheckLine size={16} className="text-green-600 transition-all" /> : 
+            <RiFileCopyLine size={16} />
+          } 
+          label={copied ? "Copied!" : "Copy"} 
+          onClick={copyToClipboard}
+        />
       </TooltipProvider>
     </div>
   );

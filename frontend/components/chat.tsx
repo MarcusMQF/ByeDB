@@ -317,7 +317,7 @@ export default function Chat() {
                 </div>
                 {messages.map((message, index) => (
                   <div key={message.id} className={index > 0 && messages[index-1].isUser !== message.isUser ? "mt-6" : ""}>
-                    <ChatMessage isUser={message.isUser}>
+                    <ChatMessage isUser={message.isUser} content={message.content}>
                       {message.isUser ? (
                         <p>{message.content}</p>
                       ) : (
@@ -328,7 +328,7 @@ export default function Chat() {
                 ))}
                 
                 {isLoading && (
-                  <ChatMessage isUser={false}>
+                  <ChatMessage isUser={false} content="Thinking...">
                     <div className="flex items-center gap-2">
                       <div className="flex space-x-1">
                         <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
