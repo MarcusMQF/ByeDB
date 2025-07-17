@@ -38,6 +38,8 @@ type Message = {
   content: string;
   isUser: boolean;
   timestamp: Date;
+  requiresConfirmation?: boolean;
+  confirmationData?: any;
 };
 
 type ChatMode = 'agent' | 'ask';
@@ -145,13 +147,20 @@ export default function Chat() {
       }
 
       const data = await response.json();
+      console.log('API Response:', data); // Debug log
+      
+      const requiresApproval = data.meta?.requires_approval === true || data.requires_approval === true;
       
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         content: data.success ? data.response : `Error: ${data.error}`,
         isUser: false,
         timestamp: new Date(),
+        requiresConfirmation: requiresApproval,
+        confirmationData: requiresApproval ? data : undefined
       };
+
+      console.log('AI Response Message:', aiResponse); // Debug log
 
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
@@ -166,6 +175,50 @@ export default function Chat() {
       setMessages(prev => [...prev, errorResponse]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleConfirmExecution = async (confirmationData: any, messageId: string) => {
+    try {
+      const response = await fetch('http://localhost:8000/api/confirm-execution', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          approve: true,
+          context: "User confirmed execution"
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Update the original message to remove confirmation and add the result
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === messageId) {
+          return {
+            ...msg,
+            content: data.success ? data.response : `Error: ${data.error}`,
+            requiresConfirmation: false,
+            confirmationData: undefined
+          };
+        }
+        return msg;
+      }));
+    } catch (error) {
+      console.error('Error confirming execution:', error);
+      const errorResponse: Message = {
+        id: Date.now().toString() + '_confirm_error',
+        content: "Sorry, I'm having trouble executing the confirmation. Please try again.",
+        isUser: false,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, errorResponse]);
     }
   };
 
@@ -334,6 +387,17 @@ export default function Chat() {
                     <ChatMessage isUser={message.isUser} content={message.content}>
                       {message.isUser ? (
                         <p>{message.content}</p>
+                      ) : message.requiresConfirmation ? (
+                        <div className="space-y-3">
+                          <p>I need your confirmation to execute this SQL query. Please review and confirm if you want to proceed.</p>
+                          <Button
+                            onClick={() => handleConfirmExecution(message.confirmationData, message.id)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
+                            size="sm"
+                          >
+                            Confirm Execution
+                          </Button>
+                        </div>
                       ) : (
                         <MarkdownResponse content={message.content} />
                       )}

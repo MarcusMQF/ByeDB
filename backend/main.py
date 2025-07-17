@@ -227,8 +227,8 @@ async def confirm_execution(request: ContinueRequest):
         if not request.approve:
             return SQLQuestionResponse(success=False, meta={}, error="Execution not approved.")
 
-        # Since continue_respond doesn't exist, use generate_sql_response with a continuation message
-        result = sql_expert.generate_sql_response("Please continue with the previous operation.")
+        # Use the continue_respond method to execute the pending function
+        result = sql_expert.continue_respond()
         if result["success"]:
             return SQLQuestionResponse(
                 success=True,
