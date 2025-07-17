@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('API route called');
+    console.log('=== ENHANCE PROMPT API CALLED ===');
+    console.log('Environment check:', Object.keys(process.env).filter(key => key.includes('GEMINI')));
     
     const { prompt } = await request.json();
     console.log('Received prompt:', prompt);
@@ -15,14 +16,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_PROMPT_ENHANCE_API_KEY;
+    console.log('=== API KEY DEBUG ===');
     console.log('API key exists:', !!apiKey);
-    console.log('API key value:', apiKey ? `${apiKey.substring(0, 10)}...` : 'undefined');
+    console.log('API key length:', apiKey?.length || 0);
+    console.log('API key preview:', apiKey ? `${apiKey.substring(0, 15)}...` : 'UNDEFINED');
     
     if (!apiKey) {
       console.log('No API key found');
       return NextResponse.json(
-        { error: 'Gemini API key not configured' },
+        { error: 'Gemini Prompt Enhance API key not configured' },
         { status: 500 }
       );
     }
