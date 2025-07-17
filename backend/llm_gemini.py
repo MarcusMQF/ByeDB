@@ -1,11 +1,64 @@
 import os
 import json
-from typing import Dict, Any, List
+from collections.abc import Callable
+from typing import Dict, Any, List, Optional
 import google.generativeai as genai
 from dotenv import load_dotenv
 from collections import deque
 
 load_dotenv()
+
+
+class ExecutionContext:
+    """Context class to manage execution state and conversation flow"""
+
+    def __init__(self):
+        self.session_context: str = ""
+        self.current_conversation: List[Dict] = []
+        self.function_called: List[Dict] = []
+        self.pending_function_call: Optional[Dict] = None
+        self.user_question: str = ""
+
+    def add_user_message(self, content: str):
+        """Add user message to conversation"""
+        self.current_conversation.append({"role": "user", "content": content})
+        self.user_question = content
+
+    def add_assistant_message(self, content: str):
+        """Add assistant message to conversation"""
+        self.current_conversation.append({"role": "assistant", "content": content})
+
+    def add_function_call(self, name: str, args: Dict[str, Any], result: Dict[str, Any] = None):
+        """Add function call to context"""
+        self.session_context += f"\nFunction call: {name}({args})\n"
+        if result:
+            self.session_context += f"Result: {json.dumps(result)}\n"
+            self.current_conversation.append({
+                "role": "function",
+                "name": name,
+                "content": json.dumps(result)
+            })
+
+        function_entry = {
+            "call": name,
+            "args": args
+        }
+        if result:
+            function_entry["content"] = json.dumps(result)
+
+        self.function_called.append(function_entry)
+
+    def set_pending_function(self, function_call: Dict):
+        """Set a function call as pending (requires approval)"""
+        self.pending_function_call = function_call
+
+    def clear_pending_function(self):
+        """Clear pending function call"""
+        self.pending_function_call = None
+
+    def has_pending_function(self) -> bool:
+        """Check if there's a pending function call"""
+        return self.pending_function_call is not None
 
 
 class SQLExpertLLM:
@@ -16,9 +69,12 @@ class SQLExpertLLM:
         genai.configure(api_key=os.environ["GEMINI_API_KEY"])
         self.model = genai.GenerativeModel('gemini-2.5-flash')
 
-        # Memory to store last 3 conversations
+        # Memory to store last 5 conversations
         self.conversation_memory = deque(maxlen=5)
         self.mode: str = "agent"  # used for system prompt
+
+        # Store the previous context for continue_respond
+        self.previous_context: Optional[ExecutionContext] = None
 
     def execute_function(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Execute function calls using the actual database"""
@@ -93,7 +149,7 @@ class SQLExpertLLM:
         except Exception as e:
             return {"success": False, "error": f"Error executing {name}: {str(e)}"}
 
-    def build_messages_with_memory(self, user_question: str) -> str:
+    def build_messages_with_memory(self, context: ExecutionContext) -> str:
         """
         Build prompt with memory. Includes function-calling context only in 'agent' mode.
         """
@@ -114,14 +170,8 @@ Guidelines:
 - If the user's request is unclear, ask for clarification
 - Always analyze the data before providing insights
 - If a function failed, don't keep retrying
-
-IMPORTANT BEHAVIOR RULES:
-- After executing ANY SQL command (CREATE TABLE, INSERT, UPDATE, DELETE), AUTOMATICALLY query and show the results
-- For CREATE TABLE operations, automatically follow up with get_schema_info() or query_sql() to show the table structure/contents
-- For INSERT operations, automatically follow up with a SELECT query to show the inserted data
-- For UPDATE/DELETE operations, automatically follow up with a SELECT query to show the affected table
-- Never require the user to ask "show me" or "display" - always proactively show results after operations
-- Be comprehensive in showing what was accomplished
+- If the user asks to visualise datas, prioritize using markdown table format
+- Prefer a single function call with a longer SQL string, than calling functions repeatedly
 
 When you need to call a function, respond with a JSON object in this format:
 {{
@@ -141,7 +191,7 @@ When you need to call a function, respond with a JSON object in this format:
 
 """
 
-        # Add previous memory if any (optional for ask mode too)
+        # Add previous memory if any
         if self.conversation_memory:
             prompt += "Previous conversations:\n"
             for i, conversation in enumerate(self.conversation_memory):
@@ -152,8 +202,13 @@ When you need to call a function, respond with a JSON object in this format:
                     prompt += f"{role}: {content}\n"
                 prompt += "\n"
 
-        prompt += f"Current question: {user_question}\n\nResponse:"
+        prompt += f"Current question: {context.user_question}\n"
 
+        # Add session context if available
+        if context.session_context:
+            prompt += f"\nPrevious function results:\n{context.session_context}"
+
+        prompt += "\nResponse:"
         return prompt
 
     def parse_gemini_response(self, response_text: str) -> Dict[str, Any]:
@@ -195,22 +250,25 @@ When you need to call a function, respond with a JSON object in this format:
             "content": response_text
         }
 
-    def generate_response_in_loop(self, user_question: str, max_depth: int) -> Dict[str, Any]:
-        current_conversation = []
-        current_conversation.append({"role": "user", "content": user_question})
-
-        function_called = []
-        context = ""
+    def generate_response_in_loop(self, context: ExecutionContext, max_depth: int) -> Dict[str, Any]:
+        """Generate response with context management"""
 
         for i in range(max_depth):
-            prompt = self.build_messages_with_memory(user_question)
-            if context:
-                prompt += f"\n\nPrevious function results:\n{context}"
-
+            prompt = self.build_messages_with_memory(context)
             print(f"Loop {i + 1}: Generating response...")
 
             try:
                 response = self.model.generate_content(prompt)
+            except Exception as e:
+                # TODO:
+                #  change model and cycle api keys when this happens
+                return {
+                    "success": False,
+                    "response": f"Model not available: {str(e)}",
+                    "function_called": context.function_called.copy(),
+                    "usage": {"note": "Gemini API doesn't provide detailed usage stats"}
+                }
+            try:
                 response_text = response.text
 
                 parsed_response = self.parse_gemini_response(response_text)
@@ -221,72 +279,101 @@ When you need to call a function, respond with a JSON object in this format:
 
                     print(f"Loop {i + 1}: Function call detected: {fn_name}")
 
+                    if fn_name == "execute_sql":
+                        context.set_pending_function(fn_call)
+                        self.previous_context = context  # Store for continue_respond
+                        return {
+                            "success": True,
+                            "response": "Confirmation Required",
+                            "function_called": [{"call": fn_name,"args": fn_args}],
+                            "requires_approval": True
+                        }
+
                     # Execute the function
                     function_result = self.execute_function(fn_name, fn_args)
-
-                    # Add function call and result to context for next iteration
-                    context += f"\nFunction call: {fn_name}({fn_args})\n"
-                    context += f"Result: {json.dumps(function_result)}\n"
-
-                    function_called.append({
-                        "call": f"{fn_name}",
-                        "args": fn_args,
-                        "content": json.dumps(function_result)
-                    })
-                    current_conversation.append({
-                        "role": "function",
-                        "name": f"{fn_name}",
-                        "content": json.dumps(function_result)
-                    })
+                    context.add_function_call(fn_name, fn_args, function_result)
                     continue
 
                 # Direct response - we're done
                 final_response = parsed_response["content"]
-                current_conversation.append({"role": "assistant", "content": final_response})
-                self.conversation_memory.append(current_conversation)
+                context.add_assistant_message(final_response)
+                self.conversation_memory.append(context.current_conversation.copy())
                 return {
                     "success": True,
                     "response": final_response,
-                    "function_called": function_called,
+                    "function_called": context.function_called.copy(),
                     "usage": {"note": "Gemini API doesn't provide detailed usage stats"}
                 }
 
             except Exception as e:
                 print(f"Error in loop {i + 1}: {str(e)}")
                 final_response = f"Error occurred: {str(e)}"
-                current_conversation.append({"role": "assistant", "content": final_response})
-                self.conversation_memory.append(current_conversation)
+                context.add_assistant_message(final_response)
+                self.conversation_memory.append(context.current_conversation.copy())
                 return {
                     "success": False,
                     "response": final_response,
-                    "function_called": function_called,
+                    "function_called": context.function_called.copy(),
                     "usage": {"note": "Gemini API doesn't provide detailed usage stats"}
                 }
 
         # If we reach here, it means MAX_LOOPS were hit without a final direct response
         final_response = "Maximum function call iterations reached. Please refine your query or try again."
-        current_conversation.append({"role": "assistant", "content": final_response})
-        self.conversation_memory.append(current_conversation)
+        context.add_assistant_message(final_response)
+        self.conversation_memory.append(context.current_conversation.copy())
         return {
             "success": False,
             "response": final_response,
-            "function_called": function_called,
+            "function_called": context.function_called.copy(),
             "usage": {"note": "Gemini API doesn't provide detailed usage stats"}
         }
 
     def generate_sql_response(self, user_question: str) -> Dict[str, Any]:
         """Generate response with memory and database integration, allowing for multiple function calls."""
         try:
-            return self.generate_response_in_loop(user_question, 10)
+            # Create new context for this conversation
+            context = ExecutionContext()
+            context.add_user_message(user_question)
+
+            return self.generate_response_in_loop(context, 10)
         except Exception as e:
             return {
                 "success": False,
                 "error": f"Error generating response: {str(e)}"
             }
 
+    def continue_respond(self) -> Dict[str, Any]:
+        """
+        Executes the pending execute_sql function call, if it exists.
+        Uses the previous context stored from the initial call.
+        """
+        if not self.previous_context or not self.previous_context.has_pending_function():
+            return {"success": False, "error": "No pending function to execute."}
+
+        try:
+            context = self.previous_context
+            self.previous_context = None
+            fn_call = context.pending_function_call
+            fn_name = fn_call["name"]
+            fn_args = fn_call["arguments"]
+
+            print(f"[CONFIRM EXECUTION] {fn_name} with args {fn_args}")
+
+            # Execute the function
+            function_result = self.execute_function(fn_name, fn_args)
+            context.add_function_call(fn_name, fn_args, function_result)
+            context.clear_pending_function()
+
+            # Continue with the loop to get final response
+            return self.generate_response_in_loop(context, 10)
+
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     def clear_memory(self):
         """Clear conversation memory"""
         self.conversation_memory.clear()
+        self.previous_context = None
 
     def get_memory_summary(self) -> List[str]:
         """Get a summary of stored conversations"""
@@ -335,6 +422,17 @@ if __name__ == '__main__':
 
         response = agent.generate_sql_response(user_input)
 
+        while response.get("requires_approval"):
+            print(f"Response: {response['response']}")
+            print(f"Functions to execute: {response["function_called"]}")
+
+            approval = input("Do you want to proceed? (y/n): ").lower().strip()
+            if approval in ['y', 'yes']:
+                print("Executing approved function...")
+                response = agent.continue_respond()
+            else:
+                print("Execution cancelled.")
+                break
         if response["success"]:
             print(f"\nResponse: {response['response']}")
             print(json.dumps(response, indent=2))
