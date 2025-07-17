@@ -5,6 +5,7 @@ import { Input } from "@/components/input";
 import { Card } from "@/components/card";
 import { InteractiveHoverButton } from "@/components/interactive-hover-button";
 import GradientText from "@/components/gradient-text";
+import AvatarGroup from "@/components/avatar-group";
 import { Database, MessageSquare, BarChart3, Shield, Zap, Users, ArrowRight, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -20,6 +21,27 @@ export default function Home() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const developers = [
+    {
+      id: 1,
+      name: "Marcus",
+      designation: "Frontend Developer",
+      image: "/images/marcus.png",
+    },
+    {
+      id: 2,
+      name: "Shan Chien",
+      designation: "Backend Developer",
+      image: "/images/shanchien.png",
+    },
+    {
+      id: 3,
+      name: "Hong Zhang",
+      designation: "Backend Developer",
+      image: "/images/kim.png",
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden">
@@ -268,21 +290,34 @@ export default function Home() {
         {/* Footer */}
         <footer className="border-t border-white/5 py-12">
           <div className="container mx-auto px-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <img 
-                    src="/icon.png" 
-                    alt="ByeDB Icon" 
-                    className="h-8 w-8"
-                  />
-                  <div className="absolute inset-0 h-6 w-6 bg-blue-400/20 blur-md rounded-full"></div>
+            <div className="flex flex-col gap-6">
+              {/* Main footer content */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <img 
+                      src="/icon.png" 
+                      alt="ByeDB Icon" 
+                      className="h-8 w-8"
+                    />
+                    <div className="absolute inset-0 h-6 w-6 bg-blue-400/20 blur-md rounded-full"></div>
+                  </div>
+                  <span className="text-lg font-semibold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">ByeDB</span>
                 </div>
-                <span className="text-lg font-semibold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">ByeDB</span>
+                <p className="text-gray-500">
+                  © 2024 ByeDB. Natural Language to SQL Made Simple.
+                </p>
               </div>
-              <p className="text-gray-500">
-                © 2024 ByeDB. Natural Language to SQL Made Simple.
-              </p>
+              
+              {/* Developer credits */}
+              <div className="flex items-center justify-center gap-4 pt-4 border-t border-white/5">
+                <span className="text-sm text-gray-400">Built with ❤️ by</span>
+                <AvatarGroup 
+                  items={developers} 
+                  size="sm"
+                  className="flex-shrink-0"
+                />
+              </div>
             </div>
           </div>
         </footer>
