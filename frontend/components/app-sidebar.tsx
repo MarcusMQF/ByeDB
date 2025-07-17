@@ -15,11 +15,8 @@ import {
 } from "@/components/sidebar";
 import {
   RiChat1Line,
-  RiBardLine,
-  RiMickeyLine,
-  RiMicLine,
-  RiCheckDoubleLine,
   RiBracesLine,
+  RiHistoryLine,
   RiPlanetLine,
   RiSeedlingLine,
   RiSettings3Line,
@@ -53,24 +50,9 @@ const data = {
           isActive: true,
         },
         {
-          title: "Real-time",
+          title: "History",
           url: "#",
-          icon: RiBardLine,
-        },
-        {
-          title: "Assistants",
-          url: "#",
-          icon: RiMickeyLine,
-        },
-        {
-          title: "Audio",
-          url: "#",
-          icon: RiMicLine,
-        },
-        {
-          title: "Metrics",
-          url: "#",
-          icon: RiCheckDoubleLine,
+          icon: RiHistoryLine,
         },
         {
           title: "Documentation",

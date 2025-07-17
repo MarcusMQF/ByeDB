@@ -7,10 +7,8 @@ import {
   TooltipTrigger,
 } from "@/components/tooltip";
 import {
-  RiCodeSSlashLine,
-  RiBookLine,
   RiLoopRightFill,
-  RiCheckLine,
+  RiFileCopyLine,
 } from "@remixicon/react";
 
 type ChatMessageProps = {
@@ -36,7 +34,7 @@ export function ChatMessage({ isUser, children }: ChatMessageProps) {
             ? userConfig.avatar
             : "/chat.png"
         }
-        alt={isUser ? "User profile" : "Bart logo"}
+        alt={isUser ? "User profile" : "ByeDB logo"}
         width={40}
         height={40}
       />
@@ -44,7 +42,7 @@ export function ChatMessage({ isUser, children }: ChatMessageProps) {
         className={cn(isUser ? "bg-muted px-4 py-3 rounded-xl" : "space-y-4")}
       >
         <div className="flex flex-col gap-3">
-          <p className="sr-only">{isUser ? "You" : "Bart"} said:</p>
+          <p className="sr-only">{isUser ? "You" : "ByeDB"} said:</p>
           {children}
         </div>
         {!isUser && <MessageActions />}
@@ -78,10 +76,8 @@ function MessageActions() {
   return (
     <div className="relative inline-flex bg-white rounded-md border border-black/[0.08] shadow-sm -space-x-px">
       <TooltipProvider delayDuration={0}>
-        <ActionButton icon={<RiCodeSSlashLine size={16} />} label="Show code" />
-        <ActionButton icon={<RiBookLine size={16} />} label="Bookmark" />
         <ActionButton icon={<RiLoopRightFill size={16} />} label="Refresh" />
-        <ActionButton icon={<RiCheckLine size={16} />} label="Approve" />
+        <ActionButton icon={<RiFileCopyLine size={16} />} label="Copy" />
       </TooltipProvider>
     </div>
   );

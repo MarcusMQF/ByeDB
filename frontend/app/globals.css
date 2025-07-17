@@ -191,3 +191,16 @@
   pointer-events: none !important;
   z-index: -9999 !important;
 }
+
+/* Custom bounce-up animation that starts from original position and moves up */
+@keyframes bounce-up {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-12px);
+  }
+  60% {
+    transform: translateY(-6px);
+  }
+}
