@@ -9,8 +9,8 @@ load_dotenv()
 
 
 class SQLExpertLLM:
-    def __init__(self, supabase_client):
-        self.supabase_client = supabase_client
+    def __init__(self, database_client):
+        self.database_client = database_client
         self.client = OpenAI(
             base_url=os.getenv("OPENAI_BASE_URL", "https://models.github.ai/inference"),
             api_key=os.environ["GITHUB_TOKEN"]
@@ -71,7 +71,7 @@ class SQLExpertLLM:
             if name == "execute_sql":
                 sql = arguments["text"]
                 print(f"[EXECUTE SQL]: {sql}")
-                result = self.supabase_client.execute_query(sql)
+                result = self.database_client.execute_sql(sql)
 
                 if result.get("success"):
                     return {
@@ -88,7 +88,7 @@ class SQLExpertLLM:
             elif name == "query_sql":
                 sql = arguments["text"]
                 print(f"[QUERY SQL]: {sql}")
-                result = self.supabase_client.execute_query(sql)
+                result = self.database_client.execute_sql(sql)
 
                 if result.get("success"):
                     return {
@@ -107,7 +107,7 @@ class SQLExpertLLM:
 
                 if table_name:
                     # Get specific table info
-                    result = self.supabase_client.get_table_info(table_name)
+                    result = self.database_client.get_table_info(table_name)
                     if result.get("success"):
                         return {
                             "success": True,
@@ -120,7 +120,7 @@ class SQLExpertLLM:
                             "error": result.get("error", "Table not found")
                         }
                 else:
-                    result = self.supabase_client.list_tables()
+                    result = self.database_client.list_tables()
                     if result.get("success"):
                         return {
                             "success": True,
@@ -277,10 +277,10 @@ Guidelines:
 # Usage example
 if __name__ == '__main__':
     # Import your SupabaseClient
-    from db import SupabaseClient  # Replace with actual import
+    from db2 import LocalSQLiteDatabase  # Replace with actual import
 
     # Initialize database client
-    db_client = SupabaseClient.get_instance()
+    db_client = LocalSQLiteDatabase()
 
     # Initialize agent
     agent = SQLExpertLLM(db_client)
