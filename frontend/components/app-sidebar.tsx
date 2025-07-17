@@ -1,4 +1,8 @@
+"use client";
+
 import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { TeamSwitcher } from "@/components/team-switcher";
 import {
@@ -20,6 +24,7 @@ import {
   RiPlanetLine,
   RiSeedlingLine,
   RiSettings3Line,
+  RiTableLine,
 } from "@remixicon/react";
 
 // This is sample data.
@@ -45,9 +50,13 @@ const data = {
       items: [
         {
           title: "Chat",
-          url: "#",
+          url: "/dashboard",
           icon: RiChat1Line,
-          isActive: true,
+        },
+        {
+          title: "Table",
+          url: "/dashboard/table",
+          icon: RiTableLine,
         },
         {
           title: "History",
@@ -86,6 +95,8 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const pathname = usePathname();
+
   return (
     <Sidebar {...props} className="dark !border-none">
       <SidebarHeader>
@@ -103,10 +114,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className="group/menu-button font-medium gap-3 h-9 rounded-md data-[active=true]:hover:bg-transparent data-[active=true]:bg-gradient-to-b data-[active=true]:from-sidebar-primary data-[active=true]:to-sidebar-primary/70 data-[active=true]:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] [&>svg]:size-auto"
-                    isActive={item.isActive}
+                    className="group/menu-button font-medium gap-3 h-9 rounded-md data-[active=true]:hover:bg-transparent data-[active=true]:bg-gradient-to-b data-[active=true]:from-sidebar-primary data-[active=true]:to-sidebar-primary/70 data-[active=true]:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] [&>a]:flex [&>a]:items-center [&>a]:w-full [&>svg]:size-auto"
+                    isActive={pathname === item.url}
                   >
-                    <a href={item.url}>
+                    <Link href={item.url}>
                       {item.icon && (
                         <item.icon
                           className="text-sidebar-foreground/50 group-data-[active=true]/menu-button:text-sidebar-foreground"
@@ -115,7 +126,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         />
                       )}
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -135,10 +146,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className="group/menu-button font-medium gap-3 h-9 rounded-md [&>svg]:size-auto"
-                    isActive={item.isActive}
+                    className="group/menu-button font-medium gap-3 h-9 rounded-md [&>a]:flex [&>a]:items-center [&>a]:w-full [&>svg]:size-auto"
+                    isActive={pathname === item.url}
                   >
-                    <a href={item.url}>
+                    <Link href={item.url}>
                       {item.icon && (
                         <item.icon
                           className="text-sidebar-foreground/50 group-data-[active=true]/menu-button:text-primary"
@@ -147,7 +158,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         />
                       )}
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
