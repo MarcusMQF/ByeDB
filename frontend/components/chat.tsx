@@ -16,13 +16,21 @@ import {
   RiShareLine,
   RiShareCircleLine,
   RiShining2Line,
-  RiAttachment2,
-  RiMicLine,
+  RiArrowUpSLine,
+  RiRobot2Line,
+  RiQuestionAnswerLine,
+  RiKeyboardLine
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
 import { useRef, useEffect, useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/tooltip";
 import MarkdownResponse from "@/components/markdown-response";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/dropdown-menu";
 
 type Message = {
   id: string;
@@ -31,21 +39,43 @@ type Message = {
   timestamp: Date;
 };
 
+type ChatMode = 'agent' | 'ask';
+
 export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [chatMode, setChatMode] = useState<ChatMode>('agent');
 
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
   }, [messages]);
+
+  // Register keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+I for Agent mode
+      if (e.ctrlKey && e.key === 'i') {
+        e.preventDefault();
+        setChatMode('agent');
+      }
+      // Ctrl+L for Ask mode
+      else if (e.ctrlKey && e.key === 'l') {
+        e.preventDefault();
+        setChatMode('ask');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   // Auto-resize textarea based on content
   const adjustTextareaHeight = () => {
@@ -55,8 +85,8 @@ export default function Chat() {
     // Reset height to auto to get the correct scrollHeight
     textarea.style.height = 'auto';
     
-    // Calculate the minimum height based on whether file is uploaded
-    const minHeight = uploadedFile ? 60 : 84;
+    // Set minimum height
+    const minHeight = 84;
     
     // Calculate the line height (assuming 1.5 line-height and 15px font size)
     const lineHeight = 22.5; // 15px * 1.5
@@ -71,7 +101,7 @@ export default function Chat() {
 
   useEffect(() => {
     adjustTextareaHeight();
-  }, [inputValue, uploadedFile]);
+  }, [inputValue]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -91,7 +121,7 @@ export default function Chat() {
     // Reset textarea height after sending message
     setTimeout(() => {
       if (textareaRef.current) {
-        textareaRef.current.style.height = uploadedFile ? '60px' : '84px';
+        textareaRef.current.style.height = '84px';
       }
     }, 0);
 
@@ -104,7 +134,7 @@ export default function Chat() {
         },
         body: JSON.stringify({
           question: question,
-          context: uploadedFile ? `File uploaded: ${uploadedFile.name}` : undefined
+          mode: chatMode // Include the current mode in the request
         }),
       });
 
@@ -146,55 +176,6 @@ export default function Chat() {
 
   const handleClearChat = () => {
     setMessages([]);
-  };
-
-  const handleFileUpload = () => {
-    if (uploadedFile) return; // Don't allow upload if file already exists
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Check file type
-    const allowedTypes = [
-      'text/csv',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    ];
-    const allowedExtensions = ['.csv', '.xls', '.xlsx'];
-    
-    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-    
-    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
-      alert('Only CSV and Excel files are allowed.');
-      return;
-    }
-
-    setUploadedFile(file);
-    // Clear the input value so the same file can be selected again if needed
-    event.target.value = '';
-  };
-
-  const getFileIcon = (file: File) => {
-    const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-    if (extension === '.csv') {
-      return '/csv-file.png';
-    } else if (extension === '.xls' || extension === '.xlsx') {
-      return '/xlsx-file.png';
-    }
-    return '/csv-file.png'; // fallback
-  };
-
-  const getFileTypeLabel = (file: File) => {
-    const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-    if (extension === '.csv') {
-      return 'CSV File';
-    } else if (extension === '.xls' || extension === '.xlsx') {
-      return 'Excel File';
-    }
-    return 'Spreadsheet File';
   };
 
   const enhancePrompt = async () => {
@@ -302,6 +283,7 @@ export default function Chat() {
                   />
                   Start a conversation
                 </div>
+
               </div>
             ) : (
               <>
@@ -350,105 +332,73 @@ export default function Chat() {
       <div className="shrink-0 py-6 md:py-12 px-4 md:px-6 lg:px-8 bg-background">
         <div className="max-w-3xl mx-auto">
           <div className="relative rounded-[20px] border border-transparent bg-muted transition-colors focus-within:bg-muted/50 focus-within:border-input">
-            {uploadedFile && (
-              <div className="px-4 pt-3 pb-2">
-                <div className="inline-flex items-center gap-3 px-4 py-2.5 rounded-xl border border-slate-700/50 dark:border-slate-600/50 shadow-lg backdrop-blur-sm max-w-full" style={{ backgroundColor: '#262626' }}>
-                  <img
-                    src={getFileIcon(uploadedFile)}
-                    alt={getFileTypeLabel(uploadedFile)}
-                    className="w-8 h-8 object-contain flex-shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white dark:text-slate-100 whitespace-nowrap tracking-wide">
-                      {uploadedFile.name}
-                    </p>
-                    <p className="text-xs text-slate-300 dark:text-slate-400 mt-1 font-medium whitespace-nowrap">
-                      {getFileTypeLabel(uploadedFile)}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 text-slate-300 hover:text-white dark:text-slate-400 dark:hover:text-slate-200 hover:bg-white/10 dark:hover:bg-white/5 rounded-lg transition-all duration-200 border border-transparent hover:border-white/20 dark:hover:border-white/10 flex-shrink-0"
-                    onClick={() => setUploadedFile(null)}
-                  >
-                    <RiCloseLine size={18} />
-                    <span className="sr-only">Remove file</span>
-                  </Button>
-                </div>
-              </div>
-            )}
             <textarea
               ref={textareaRef}
               className="flex w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-none resize-none overflow-hidden transition-all duration-200"
-              placeholder={uploadedFile ? "What do you want to know?" : "Ask me anything..."}
+              placeholder="Ask me anything..."
               aria-label="Enter your prompt"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               rows={1}
               style={{ 
-                height: uploadedFile ? '60px' : '84px',
-                minHeight: uploadedFile ? '60px' : '84px'
+                height: '84px',
+                minHeight: '84px'
               }}
             />
             {/* Textarea buttons */}
             <div className="flex items-center justify-between gap-2 px-4 pb-3">
-              {/* Left buttons */}
+              {/* Left buttons - Mode selector */}
               <div className="flex items-center gap-2">
-                <TooltipProvider delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="relative">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className={`rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow] ${uploadedFile ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          onClick={handleFileUpload}
-                          disabled={!!uploadedFile}
-                        >
-                          <RiAttachment2
-                            className="text-muted-foreground/70 size-5"
-                            size={20}
-                            aria-hidden="true"
-                          />
-                          <span className="sr-only">Attach</span>
-                        </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 gap-1 bg-background/80 hover:bg-background border-muted-foreground/20 rounded-full px-3"
+                    >
+                      {chatMode === 'agent' ? (
+                        <RiRobot2Line className="text-muted-foreground size-4 mr-1.5" />
+                      ) : (
+                        <RiQuestionAnswerLine className="text-muted-foreground size-4 mr-1.5" />
+                      )}
+                      <span className="text-sm font-medium">
+                        {chatMode === 'agent' ? 'Agent' : 'Ask'}
+                      </span>
+                      <RiArrowUpSLine className="text-muted-foreground size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-[200px]">
+                    <DropdownMenuItem 
+                      className={`flex items-center gap-2 ${chatMode === 'agent' ? 'bg-muted/50' : ''}`}
+                      onClick={() => setChatMode('agent')}
+                    >
+                      <RiRobot2Line className="size-4" />
+                      <div className="flex flex-col">
+                        <span className="font-medium">Agent</span>
+                        <span className="text-xs text-muted-foreground">Interactive SQL assistant</span>
                       </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="dark px-2 py-1 text-xs">
-                      <p>{uploadedFile ? 'Only 1 file available to upload' : 'Attach file'}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <TooltipProvider delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="rounded-full size-8 border-none hover:bg-background hover:shadow-md transition-[box-shadow]"
-                      >
-                        <RiMicLine
-                          className="text-muted-foreground/70 size-5"
-                          size={20}
-                          aria-hidden="true"
-                        />
-                        <span className="sr-only">Audio</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="dark px-2 py-1 text-xs">
-                      <p>Speech to Text</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                      <div className="ml-auto flex items-center rounded border px-1 text-xs text-muted-foreground">
+                        <RiKeyboardLine className="mr-1 size-3" />
+                        Ctrl+I
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className={`flex items-center gap-2 ${chatMode === 'ask' ? 'bg-muted/50' : ''}`}
+                      onClick={() => setChatMode('ask')}
+                    >
+                      <RiQuestionAnswerLine className="size-4" />
+                      <div className="flex flex-col">
+                        <span className="font-medium">Ask</span>
+                        <span className="text-xs text-muted-foreground">Direct question answering</span>
+                      </div>
+                      <div className="ml-auto flex items-center rounded border px-1 text-xs text-muted-foreground">
+                        <RiKeyboardLine className="mr-1 size-3" />
+                        Ctrl+L
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               {/* Right buttons */}
               <div className="flex items-center gap-2">
@@ -487,7 +437,7 @@ export default function Chat() {
                   onClick={handleSendMessage}
                   disabled={!inputValue.trim() || isLoading}
                 >
-                  {isLoading ? "Sending..." : "Ask ByeDB"}
+                  {isLoading ? "Sending..." : `${chatMode === 'agent' ? 'Ask ByeDB' : 'Ask ByeDB'}`}
                 </Button>
               </div>
             </div>

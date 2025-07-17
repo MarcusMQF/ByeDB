@@ -635,13 +635,13 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
         // Professional typography hierarchy
         const getHeaderClass = (level: number) => {
           switch (level) {
-            case 1: return "text-3xl font-bold mb-0 mt-0 text-slate-900 dark:text-slate-100"; // # - Largest
-            case 2: return "text-2xl font-bold mb-1 mt-2 text-slate-800 dark:text-slate-200"; // ## - Second largest
-            case 3: return "text-xl font-semibold mb-1 mt-2 text-slate-700 dark:text-slate-300"; // ### - Third largest
-            case 4: return "text-lg font-semibold mb-0.5 mt-1.5 text-slate-600 dark:text-slate-400"; // #### - Fourth largest
-            case 5: return "text-base font-medium mb-0.5 mt-1.5 text-slate-600 dark:text-slate-400"; // ##### - Normal size
-            case 6: return "text-sm font-medium mb-0.5 mt-1 text-slate-500 dark:text-slate-500"; // ###### - Smallest
-            default: return "text-base font-normal mb-1 mt-1";
+            case 1: return "text-3xl font-bold mb-1 mt-0 text-slate-900 dark:text-slate-100"; // # - Largest
+            case 2: return "text-2xl font-bold mb-1 mt-0 text-slate-800 dark:text-slate-200"; // ## - Second largest
+            case 3: return "text-xl font-semibold mb-1 mt-0 text-slate-700 dark:text-slate-300"; // ### - Third largest
+            case 4: return "text-lg font-semibold mb-0.5 mt-0 text-slate-600 dark:text-slate-400"; // #### - Fourth largest
+            case 5: return "text-base font-medium mb-0.5 mt-0 text-slate-600 dark:text-slate-400"; // ##### - Normal size
+            case 6: return "text-sm font-medium mb-0.5 mt-0 text-slate-500 dark:text-slate-500"; // ###### - Smallest
+            default: return "text-base font-normal mb-1 mt-0";
           }
         };
         
@@ -660,7 +660,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
           );
       } else if (part.type === 'hr') {
         elements.push(
-          <hr key={`hr-${elementIndex++}`} className="my-2 border-t border-gray-300 dark:border-gray-600" />
+          <hr key={`hr-${elementIndex++}`} className="mt-0 mb-1 border-t border-gray-300 dark:border-gray-600" />
         );
       } else if (part.type === 'bullet' && part.bulletText !== undefined) {
         // Process bullet text for inline formatting (bold, inline code)
@@ -820,7 +820,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
         
         const bulletContent = processBulletText(part.bulletText);
         elements.push(
-          <div key={`bullet-${elementIndex++}`} className="relative pl-6 mb-0.5 ml-4">
+          <div key={`bullet-${elementIndex++}`} className="relative pl-6 mb-0 ml-4">
             <span className="absolute left-0 top-0 text-slate-600 dark:text-slate-400 font-bold leading-snug">•</span>
             <div className="leading-snug">
               {bulletContent}
@@ -831,7 +831,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
         // Simple formatting for sub-bullets
         const subBulletContent = part.subBulletText;
         elements.push(
-          <div key={`subBullet-${elementIndex++}`} className="relative pl-6 mb-0.5 ml-8">
+          <div key={`subBullet-${elementIndex++}`} className="relative pl-6 mb-0 ml-8">
             <span className="absolute left-0 top-0 text-slate-600 dark:text-slate-400 font-bold leading-relaxed">◦</span>
             <div className="leading-relaxed">
               {subBulletContent}
@@ -963,7 +963,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
         
         const numberedContent = processNumberedText(part.numberedText);
         elements.push(
-          <div key={`numbered-${elementIndex++}`} className="relative pl-6 mb-0.5 ml-4">
+          <div key={`numbered-${elementIndex++}`} className="relative pl-6 mb-0 ml-4">
             <span className="absolute left-0 top-0 text-slate-600 dark:text-slate-400 font-bold leading-snug">{part.number}.</span>
             <div className="leading-snug">
               {numberedContent}
@@ -1136,7 +1136,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
         
         const formattedContent = processInlineFormatting(part.text);
         elements.push(
-          <div key={`text-${elementIndex++}`} className="whitespace-pre-wrap mb-2">
+          <div key={`text-${elementIndex++}`} className="whitespace-pre-wrap mb-1 mt-0">
             {formattedContent}
           </div>
         );
@@ -1147,7 +1147,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
   };
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-0.5">
       {parseMarkdown(content)}
     </div>
   );
