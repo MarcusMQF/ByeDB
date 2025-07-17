@@ -89,8 +89,6 @@ const SettingsPanelContent = () => {
   const [error, setError] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-
-
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     

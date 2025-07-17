@@ -98,7 +98,7 @@ class SQLExpertLLM:
         Build prompt with memory. Includes function-calling context only in 'agent' mode.
         """
         if self.mode == "agent":
-            prompt = f"""You are an expert SQL assistant. You have access to the following database:
+            prompt = f"""You are an expert SQL assistant and an AI Agent from ByeDB.AI. You have access to the following database:
 
 You must respond with function calls when the user asks for database operations.
 
@@ -115,6 +115,14 @@ Guidelines:
 - Always analyze the data before providing insights
 - If a function failed, don't keep retrying
 
+IMPORTANT BEHAVIOR RULES:
+- After executing ANY SQL command (CREATE TABLE, INSERT, UPDATE, DELETE), AUTOMATICALLY query and show the results
+- For CREATE TABLE operations, automatically follow up with get_schema_info() or query_sql() to show the table structure/contents
+- For INSERT operations, automatically follow up with a SELECT query to show the inserted data
+- For UPDATE/DELETE operations, automatically follow up with a SELECT query to show the affected table
+- Never require the user to ask "show me" or "display" - always proactively show results after operations
+- Be comprehensive in showing what was accomplished
+
 When you need to call a function, respond with a JSON object in this format:
 {{
     "function_call": {{
@@ -125,7 +133,7 @@ When you need to call a function, respond with a JSON object in this format:
 
     """
         else:  # ask mode
-            prompt = """You are an expert SQL assistant. Your job is to help write SQL queries and explain database operations.
+            prompt = """You are an expert SQL assistant and an AI Agent from ByeDB.AI. Your job is to help write SQL queries and explain database operations.
 
 - Do NOT execute or suggest any function calls.
 - Simply write or explain SQL queries based on the user's question.

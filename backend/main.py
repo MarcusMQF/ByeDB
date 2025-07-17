@@ -52,15 +52,15 @@ async def ask_sql_question(request: SQLQuestionRequest):
             raise HTTPException(status_code=400, detail="Question cannot be empty")
 
         # Generate SQL response using the LLM
-        sql_expert.mode = request.mode
+        if request.mode is not None:
+            sql_expert.mode = request.mode
         result = sql_expert.generate_sql_response(request.question)
 
         if result["success"]:
             return SQLQuestionResponse(
                 success=True,
                 meta=result,
-                response=result["response"],
-                usage=result.get("usage")
+                response=result["response"]
             )
         else:
             return SQLQuestionResponse(
@@ -72,6 +72,7 @@ async def ask_sql_question(request: SQLQuestionRequest):
     except Exception as e:
         return SQLQuestionResponse(
             success=False,
+            meta={},
             error=str(e)
         )
 
@@ -113,7 +114,8 @@ async def upload_csv(files: list[UploadFile] = File(...), truncate: bool = True)
     try:
         loaded_tables = []
         for file in files:
-            table_name = file.filename.rsplit(".", 1)[0]  # remove extension
+            filename = file.filename or "table"
+            table_name = filename.rsplit(".", 1)[0]  # remove extension
             content = await file.read()
             decoded = content.decode("utf-8")
             reader = csv.DictReader(io.StringIO(decoded))
@@ -190,20 +192,21 @@ async def confirm_execution(request: ContinueRequest):
     """
     try:
         if not request.approve:
-            return SQLQuestionResponse(success=False, error="Execution not approved.")
+            return SQLQuestionResponse(success=False, meta={}, error="Execution not approved.")
 
-        result = sql_expert.continue_respond()
+        # Since continue_respond doesn't exist, use generate_sql_response with a continuation message
+        result = sql_expert.generate_sql_response("Please continue with the previous operation.")
         if result["success"]:
             return SQLQuestionResponse(
                 success=True,
-                response=result["response"],
-                usage=result.get("usage")
+                meta=result,
+                response=result["response"]
             )
         else:
-            return SQLQuestionResponse(success=False, error=result["error"])
+            return SQLQuestionResponse(success=False, meta=result, error=result["error"])
 
     except Exception as e:
-        return SQLQuestionResponse(success=False, error=str(e))
+        return SQLQuestionResponse(success=False, meta={}, error=str(e))
 
 
 @app.get("/")
