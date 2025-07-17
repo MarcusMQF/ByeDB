@@ -81,16 +81,74 @@ async def ask_sql_question(request: SQLQuestionRequest):
         )
 
 
+from fastapi.responses import StreamingResponse
+
+
 @app.get("/api/export-db")
-async def export_database():
+async def export_database(file_type: str = "json"):
+    """
+    Export the database in the requested file format.
+    Supported: json (default), csv, excel, .db
+    """
     try:
         export_result = database.export_all_data()
         if not export_result["success"]:
             raise HTTPException(status_code=500, detail=export_result["error"])
-        return {"success": True, "data": export_result["data"]}
+
+        data = export_result["data"]
+
+        if file_type == "json":
+            return {
+                "success": True,
+                "data": data
+            }
+
+        elif file_type == "csv":
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                for table_name, rows in data.items():
+                    if not rows:
+                        continue
+                    df = pd.DataFrame(rows)
+                    csv_buffer = io.StringIO()
+                    df.to_csv(csv_buffer, index=False)
+                    zip_file.writestr(f"{table_name}.csv", csv_buffer.getvalue())
+            zip_buffer.seek(0)
+            return StreamingResponse(zip_buffer, media_type="application/zip", headers={
+                "Content-Disposition": "attachment; filename=exported_tables.zip"
+            })
+
+        elif file_type == "excel":
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+                for table_name, rows in data.items():
+                    if not rows:
+                        continue
+                    df = pd.DataFrame(rows)
+                    df.to_excel(writer, sheet_name=table_name[:31], index=False)  # Excel sheet names max 31 chars
+            output.seek(0)
+            return StreamingResponse(output,
+                                     media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                     headers={
+                                         "Content-Disposition": "attachment; filename=exported_tables.xlsx"
+                                     })
+        elif file_type == "db":
+            db_path = database.get_db_path()
+            if not db_path or not os.path.isfile(db_path):
+                raise HTTPException(status_code=500, detail="Database file not found.")
+
+            return StreamingResponse(
+                open(db_path, "rb"),
+                media_type="application/octet-stream",
+                headers={
+                    "Content-Disposition": "attachment; filename=byedb_export.db"
+                }
+            )
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file type. Choose from: json, csv, excel.")
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 
 @app.post("/api/upload-db")
@@ -218,8 +276,8 @@ class ContinueRequest(BaseModel):
     context: Optional[str] = None  # Optional conversation context (e.g., user confirmation notes)
 
 
-@app.post("/api/confirm-execution", response_model=SQLQuestionResponse)
-async def confirm_execution(request: ContinueRequest):
+@app.post("/api/continue-execution", response_model=SQLQuestionResponse)
+async def continue_execution(request: ContinueRequest):
     """
     Confirms whether to proceed with the last generated SQL query and executes it if approved.
     """

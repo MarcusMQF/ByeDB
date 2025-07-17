@@ -138,6 +138,7 @@ Guidelines:
 - If a function failed, don't keep retrying
 - If the user asks to visualise datas, prioritize using markdown table format
 - Prefer a single function call with a longer SQL string, than calling functions repeatedly
+- Do not repeat the same function and arguments unless necessary
 
 When you need to call a function, respond with a JSON object in this format:
 {{
@@ -251,11 +252,24 @@ When you need to call a function, respond with a JSON object in this format:
                         return {
                             "success": True,
                             "response": "Confirmation Required",
-                            "function_called": [{"call": fn_name,"args": fn_args}],
+                            "function_called": [{"call": fn_name, "args": fn_args}],
                             "requires_approval": True
                         }
 
-                    # Execute the function
+                    # query_sql: execute immediately and return result
+                    elif fn_name == "query_sql":
+                        function_result = self.execute_function(fn_name, fn_args)
+                        context.add_function_call(fn_name, fn_args, function_result)
+                        self.previous_context = context  # Store for continue_respond
+                        return {
+                            "success": True,
+                            "response": function_result.get("result", ""),
+                            "function_called": [{"call": fn_name, "args": fn_args}],
+                            "data": function_result.get("data", []),
+                            "usage": {"note": "Gemini API doesn't provide detailed usage stats"},
+                            "requires_continue": True
+                        }
+
                     function_result = self.execute_function(fn_name, fn_args)
                     context.add_function_call(fn_name, fn_args, function_result)
                     continue
@@ -310,27 +324,28 @@ When you need to call a function, respond with a JSON object in this format:
 
     def continue_respond(self) -> Dict[str, Any]:
         """
-        Executes the pending execute_sql function call, if it exists.
-        Uses the previous context stored from the initial call.
+        Continues the previous conversation, optionally executing any pending function.
         """
-        if not self.previous_context or not self.previous_context.has_pending_function():
-            return {"success": False, "error": "No pending function to execute."}
+        if not self.previous_context:
+            return {"success": False, "error": "No previous context to continue."}
 
         try:
             context = self.previous_context
             self.previous_context = None
-            fn_call = context.pending_function_call
-            fn_name = fn_call["name"]
-            fn_args = fn_call["arguments"]
 
-            print(f"[CONFIRM EXECUTION] {fn_name} with args {fn_args}")
+            if context.has_pending_function():
+                fn_call = context.pending_function_call
+                fn_name = fn_call["name"]
+                fn_args = fn_call["arguments"]
 
-            # Execute the function
-            function_result = self.execute_function(fn_name, fn_args)
-            context.add_function_call(fn_name, fn_args, function_result)
-            context.clear_pending_function()
+                print(f"[CONFIRM EXECUTION] {fn_name} with args {fn_args}")
 
-            # Continue with the loop to get final response
+                # Execute the function
+                function_result = self.execute_function(fn_name, fn_args)
+                context.add_function_call(fn_name, fn_args, function_result)
+                context.clear_pending_function()
+
+            # Proceed with next steps regardless of whether a function was executed
             return self.generate_response_in_loop(context, 20)
 
         except Exception as e:
@@ -388,7 +403,12 @@ if __name__ == '__main__':
 
         response = agent.generate_sql_response(user_input)
 
-        while response.get("requires_approval"):
+        while response.get("requires_approval") or response.get("requires_continue"):
+            if response.get("requires_continue"):
+                print(response["function_called"][-1]["args"])
+                print(response["data"])
+                response = agent.continue_respond()
+                continue
             print(f"Response: {response['response']}")
             print(f"Functions to execute: {response['function_called']}")
 

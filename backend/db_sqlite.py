@@ -1,3 +1,4 @@
+import io
 import sqlite3
 from typing import Dict, Any, List, Optional, Tuple
 import pandas as pd
@@ -356,6 +357,27 @@ class LocalSQLiteDatabase:
         except Exception as e:
             self.conn.rollback()
             return {"success": False, "error": f"An unexpected error occurred: {e}"}
+
+    def export_as_sql(self) -> str:
+        """
+        Exports the entire database as a SQL dump (DDL + inserts).
+        Returns the SQL string.
+        """
+        if not self.conn:
+            raise ValueError("Database not connected.")
+
+        sql_dump = io.StringIO()
+        for line in self.conn.iterdump():
+            sql_dump.write(f"{line}\n")
+
+        return sql_dump.getvalue()
+
+    def get_db_path(self) -> str:
+        """
+        Returns the file path to the SQLite database, if available.
+        """
+        return self.db_path if hasattr(self, "db_path") else None
+
 
 if __name__ == "__main__":
     import json
