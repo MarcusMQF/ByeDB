@@ -31,6 +31,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
+import { ConfirmationDialog } from "@/components/confirmation-dialog";
 
 type Message = {
   id: string;
@@ -49,6 +50,7 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [chatMode, setChatMode] = useState<ChatMode>('agent');
+  const [showClearDialog, setShowClearDialog] = useState(false);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -176,6 +178,7 @@ export default function Chat() {
 
   const handleClearChat = () => {
     setMessages([]);
+    setShowClearDialog(false);
   };
 
   const enhancePrompt = async () => {
@@ -225,6 +228,17 @@ export default function Chat() {
 
   return (
     <div className="flex-1 w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background flex flex-col h-full overflow-hidden">
+      {/* Confirmation Dialog for Clear Chat */}
+      <ConfirmationDialog
+        title="Are you absolutely sure?"
+        description="This action cannot be undone. This will permanently delete your chat history and remove your data from our servers."
+        confirmText="Continue"
+        cancelText="Cancel"
+        onConfirm={handleClearChat}
+        open={showClearDialog}
+        onOpenChange={setShowClearDialog}
+      />
+      
       {/* Header */}
       <div className="py-5 px-4 md:px-6 lg:px-8 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06] shrink-0">
         <div className="flex items-center justify-between gap-2">
@@ -243,8 +257,9 @@ export default function Chat() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleClearChat}
+              onClick={() => setShowClearDialog(true)}
               className="text-xs"
+              disabled={messages.length === 0}
             >
               Clear Chat
             </Button>
@@ -355,12 +370,12 @@ export default function Chat() {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="h-8 gap-1 bg-background/80 hover:bg-background border-muted-foreground/20 rounded-full px-3"
+                      className="h-8 gap-1 bg-background/80 hover:bg-background border-muted-foreground/20 rounded-full px-3 transition-all hover:shadow-sm"
                     >
                       {chatMode === 'agent' ? (
-                        <RiRobot2Line className="text-muted-foreground size-4 mr-1.5" />
+                        <RiRobot2Line className="text-primary size-4 mr-1.5" />
                       ) : (
-                        <RiQuestionAnswerLine className="text-muted-foreground size-4 mr-1.5" />
+                        <RiQuestionAnswerLine className="text-primary size-4 mr-1.5" />
                       )}
                       <span className="text-sm font-medium">
                         {chatMode === 'agent' ? 'Agent' : 'Ask'}
@@ -368,31 +383,34 @@ export default function Chat() {
                       <RiArrowUpSLine className="text-muted-foreground size-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-[200px]">
+                  <DropdownMenuContent 
+                    align="start" 
+                    className="w-[220px] p-2 rounded-xl border-muted-foreground/10 shadow-lg"
+                  >
                     <DropdownMenuItem 
-                      className={`flex items-center gap-2 ${chatMode === 'agent' ? 'bg-muted/50' : ''}`}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${chatMode === 'agent' ? 'bg-primary/10 text-primary' : 'hover:bg-muted/80'}`}
                       onClick={() => setChatMode('agent')}
                     >
-                      <RiRobot2Line className="size-4" />
+                      <RiRobot2Line className={`size-5 ${chatMode === 'agent' ? 'text-primary' : ''}`} />
                       <div className="flex flex-col">
                         <span className="font-medium">Agent</span>
                         <span className="text-xs text-muted-foreground">Interactive SQL assistant</span>
                       </div>
-                      <div className="ml-auto flex items-center rounded border px-1 text-xs text-muted-foreground">
+                      <div className="ml-auto flex items-center rounded bg-muted/80 px-1.5 py-0.5 text-xs text-muted-foreground">
                         <RiKeyboardLine className="mr-1 size-3" />
                         Ctrl+I
                       </div>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      className={`flex items-center gap-2 ${chatMode === 'ask' ? 'bg-muted/50' : ''}`}
+                      className={`flex items-center gap-3 px-3 py-2.5 mt-1 rounded-lg transition-colors ${chatMode === 'ask' ? 'bg-primary/10 text-primary' : 'hover:bg-muted/80'}`}
                       onClick={() => setChatMode('ask')}
                     >
-                      <RiQuestionAnswerLine className="size-4" />
+                      <RiQuestionAnswerLine className={`size-5 ${chatMode === 'ask' ? 'text-primary' : ''}`} />
                       <div className="flex flex-col">
                         <span className="font-medium">Ask</span>
                         <span className="text-xs text-muted-foreground">Direct question answering</span>
                       </div>
-                      <div className="ml-auto flex items-center rounded border px-1 text-xs text-muted-foreground">
+                      <div className="ml-auto flex items-center rounded bg-muted/80 px-1.5 py-0.5 text-xs text-muted-foreground">
                         <RiKeyboardLine className="mr-1 size-3" />
                         Ctrl+L
                       </div>

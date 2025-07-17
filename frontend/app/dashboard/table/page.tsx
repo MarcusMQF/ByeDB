@@ -10,9 +10,18 @@ import {
   TableRow,
 } from "@/components/table";
 import { useState } from "react";
-import { RiAddLine, RiDeleteBinLine, RiEditLine, RiSearchLine, RiShareLine, RiRefreshLine } from "@remixicon/react";
+import { RiAddLine, RiDeleteBinLine, RiEditLine, RiSearchLine, RiShareLine, RiRefreshLine, RiShareCircleLine } from "@remixicon/react";
 import { Input } from "@/components/input";
 import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/breadcrumb";
+import { ConfirmationDialog } from "@/components/confirmation-dialog";
 
 // Mock data for the table
 const mockData = [
@@ -27,6 +36,7 @@ export default function TablePage() {
   // State management
   const [datasets, setDatasets] = useState(mockData);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showClearDialog, setShowClearDialog] = useState(false);
   
   // Filter datasets based on search term
   const filteredDatasets = datasets.filter(dataset => 
@@ -38,31 +48,66 @@ export default function TablePage() {
     setDatasets(datasets.filter(dataset => dataset.id !== id));
   };
   
+  // Handle clear all datasets
+  const handleClearAllDatasets = () => {
+    setDatasets([]);
+    setShowClearDialog(false);
+  };
+  
   return (
     <div className="flex flex-col flex-1 relative">
-      {/* Page header - exact match to chat page */}
-      <div className="flex items-center justify-between px-6 py-3 border-b bg-white">
-        <div className="flex items-center">
-          <Link href="/playground" className="text-gray-600 hover:text-gray-800 text-sm">
-            Playground
-          </Link>
-          <span className="mx-2 text-gray-400">›</span>
-          <span className="text-sm">Dataset</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-sm rounded border-gray-200 bg-white hover:bg-gray-50"
-          >
-            Clear Dataset
-          </Button>
-          <Button variant="ghost" size="icon" className="w-9 h-9 text-gray-500 hover:text-gray-700">
-            <RiShareLine className="size-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="w-9 h-9 text-gray-500 hover:text-gray-700">
-            <RiRefreshLine className="size-4" />
-          </Button>
+      {/* Confirmation Dialog for Clear Dataset */}
+      <ConfirmationDialog
+        title="Are you absolutely sure?"
+        description="This action cannot be undone. This will permanently delete your datasets and remove your data from our servers."
+        confirmText="Continue"
+        cancelText="Cancel"
+        onConfirm={handleClearAllDatasets}
+        open={showClearDialog}
+        onOpenChange={setShowClearDialog}
+      />
+      
+      {/* Page header - matching chat page header */}
+      <div className="py-5 px-4 md:px-6 lg:px-8 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06] shrink-0">
+        <div className="flex items-center justify-between gap-2">
+          <Breadcrumb>
+            <BreadcrumbList className="sm:gap-1.5">
+              <BreadcrumbItem>
+                <BreadcrumbLink href="#">Playground</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Dataset</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowClearDialog(true)}
+              className="text-xs"
+              disabled={datasets.length === 0}
+            >
+              Clear Dataset
+            </Button>
+            <Button variant="outline" size="icon" className="size-8">
+              <RiShareLine
+                className="text-muted-foreground/70"
+                size={16}
+                aria-hidden="true"
+              />
+              <span className="sr-only">Share</span>
+            </Button>
+            <Button variant="outline" size="icon" className="size-8">
+              <RiShareCircleLine
+                className="text-muted-foreground/70"
+                size={16}
+                aria-hidden="true"
+              />
+              <span className="sr-only">Share publicly</span>
+            </Button>
+          </div>
         </div>
       </div>
       
@@ -74,10 +119,6 @@ export default function TablePage() {
         <div className="max-w-[1400px] mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-xl font-semibold">Datasets</h1>
-            <Button className="bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white h-9 px-4">
-              <RiAddLine className="size-4 mr-1" />
-              <span>New Dataset</span>
-            </Button>
           </div>
           
           <div className="relative w-full max-w-md mb-6">

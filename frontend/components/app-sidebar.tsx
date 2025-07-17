@@ -24,7 +24,7 @@ import {
   RiPlanetLine,
   RiSeedlingLine,
   RiSettings3Line,
-  RiTableLine,
+  RiDatabase2Line,
 } from "@remixicon/react";
 
 // This is sample data.
@@ -54,9 +54,9 @@ const data = {
           icon: RiChat1Line,
         },
         {
-          title: "Table",
+          title: "Dataset",
           url: "/dashboard/table",
-          icon: RiTableLine,
+          icon: RiDatabase2Line,
         },
         {
           title: "History",
