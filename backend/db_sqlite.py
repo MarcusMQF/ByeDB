@@ -8,7 +8,7 @@ class LocalSQLiteDatabase:
     and a generic execute_sql function that supports multiple statements.
     """
 
-    def __init__(self, db_path: Optional[str] = ':memory:'):
+    def __init__(self, db_path: str = ':memory:'):
         """
         Initializes the SQLite database connection.
 
@@ -55,7 +55,7 @@ class LocalSQLiteDatabase:
         Returns:
             Dict[str, Any]: A dictionary indicating success/failure, a message, and data (if any).
         """
-        if not self.conn:
+        if not self.conn or not self.cursor:
             return {"success": False, "error": "Database not connected."}
 
         try:
@@ -220,7 +220,7 @@ class LocalSQLiteDatabase:
         Returns:
             Dict[str, Any]: A dictionary with success status, loaded table names, and any errors.
         """
-        if not self.conn:
+        if not self.conn or not self.cursor:
             return {"success": False, "error": "Database not connected."}
 
         errors = []
@@ -317,7 +317,7 @@ if __name__ == "__main__":
     import json
 
 
-    def run_test(name: str, func: callable, *args, **kwargs):
+    def run_test(name: str, func, *args, **kwargs):
         """Helper function to run and print test results."""
         print(f"\n--- Test: {name} ---")
         result = func(*args, **kwargs)

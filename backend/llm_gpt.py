@@ -2,6 +2,7 @@ import os
 import json
 from typing import Dict, Any, List
 from openai import OpenAI
+from openai.types.chat import ChatCompletionMessageParam
 from dotenv import load_dotenv
 from collections import deque
 
@@ -20,47 +21,56 @@ class SQLExpertLLM:
         # Memory to store last 3 conversations
         self.conversation_memory = deque(maxlen=3)
 
-        self.functions = [
+        self.tools = [
             {
-                "name": "execute_sql",
-                "description": "Execute SQL commands that modify the database (INSERT, UPDATE, DELETE, CREATE TABLE, etc.)",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "text": {
-                            "type": "string",
-                            "description": "A SQL query string that modifies the database."
-                        }
-                    },
-                    "required": ["text"]
+                "type": "function",
+                "function": {
+                    "name": "execute_sql",
+                    "description": "Execute SQL commands that modify the database (INSERT, UPDATE, DELETE, CREATE TABLE, etc.)",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "text": {
+                                "type": "string",
+                                "description": "A SQL query string that modifies the database."
+                            }
+                        },
+                        "required": ["text"]
+                    }
                 }
             },
             {
-                "name": "query_sql",
-                "description": "Query the database for information (SELECT statements). Safe and no confirmation needed.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "text": {
-                            "type": "string",
-                            "description": "A SQL query to inspect or retrieve data from the database."
-                        }
-                    },
-                    "required": ["text"]
+                "type": "function",
+                "function": {
+                    "name": "query_sql",
+                    "description": "Query the database for information (SELECT statements). Safe and no confirmation needed.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "text": {
+                                "type": "string",
+                                "description": "A SQL query to inspect or retrieve data from the database."
+                            }
+                        },
+                        "required": ["text"]
+                    }
                 }
             },
             {
-                "name": "get_schema_info",
-                "description": "Get information about database tables and their structure",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "table_name": {
-                            "type": "string",
-                            "description": "Optional table name to get specific table info. If not provided, lists all tables."
-                        }
-                    },
-                    "required": []
+                "type": "function",
+                "function": {
+                    "name": "get_schema_info",
+                    "description": "Get information about database tables and their structure",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "table_name": {
+                                "type": "string",
+                                "description": "Optional table name to get specific table info. If not provided, lists all tables."
+                            }
+                        },
+                        "required": []
+                    }
                 }
             }
         ]
@@ -138,7 +148,7 @@ class SQLExpertLLM:
         except Exception as e:
             return {"success": False, "error": f"Error executing {name}: {str(e)}"}
 
-    def build_messages_with_memory(self, user_question: str) -> List[Dict[str, Any]]:
+    def build_messages_with_memory(self, user_question: str) -> List[ChatCompletionMessageParam]:
         """Build messages including conversation memory"""
         messages = []
 
@@ -185,9 +195,9 @@ Guidelines:
         for i in range(max_depth):
             response = self.client.chat.completions.create(
                 model=self.model,
-                messages=messages,
-                functions=self.functions,
-                function_call="auto",
+                messages=messages,  # type: ignore
+                tools=self.tools,  # type: ignore
+                tool_choice="auto",
                 temperature=0
             )
 
@@ -198,26 +208,25 @@ Guidelines:
             usage["completion_tokens"] += response.usage.completion_tokens if response.usage else 0
             usage["total_tokens"] += response.usage.total_tokens if response.usage else 0
 
-            if choice.finish_reason == "function_call":
-                fn_call = message.function_call
-                fn_name = fn_call.name
-                fn_args = json.loads(fn_call.arguments)
+            if choice.finish_reason == "tool_calls" and message.tool_calls:
+                tool_call = message.tool_calls[0]
+                fn_name = tool_call.function.name
+                fn_args = json.loads(tool_call.function.arguments)
 
-                print(f"Loop {i + 1}: Function call detected: {fn_name}")
+                print(f"Loop {i + 1}: Tool call detected: {fn_name}")
                 # Execute the function
                 function_result = self.execute_function(fn_name, fn_args)
 
-                # Add function call and result to messages for the next LLM turn
+                # Add tool call and result to messages for the next LLM turn
                 messages.append({
                     "role": "assistant",
-                    "function_call": {"name": fn_name, "arguments": json.dumps(fn_args)}
-                    # Reconstruct function_call correctly
-                })
+                    "tool_calls": [{"id": tool_call.id, "type": "function", "function": {"name": fn_name, "arguments": json.dumps(fn_args)}}]
+                })  # type: ignore
                 messages.append({
-                    "role": "function",
-                    "name": fn_name,
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
                     "content": json.dumps(function_result)
-                })
+                })  # type: ignore
                 function_called.append({
                     "call": f"{fn_name}({fn_args})",
                     "content": json.dumps(function_result)

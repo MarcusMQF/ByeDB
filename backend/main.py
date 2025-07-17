@@ -4,6 +4,7 @@ from typing import Optional
 import pandas as pd
 import io
 import os
+import csv
 
 from fastapi import FastAPI, HTTPException
 from fastapi import UploadFile, File, Form
@@ -55,15 +56,15 @@ async def ask_sql_question(request: SQLQuestionRequest):
             raise HTTPException(status_code=400, detail="Question cannot be empty")
 
         # Generate SQL response using the LLM
-        sql_expert.mode = request.mode
+        if request.mode is not None:
+            sql_expert.mode = request.mode
         result = sql_expert.generate_sql_response(request.question)
 
         if result["success"]:
             return SQLQuestionResponse(
                 success=True,
                 meta=result,
-                response=result["response"],
-                usage=result.get("usage")
+                response=result["response"]
             )
         else:
             return SQLQuestionResponse(
@@ -75,6 +76,7 @@ async def ask_sql_question(request: SQLQuestionRequest):
     except Exception as e:
         return SQLQuestionResponse(
             success=False,
+            meta={},
             error=str(e)
         )
 
@@ -153,6 +155,78 @@ async def upload_database(file: UploadFile = File(...), truncate: bool = Form(Tr
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/upload-csv")
+async def upload_csv(files: list[UploadFile] = File(...), truncate: bool = True):
+    try:
+        loaded_tables = []
+        for file in files:
+            filename = file.filename or "table"
+            table_name = filename.rsplit(".", 1)[0]  # remove extension
+            content = await file.read()
+            decoded = content.decode("utf-8")
+            reader = csv.DictReader(io.StringIO(decoded))
+            rows = list(reader)
+
+            if not rows:
+                continue
+
+            # Create table if it doesn't exist
+            columns = rows[0].keys()
+            create_table_sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join([f'{col} TEXT' for col in columns])});"
+            database.execute_sql(create_table_sql)
+
+            if truncate:
+                database.execute_sql(f"DELETE FROM {table_name}")
+
+            # Insert rows
+            for row in rows:
+                placeholders = ", ".join(["?"] * len(columns))
+                insert_sql = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
+                database.execute_sql(insert_sql, tuple(row.values()))
+
+            loaded_tables.append(table_name)
+
+        return {"success": True, "loaded_tables": loaded_tables}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+from fastapi.responses import StreamingResponse
+import zipfile
+import io
+
+
+@app.get("/api/export-csv")
+async def export_csv():
+    try:
+        tables_result = database.list_tables()
+        if not tables_result["success"]:
+            raise HTTPException(status_code=500, detail=tables_result["error"])
+
+        table_names = [row["name"] for row in tables_result["data"]]
+
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for table in table_names:
+                query_result = database.execute_sql(f"SELECT * FROM {table}")
+                if not query_result["success"]:
+                    continue
+
+                output = io.StringIO()
+                writer = csv.DictWriter(output,
+                                        fieldnames=query_result["data"][0].keys() if query_result["data"] else [])
+                writer.writeheader()
+                writer.writerows(query_result["data"])
+                zipf.writestr(f"{table}.csv", output.getvalue())
+
+        zip_buffer.seek(0)
+        return StreamingResponse(zip_buffer, media_type="application/x-zip-compressed", headers={
+            "Content-Disposition": "attachment; filename=exported_tables.zip"
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 class ContinueRequest(BaseModel):
     approve: bool  # Whether to proceed with execution
     context: Optional[str] = None  # Optional conversation context (e.g., user confirmation notes)
@@ -165,20 +239,21 @@ async def confirm_execution(request: ContinueRequest):
     """
     try:
         if not request.approve:
-            return SQLQuestionResponse(success=False, error="Execution not approved.")
+            return SQLQuestionResponse(success=False, meta={}, error="Execution not approved.")
 
-        result = sql_expert.continue_respond()
+        # Since continue_respond doesn't exist, use generate_sql_response with a continuation message
+        result = sql_expert.generate_sql_response("Please continue with the previous operation.")
         if result["success"]:
             return SQLQuestionResponse(
                 success=True,
-                response=result["response"],
-                usage=result.get("usage")
+                meta=result,
+                response=result["response"]
             )
         else:
-            return SQLQuestionResponse(success=False, error=result["error"])
+            return SQLQuestionResponse(success=False, meta=result, error=result["error"])
 
     except Exception as e:
-        return SQLQuestionResponse(success=False, error=str(e))
+        return SQLQuestionResponse(success=False, meta={}, error=str(e))
 
 
 @app.get("/")

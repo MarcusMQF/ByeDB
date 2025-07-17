@@ -176,7 +176,24 @@ export default function Chat() {
     }
   };
 
-  const handleClearChat = () => {
+  const handleClearChat = async () => {
+    try {
+      // Clear memory on backend
+      const response = await fetch('http://localhost:8000/api/clear-memory', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Failed to clear backend memory:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error clearing backend memory:', error);
+    }
+
+    // Clear frontend chat
     setMessages([]);
     setShowClearDialog(false);
   };
