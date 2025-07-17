@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/table";
 import { useState } from "react";
-import { RiAddLine, RiDeleteBinLine, RiEditLine, RiSearchLine, RiShareLine, RiRefreshLine, RiShareCircleLine, RiDownloadLine } from "@remixicon/react";
+import { RiSearchLine, RiRefreshLine, RiDownloadLine, RiExpandUpDownLine, RiTableLine, RiShareLine, RiShareCircleLine } from "@remixicon/react";
 import { Input } from "@/components/input";
 import Link from "next/link";
 import {
@@ -23,6 +23,7 @@ import {
 } from "@/components/breadcrumb";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { useDatasets } from "@/hooks/use-datasets";
+import { Badge } from "@/components/badge";
 
 export default function TablePage() {
   // Use the datasets hook instead of mock data
@@ -37,16 +38,26 @@ export default function TablePage() {
   
   const [searchTerm, setSearchTerm] = useState("");
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [selectedTable, setSelectedTable] = useState<string | null>(null);
+  const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set());
   
   // Filter datasets based on search term
   const filteredDatasets = datasets.filter(dataset => 
     dataset.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Get the selected dataset for detailed view
+  const selectedDataset = datasets.find(d => d.id === selectedTable);
   
-  // Handle dataset deletion (individual table deletion would need backend implementation)
-  const handleDelete = (id: string) => {
-    // TODO: Implement individual table deletion on backend
-    console.log('Delete dataset:', id);
+  // Toggle table expansion
+  const toggleTableExpansion = (tableId: string) => {
+    const newExpanded = new Set(expandedTables);
+    if (newExpanded.has(tableId)) {
+      newExpanded.delete(tableId);
+    } else {
+      newExpanded.add(tableId);
+    }
+    setExpandedTables(newExpanded);
   };
   
   // Handle clear all datasets
@@ -75,6 +86,62 @@ export default function TablePage() {
     } catch (error) {
       console.error('Failed to export database:', error);
     }
+  };
+
+  // Render table content preview (first 5 rows)
+  const renderTablePreview = (dataset: any) => {
+    if (!dataset.data || !Array.isArray(dataset.data) || dataset.data.length === 0) {
+      return (
+        <div className="p-4 text-center text-gray-500 bg-gray-50 rounded">
+          No data available
+        </div>
+      );
+    }
+
+    const headers = Object.keys(dataset.data[0]);
+    const previewData = dataset.data.slice(0, 5); // Show first 5 rows
+
+    return (
+      <div className="mt-4 border rounded-lg overflow-hidden bg-white">
+        <div className="bg-gray-50 px-4 py-2 border-b">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium text-gray-900">Table Content Preview</h4>
+            <Badge variant="secondary" className="text-xs">
+              {dataset.data.length} rows
+            </Badge>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {headers.map((header) => (
+                  <TableHead key={header} className="px-4 py-2 text-xs font-medium text-gray-700 bg-gray-50">
+                    {header}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+                {previewData.map((row: Record<string, unknown>, index: number) => (
+                <TableRow key={index} className="hover:bg-gray-50">
+                  {headers.map((header: string) => (
+                  <TableCell key={header} className="px-4 py-2 text-sm border-r last:border-r-0">
+                    {row[header] !== null && row[header] !== undefined ? String(row[header]) : '-'}
+                  </TableCell>
+                  ))}
+                </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </div>
+        {dataset.data.length > 5 && (
+          <div className="bg-gray-50 px-4 py-2 text-center text-sm text-gray-600 border-t">
+            Showing 5 of {dataset.data.length} rows
+          </div>
+        )}
+      </div>
+    );
   };
   
   return (
@@ -174,93 +241,83 @@ export default function TablePage() {
             />
           </div>
           
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50 border-b">
-                  <TableHead className="py-3 font-medium text-gray-600">Name</TableHead>
-                  <TableHead className="py-3 w-[100px] text-right font-medium text-gray-600">Rows</TableHead>
-                  <TableHead className="py-3 w-[100px] text-right font-medium text-gray-600">Columns</TableHead>
-                  <TableHead className="py-3 w-[150px] font-medium text-gray-600">Last Modified</TableHead>
-                  <TableHead className="py-3 w-[100px] text-right font-medium text-gray-600">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
-                        Loading datasets...
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : error ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                      <div className="text-red-500">
-                        Error: {error}
-                        <br />
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={handleRefresh}
-                          className="mt-2"
-                        >
-                          Try Again
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : filteredDatasets.length > 0 ? (
-                  filteredDatasets.map((dataset) => (
-                    <TableRow key={dataset.id} className="border-b hover:bg-gray-50">
-                      <TableCell className="py-4 font-medium">{dataset.name}</TableCell>
-                      <TableCell className="py-4 text-right">{dataset.rows.toLocaleString()}</TableCell>
-                      <TableCell className="py-4 text-right">{dataset.columns}</TableCell>
-                      <TableCell className="py-4">{dataset.lastModified}</TableCell>
-                      <TableCell className="py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" className="size-8 text-gray-500 hover:text-gray-800">
-                            <RiEditLine className="size-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="size-8 text-gray-500 hover:text-red-500"
-                            onClick={() => handleDelete(dataset.id)}
-                          >
-                            <RiDeleteBinLine className="size-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                      <div className="text-gray-500">
-                        No datasets found
-                        {searchTerm && (
-                          <div className="mt-1 text-sm">
-                            Try adjusting your search terms
+          <div className="space-y-4">
+            {isLoading ? (
+              <div className="text-center py-12">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                  Loading datasets...
+                </div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <div className="text-red-500">
+                  Error: {error}
+                  <br />
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleRefresh}
+                    className="mt-2"
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              </div>
+            ) : filteredDatasets.length > 0 ? (
+              filteredDatasets.map((dataset) => (
+                <div key={dataset.id} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                  {/* Dataset Header */}
+                  <div 
+                    className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => toggleTableExpansion(dataset.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <RiTableLine className="w-5 h-5 text-gray-600" />
+                        <div>
+                          <h3 className="font-medium text-gray-900">{dataset.name}</h3>
+                          <div className="flex items-center gap-4 mt-1">
+                            <span className="text-sm text-gray-500">{dataset.rows.toLocaleString()} rows</span>
+                            <span className="text-sm text-gray-500">Last modified: {dataset.lastModified}</span>
                           </div>
-                        )}
+                        </div>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-            
-            <div className="flex items-center justify-between px-4 py-3 border-t">
-              <div className="text-sm text-gray-500">
-                A list of your datasets
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {dataset.rows.toLocaleString()} records
+                        </Badge>
+                        <RiExpandUpDownLine 
+                          className={`w-4 h-4 text-gray-600 transition-transform ${
+                            expandedTables.has(dataset.id) ? 'rotate-180' : ''
+                          }`} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Expanded Content */}
+                  {expandedTables.has(dataset.id) && (
+                    <div className="border-t bg-gray-50/50">
+                      <div className="p-4">
+                        {renderTablePreview(dataset)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-gray-500">
+                  No datasets found
+                  {searchTerm && (
+                    <div className="mt-1 text-sm">
+                      Try adjusting your search terms
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="text-sm text-gray-500">
-                {filteredDatasets.length} {filteredDatasets.length === 1 ? 'record' : 'records'}
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

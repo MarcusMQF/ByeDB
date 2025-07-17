@@ -155,6 +155,7 @@ When you need to call a function, respond with a JSON object in this format:
 - Do NOT execute or suggest any function calls.
 - Simply write or explain SQL queries based on the user's question.
 - Be concise and clear. Return only helpful text or code as needed.
+- If the user asks any function calls for uploaded dataset, simply return the message ask user to switch to agent mode. 
 
 """
 
