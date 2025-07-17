@@ -71,7 +71,7 @@ class SQLExpertLLM:
             if name == "execute_sql":
                 sql = arguments["text"]
                 print(f"[EXECUTE SQL]: {sql}")
-                result = self.database_client.execute_sql(sql)
+                result = self.database_client.execute_sql(sql, multi_statement=True)
 
                 if result.get("success"):
                     return {
@@ -275,7 +275,7 @@ Guidelines:
 # Usage example
 if __name__ == '__main__':
     # Import your SupabaseClient
-    from db2 import LocalSQLiteDatabase  # Replace with actual import
+    from db_sqlite import LocalSQLiteDatabase  # Replace with actual import
 
     # Initialize database client
     db_client = LocalSQLiteDatabase()
