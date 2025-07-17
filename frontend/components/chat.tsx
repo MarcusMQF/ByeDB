@@ -180,7 +180,7 @@ export default function Chat() {
 
   const handleConfirmExecution = async (confirmationData: any, messageId: string) => {
     try {
-      const response = await fetch('http://localhost:8000/api/confirm-execution', {
+      const response = await fetch('http://localhost:8000/api/continue-execution', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -389,10 +389,10 @@ export default function Chat() {
                         <p>{message.content}</p>
                       ) : message.requiresConfirmation ? (
                         <div className="space-y-3">
-                          <p>I need your confirmation to execute this SQL query. Please review and confirm if you want to proceed.</p>
+                          <p>I need your confirmation to execute this SQL query.</p>
                           <Button
                             onClick={() => handleConfirmExecution(message.confirmationData, message.id)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
+                            className="bg-black hover:bg-gray-800 text-white transition-colors duration-200"
                             size="sm"
                           >
                             Confirm Execution
