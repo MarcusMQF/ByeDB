@@ -40,9 +40,9 @@ def plot_graph(
     # Define custom harmonious color palette
     CUSTOM_COLORS = [
         "#5E60CE", "#4895EF", "#4CC9F0", "#A3CEF1",
-        "#B5E48C", "#99D98C", "#D9ED92", "#FFB703",
-        "#FAA307", "#F3722C", "#F94144", "#ff4271",
-        "#ff409f", "#ff85e0", "#d376de", "#bf94e3"
+        "#B5E48C", "#99D98C", "#D9ED92", "#ebca6a",
+        "#f0b854", "#f09462", "#f27c7d", "#ff809f",
+        "#ffa3e8", "#e873f5", "#a47dff", "#bb98f5",
     ]
     start_index = random.randint(0, len(CUSTOM_COLORS) - 1)
     cycled_colors = CUSTOM_COLORS[start_index:] + CUSTOM_COLORS[:start_index]
