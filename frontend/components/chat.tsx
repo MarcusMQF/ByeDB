@@ -14,8 +14,6 @@ import { ScrollArea } from "@/components/scroll-area";
 import { getApiHeaders } from "@/lib/user-session";
 import {
   RiCloseLine,
-  RiShareLine,
-  RiShareCircleLine,
   RiShining2Line,
   RiArrowUpSLine,
   RiRobot2Line,
@@ -25,7 +23,8 @@ import {
   RiCheckLine,
   RiBookOpenLine,
   RiFileCopyLine,
-  RiQuestionLine
+  RiQuestionLine,
+  RiDownloadLine
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
 import { useRef, useEffect, useState } from "react";
@@ -122,6 +121,283 @@ export default function Chat() {
   );
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [copiedItems, setCopiedItems] = useState<Set<string>>(new Set()); // Track copied items by unique ID
+
+  // PDF Export function - converts chat to properly formatted PDF
+  const exportChatToPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to download the PDF');
+      return;
+    }
+
+    const currentDate = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    const currentTime = new Date().toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+    
+    // Function to strip markdown and format content nicely
+    const formatMessageContent = (content: string, isUser: boolean) => {
+      // Remove markdown syntax and clean up the content
+      let cleanContent = content
+        // Remove code block markers
+        .replace(/```[\s\S]*?```/g, (match) => {
+          const codeContent = match.replace(/```(\w+)?\n?/g, '').replace(/```/g, '');
+          return `\n[CODE BLOCK]\n${codeContent}\n[/CODE BLOCK]\n`;
+        })
+        // Remove inline code markers
+        .replace(/`([^`]+)`/g, '$1')
+        // Remove markdown headers
+        .replace(/#{1,6}\s*/g, '')
+        // Remove markdown bold/italic
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/\*([^*]+)\*/g, '$1')
+        // Remove markdown links but keep text
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        // Clean up extra whitespace
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+      // Convert to HTML with proper formatting
+      return cleanContent
+        .replace(/\[CODE BLOCK\]\n([\s\S]*?)\n\[\/CODE BLOCK\]/g, 
+          '<div style="background: #f5f5f5; padding: 12px; border-radius: 6px; border-left: 4px solid #3b82f6; margin: 10px 0; font-family: monospace; white-space: pre-wrap;">$1</div>')
+        .replace(/\n/g, '<br>')
+        .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+    };
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>ByeDB Chat Conversation - ${currentDate}</title>
+          <meta charset="UTF-8">
+          <style>
+            * { box-sizing: border-box; }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              line-height: 1.6;
+              margin: 0;
+              padding: 40px;
+              color: #1f2937;
+              background: white;
+              font-size: 14px;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 3px solid #3b82f6;
+              padding-bottom: 25px;
+              margin-bottom: 35px;
+              background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+              margin: -20px -20px 35px -20px;
+              padding: 30px 20px 25px 20px;
+            }
+            .header h1 {
+              color: #1e40af;
+              margin: 0 0 8px 0;
+              font-size: 28px;
+              font-weight: 700;
+              letter-spacing: -0.5px;
+            }
+            .header .subtitle {
+              color: #3b82f6;
+              font-size: 16px;
+              margin: 5px 0;
+              font-weight: 500;
+            }
+            .header .meta {
+              color: #6b7280;
+              font-size: 13px;
+              margin: 8px 0 0 0;
+            }
+            .conversation-stats {
+              background: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 8px;
+              padding: 15px;
+              margin: 25px 0;
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+              gap: 15px;
+            }
+            .stat-item {
+              text-align: center;
+            }
+            .stat-number {
+              font-size: 20px;
+              font-weight: 700;
+              color: #1e40af;
+              display: block;
+            }
+            .stat-label {
+              font-size: 11px;
+              color: #6b7280;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              margin-top: 2px;
+            }
+            .message {
+              margin-bottom: 25px;
+              page-break-inside: avoid;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+            .message-header {
+              padding: 12px 18px;
+              font-weight: 600;
+              font-size: 13px;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            }
+            .message-content {
+              padding: 18px;
+              line-height: 1.7;
+              word-wrap: break-word;
+              hyphens: auto;
+            }
+            .user-message .message-header {
+              background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+              color: #065f46;
+              border-bottom: 1px solid #a7f3d0;
+            }
+            .user-message .message-content {
+              background: #f0fdf4;
+              color: #1f2937;
+            }
+            .ai-message .message-header {
+              background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+              color: #1e40af;
+              border-bottom: 1px solid #93c5fd;
+            }
+            .ai-message .message-content {
+              background: #f8fafc;
+              color: #1f2937;
+            }
+            .timestamp {
+              font-size: 11px;
+              color: #6b7280;
+              font-weight: 400;
+              margin-left: auto;
+            }
+            .footer {
+              margin-top: 40px;
+              padding-top: 25px;
+              border-top: 2px solid #e5e7eb;
+              text-align: center;
+            }
+            .footer-logo {
+              color: #3b82f6;
+              font-size: 18px;
+              font-weight: 700;
+              margin-bottom: 8px;
+            }
+            .footer-tagline {
+              color: #6b7280;
+              font-size: 13px;
+              margin-bottom: 8px;
+              font-style: italic;
+            }
+            .footer-copyright {
+              color: #9ca3af;
+              font-size: 11px;
+            }
+            @media print {
+              body { 
+                margin: 20px; 
+                font-size: 12px;
+              }
+              .header { 
+                page-break-after: avoid;
+                margin: -10px -10px 25px -10px;
+                padding: 20px 10px 15px 10px;
+              }
+              .message { 
+                margin-bottom: 15px; 
+                box-shadow: none;
+                border: 1px solid #e5e7eb;
+              }
+              .conversation-stats {
+                margin: 15px 0;
+                padding: 10px;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>ByeDB Chat Conversation</h1>
+            <div class="subtitle">Natural Language to SQL Made Simple</div>
+            <div class="meta">
+              Exported on ${currentDate} at ${currentTime}
+            </div>
+          </div>
+          
+          <div class="conversation-stats">
+            <div class="stat-item">
+              <span class="stat-number">${messages.length}</span>
+              <div class="stat-label">Total Messages</div>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">${messages.filter(m => m.isUser).length}</span>
+              <div class="stat-label">User Messages</div>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">${messages.filter(m => !m.isUser).length}</span>
+              <div class="stat-label">AI Responses</div>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">${Math.round((messages.length > 0 ? (messages.filter(m => !m.isUser).length / messages.filter(m => m.isUser).length) * 100 : 0))}%</span>
+              <div class="stat-label">Response Rate</div>
+            </div>
+          </div>
+          
+          ${messages.map((message, index) => `
+            <div class="message ${message.isUser ? 'user-message' : 'ai-message'}">
+              <div class="message-header">
+                <span>${message.isUser ? '👤 You' : '🤖 ByeDB AI'}</span>
+                <span class="timestamp">${new Date(message.timestamp).toLocaleString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                })}</span>
+              </div>
+              <div class="message-content">
+                ${formatMessageContent(message.content, message.isUser)}
+              </div>
+            </div>
+          `).join('')}
+          
+          <div class="footer">
+            <div class="footer-logo">ByeDB.AI</div>
+            <div class="footer-tagline">Enterprise-grade multiagent AI platform for autonomous database intelligence</div>
+            <div class="footer-copyright">© 2025 ByeDB. All rights reserved.</div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    // Wait for content to load, then trigger print
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
+    
+    // Close the print window after printing
+    printWindow.addEventListener('afterprint', () => {
+      printWindow.close();
+    });
+  };
 
   // Persist messages to localStorage whenever they change
   useEffect(() => {
@@ -559,22 +835,29 @@ export default function Chat() {
             >
               Clear Chat
             </Button>
-            <Button variant="outline" size="icon" className="size-8">
-              <RiShareLine
-                className="text-muted-foreground/70"
-                size={16}
-                aria-hidden="true"
-              />
-              <span className="sr-only">Share</span>
-            </Button>
-            <Button variant="outline" size="icon" className="size-8">
-              <RiShareCircleLine
-                className="text-muted-foreground/70"
-                size={16}
-                aria-hidden="true"
-              />
-              <span className="sr-only">Share publicly</span>
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="size-8"
+                    onClick={exportChatToPDF}
+                    disabled={messages.length === 0}
+                  >
+                    <RiDownloadLine
+                      className="text-muted-foreground/70"
+                      size={16}
+                      aria-hidden="true"
+                    />
+                    <span className="sr-only">Export to PDF</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Export conversation to PDF</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <SettingsPanelTrigger />
           </div>
         </div>

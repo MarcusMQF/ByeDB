@@ -8,10 +8,12 @@ import GradientText from "@/components/gradient-text";
 import AvatarGroup from "@/components/avatar-group";
 import { BentoCard, BentoGrid } from "@/components/bento-grid";
 import { Database, MessageSquare, BarChart3, Shield, Zap, Users, ArrowRight, Sparkles, FileText, Brain, TrendingUp } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [visibleElements, setVisibleElements] = useState(new Set());
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -23,24 +25,62 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setVisibleElements(prev => new Set(prev).add(entry.target.id));
+          }
+        });
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      }
+    );
+
+    const elementsToObserve = document.querySelectorAll('[data-animate]');
+    elementsToObserve.forEach(el => observerRef.current?.observe(el));
+
+    return () => {
+      observerRef.current?.disconnect();
+    };
+  }, []);
+
+  const isVisible = (id: string) => visibleElements.has(id);
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
+
   const developers = [
     {
       id: 1,
       name: "Marcus",
       designation: "Frontend Developer",
       image: "/images/marcus.png",
+      linkedin: "https://www.linkedin.com/in/mah-qing-fung/",
     },
     {
       id: 2,
       name: "Shan Chien",
       designation: "Backend Developer",
       image: "/images/shanchien.png",
+      linkedin: "https://www.linkedin.com/in/tan-shan-chien-232517337/",
     },
     {
       id: 3,
       name: "Hong Zhang",
       designation: "Backend Developer",
       image: "/images/kim.png",
+      linkedin: "https://www.linkedin.com/in/kim-hong-zhang-4b4168327/",
     },
   ];
 
@@ -82,11 +122,39 @@ export default function Home() {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent drop-shadow-lg">ByeDB</h1>
             </div>
             <nav className="flex items-center gap-6">
-              <Button variant="ghost" className={`transition-all duration-200 ${
-                isScrolled 
-                  ? 'text-gray-300 hover:text-white hover:bg-white/5' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
-              }`}>Features</Button>
+              <Button 
+                variant="ghost" 
+                className={`transition-all duration-200 ${
+                  isScrolled 
+                    ? 'text-gray-300 hover:text-white hover:bg-white/5' 
+                    : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
+                }`}
+                onClick={() => scrollToSection('features-section')}
+              >
+                Features
+              </Button>
+              <Button 
+                variant="ghost" 
+                className={`transition-all duration-200 ${
+                  isScrolled 
+                    ? 'text-gray-300 hover:text-white hover:bg-white/5' 
+                    : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
+                }`}
+                onClick={() => scrollToSection('demo-section')}
+              >
+                Demo
+              </Button>
+              <Button 
+                variant="ghost" 
+                className={`transition-all duration-200 ${
+                  isScrolled 
+                    ? 'text-gray-300 hover:text-white hover:bg-white/5' 
+                    : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
+                }`}
+                onClick={() => scrollToSection('footer-content')}
+              >
+                Our Team
+              </Button>
               <Button variant="ghost" className={`transition-all duration-200 ${
                 isScrolled 
                   ? 'text-gray-300 hover:text-white hover:bg-white/5' 
@@ -106,12 +174,28 @@ export default function Home() {
         <section className="container mx-auto px-6 py-32 pt-40 text-center">
           <div className="max-w-5xl mx-auto">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-full px-4 py-2 mb-8">
+            <div 
+              id="hero-badge"
+              data-animate
+              className={`inline-flex items-center gap-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-full px-4 py-2 mb-8 transition-all duration-1000 ${
+                isVisible('hero-badge') 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+            >
               <Sparkles className="h-4 w-4 text-blue-400" />
               <span className="text-sm text-gray-300 font-medium">Powered by Advanced AI</span>
             </div>
             
-            <h2 className="text-6xl md:text-7xl font-bold mb-8 leading-tight">
+            <h2 
+              id="hero-title"
+              data-animate
+              className={`text-6xl md:text-7xl font-bold mb-8 leading-tight transition-all duration-1000 delay-200 ${
+                isVisible('hero-title') 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+            >
               <span className="bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
                 Turn Natural Language into{" "}
               </span>
@@ -124,7 +208,15 @@ export default function Home() {
               </GradientText>
             </h2>
             
-            <p className="text-xl text-gray-400 mb-16 max-w-3xl mx-auto leading-relaxed">
+            <p 
+              id="hero-description"
+              data-animate
+              className={`text-xl text-gray-400 mb-16 max-w-3xl mx-auto leading-relaxed transition-all duration-1000 delay-400 ${
+                isVisible('hero-description') 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+            >
               Ask questions in plain English and get instant SQL queries, visualizations, and insights. 
               No coding required—just natural conversation with your data.
             </p>
@@ -133,7 +225,15 @@ export default function Home() {
 
         {/* Platform Screenshot - Full Width */}
         <section className="relative w-full px-4 lg:px-8 pb-20 -mt-35">
-          <div className="relative w-full max-w-[1400px] mx-auto">
+          <div 
+            id="platform-screenshot"
+            data-animate
+            className={`relative w-full max-w-[1400px] mx-auto transition-all duration-1000 delay-200 ${
+              isVisible('platform-screenshot') 
+                ? 'opacity-100 translate-y-0 scale-100' 
+                : 'opacity-0 translate-y-12 scale-95'
+            }`}
+          >
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-cyan-500/20 rounded-3xl blur-3xl"></div>
             <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-2 overflow-hidden">
               {/* Chat Interface Image */}
@@ -149,120 +249,373 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Bento Grid Section */}
-        <section className="py-32 relative">
-          <div className="container mx-auto px-6 relative">
-            <div className="text-center mb-20">
+        {/* Demo Video Section */}
+        <section id="demo-section" className="py-32 relative">
+          <div className="container mx-auto px-6">
+            <div 
+              id="demo-header"
+              data-animate
+              className={`text-center mb-20 transition-all duration-1000 ${
+                isVisible('demo-header') 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+            >
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-full px-4 py-2 mb-6">
+                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                <span className="text-sm text-emerald-300 font-medium">Live Demo</span>
+              </div>
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                Discover What ByeDB Can Do
+                See ByeDB in Action
               </h2>
               <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
-                Empower your data science workflow with AI-driven insights, advanced analytics, and seamless visualization—all through natural conversation.
+                Watch how ByeDB transforms natural language into powerful SQL queries and stunning visualizations in real-time.
               </p>
             </div>
 
-            <BentoGrid className="max-w-6xl mx-auto">
-              <BentoCard
-                name="Smart Query Generation"
-                className="col-span-3 lg:col-span-1"
-                background={
-                  <div className="absolute inset-0">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/15 via-indigo-500/10 to-blue-600/5"></div>
-                    <div className="absolute top-4 left-4 w-32 h-32 bg-blue-400/20 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-4 right-4 w-24 h-24 bg-indigo-400/15 rounded-full blur-2xl"></div>
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent_70%)]"></div>
-                  </div>
-                }
-                Icon={Brain}
-                description="Transform any question into optimized SQL queries with intelligent context understanding."
-                href="/dashboard"
-                cta="Try Now"
-              />
+            <div 
+              id="demo-video"
+              data-animate
+              className={`relative max-w-6xl mx-auto transition-all duration-1000 delay-200 ${
+                isVisible('demo-video') 
+                  ? 'opacity-100 translate-y-0 scale-100' 
+                  : 'opacity-0 translate-y-12 scale-95'
+              }`}
+            >
+              {/* Background glow effects */}
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 rounded-3xl blur-3xl"></div>
+              <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 rounded-[2rem] blur-2xl"></div>
               
-              <BentoCard
-                name="Interactive Visualizations"
-                className="col-span-3 lg:col-span-2"
-                background={
-                  <div className="absolute inset-0">
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-cyan-500/8"></div>
-                    <div className="absolute top-8 right-8 w-40 h-40 bg-emerald-400/18 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-8 left-8 w-32 h-32 bg-teal-400/12 rounded-full blur-2xl"></div>
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(16,185,129,0.12),transparent_60%)]"></div>
-                    <img 
-                      src="/chat.png" 
-                      alt="Interactive Chat" 
-                      className="absolute bottom-6 right-6 w-28 h-28 object-contain opacity-60 group-hover:opacity-80 transition-opacity duration-500"
-                    />
-                  </div>
-                }
-                Icon={TrendingUp}
-                description="Auto-generated charts and graphs that update in real-time as you refine your questions."
-                href="/dashboard"
-                cta="Explore"
-              />
-
-              <BentoCard
-                name="Document Analysis"
-                className="col-span-3 lg:col-span-2"
-                background={
-                  <div className="absolute inset-0">
-                    <div className="absolute inset-0 bg-gradient-to-br from-violet-500/15 via-purple-500/10 to-fuchsia-500/8"></div>
-                    <div className="absolute top-4 left-1/2 w-36 h-36 bg-violet-400/18 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-4 right-1/4 w-28 h-28 bg-purple-400/12 rounded-full blur-2xl"></div>
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_60%,rgba(139,92,246,0.12),transparent_65%)]"></div>
-                    <div className="absolute bottom-8 left-8 flex gap-3 opacity-50 group-hover:opacity-70 transition-opacity duration-500">
-                      <img src="/csv-file.png" alt="CSV" className="w-6 h-6" />
-                      <img src="/xlsx-file.png" alt="XLSX" className="w-6 h-6" />
+              {/* Video container */}
+              <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-3 overflow-hidden">
+                <div className="relative rounded-2xl overflow-hidden bg-black/20">
+                  <video 
+                    className="w-full h-auto rounded-2xl shadow-2xl"
+                    controls
+                    preload="metadata"
+                    poster="/images/chat.png"
+                    style={{ aspectRatio: '16/9' }}
+                  >
+                    <source src="/video/demo.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                  
+                  {/* Video overlay gradients */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/5 via-transparent to-transparent rounded-2xl pointer-events-none"></div>
+                  
+                  {/* Play button overlay (shows when video is paused) */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                    <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
+                      <div className="w-0 h-0 border-l-[12px] border-l-white border-y-[8px] border-y-transparent ml-1"></div>
                     </div>
                   </div>
-                }
-                Icon={FileText}
-                description="Upload CSV, Excel, or connect to databases. Ask questions about any data source instantly."
-                href="/dashboard"
-                cta="Upload Data"
-              />
+                </div>
+              </div>
 
-              <BentoCard
-                name="Enterprise Security"
-                className="col-span-3 lg:col-span-1"
-                background={
-                  <div className="absolute inset-0">
-                    <div className="absolute inset-0 bg-gradient-to-br from-slate-500/15 via-gray-500/10 to-zinc-500/8"></div>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-slate-400/20 rounded-full blur-3xl"></div>
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(100,116,139,0.15),transparent_70%)]"></div>
+              {/* Feature highlights below video */}
+              <div 
+                id="demo-highlights"
+                data-animate
+                className={`grid md:grid-cols-3 gap-6 mt-12 transition-all duration-1000 delay-400 ${
+                  isVisible('demo-highlights') 
+                    ? 'opacity-100 translate-y-0' 
+                    : 'opacity-0 translate-y-8'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="relative w-12 h-12 mx-auto mb-4">
+                    <div className="absolute inset-0 bg-emerald-500/30 rounded-xl blur-sm"></div>
+                    <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center w-full h-full shadow-lg shadow-emerald-500/25">
+                      <MessageSquare className="h-6 w-6 text-emerald-400" />
+                    </div>
                   </div>
-                }
-                Icon={Shield}
-                description="Bank-grade security with read-only access. Your data stays safe and private."
-                href="/dashboard"
-                cta="Learn More"
-              />
-            </BentoGrid>
+                  <h3 className="text-lg font-semibold text-white mb-2">Natural Language Input</h3>
+                  <p className="text-gray-400 text-sm">See how simple questions become complex SQL queries</p>
+                </div>
+                
+                <div className="text-center">
+                  <div className="relative w-12 h-12 mx-auto mb-4">
+                    <div className="absolute inset-0 bg-teal-500/30 rounded-xl blur-sm"></div>
+                    <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center w-full h-full shadow-lg shadow-teal-500/25">
+                      <BarChart3 className="h-6 w-6 text-teal-400" />
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Instant Visualizations</h3>
+                  <p className="text-gray-400 text-sm">Watch data transform into beautiful charts automatically</p>
+                </div>
+                
+                <div className="text-center">
+                  <div className="relative w-12 h-12 mx-auto mb-4">
+                    <div className="absolute inset-0 bg-cyan-500/30 rounded-xl blur-sm"></div>
+                    <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center w-full h-full shadow-lg shadow-cyan-500/25">
+                      <Zap className="h-6 w-6 text-cyan-400" />
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Lightning Fast</h3>
+                  <p className="text-gray-400 text-sm">Experience real-time processing and instant results</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Call to action */}
+            <div 
+              id="demo-cta"
+              data-animate
+              className={`text-center mt-16 transition-all duration-1000 delay-600 ${
+                isVisible('demo-cta') 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+            >
+              <Button size="lg" className="h-14 px-10 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium rounded-full shadow-lg shadow-emerald-500/25" asChild>
+                <a href="/dashboard" className="flex items-center gap-2">
+                  Try It Yourself
+                  <ArrowRight className="h-5 w-5" />
+                </a>
+              </Button>
+            </div>
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-32">
-          <div className="container mx-auto px-6 text-center">
-            <div className="max-w-4xl mx-auto relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-cyan-500/10 rounded-3xl blur-3xl"></div>
-              <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-16">
-                <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                  Ready to Transform Your Data Analysis?
-                </h2>
-                <p className="text-xl text-gray-400 mb-12 leading-relaxed">
-                  Join thousands of users who've made data analysis as simple as having a conversation.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button size="lg" className="h-14 px-10 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium rounded-full shadow-lg shadow-blue-500/25" asChild>
-                    <a href="/dashboard" className="flex items-center gap-2">
-                      Start Free Trial
-                      <ArrowRight className="h-5 w-5" />
-                    </a>
-                  </Button>
-                  <Button variant="outline" size="lg" className="h-14 px-10 border-white/20 text-gray-300 hover:bg-white/10 hover:text-white hover:border-white/30 rounded-full transition-all duration-200" asChild>
-                    <a href="/dashboard">Try Demo</a>
-                  </Button>
+        {/* Features Section */}
+        <section id="features-section" className="py-32 relative">
+          <div className="container mx-auto px-6">
+            <div 
+              id="features-header"
+              data-animate
+              className={`text-center mb-20 transition-all duration-1000 ${
+                isVisible('features-header') 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+            >
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+                What makes ByeDB Powerful?
+              </h2>
+              <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
+Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that transforms natural language questions into actionable insights and beautiful visualizations—effortlessly.              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-4 max-w-7xl mx-auto">
+              {/* Feature 1: Multiagent AI Orchestration - Large Hero Card */}
+              <div 
+                id="feature-1"
+                data-animate
+                className={`group relative md:col-span-6 lg:col-span-12 transition-all duration-1000 delay-100 ${
+                  isVisible('feature-1') 
+                    ? 'opacity-100 translate-y-0' 
+                    : 'opacity-0 translate-y-12'
+                }`}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-indigo-500/10 to-blue-600/5 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full min-h-[380px]">
+                  <div className="flex flex-col lg:flex-row gap-6 h-full">
+                    <div className="lg:w-1/2">
+                      <div className="relative w-full h-56 lg:h-full overflow-hidden rounded-2xl">
+                        <img 
+                          src="/images/ask_agent.png" 
+                          alt="Multiagent AI Orchestration" 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent rounded-2xl"></div>
+                      </div>
+                    </div>
+                    <div className="lg:w-1/2 flex flex-col justify-center">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-blue-500/20 rounded-xl">
+                          <MessageSquare className="h-6 w-6 text-blue-400" />
+                        </div>
+                        <h3 className="text-xl lg:text-2xl font-bold text-white">Multiagent AI Orchestration</h3>
+                      </div>
+                      <p className="text-gray-400 leading-relaxed mb-4 text-base text-justify">
+                        With 99.7% accuracy in natural language interpretation, it leverages sophisticated chain-of-thought prompting, contextual embeddings, and few-shot learning to understand complex user intents and translate them into actionable operations. The system operates in two seamless modes: ASK Mode, where users submit queries in plain English, and Agent Mode, where autonomous AI agents execute tasks with minimal human intervention. Whether you're generating SQL, analyzing data, or automating workflows, ByeDB ensures enterprise-grade reliability while eliminating the need for manual coding.
+                      </p>
+                      <div className="flex items-center text-blue-400 text-sm font-medium group-hover:text-blue-300 transition-colors">
+                        <span>Try AI Agent</span>
+                        <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature 2: Critical Operation Confirmation - Medium Card */}
+              <div 
+                id="feature-2"
+                data-animate
+                className={`group relative md:col-span-3 lg:col-span-6 transition-all duration-1000 delay-200 ${
+                  isVisible('feature-2') 
+                    ? 'opacity-100 translate-y-0' 
+                    : 'opacity-0 translate-y-12'
+                }`}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-cyan-500/5 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full min-h-[380px]">
+                  <div className="relative w-full h-36 mb-5 overflow-hidden rounded-2xl">
+                    <img 
+                      src="/images/confirmation.png" 
+                      alt="Critical Operation Confirmation" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent rounded-2xl"></div>
+                  </div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-emerald-500/20 rounded-xl">
+                      <Database className="h-6 w-6 text-emerald-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white">Critical Operation Confirmation</h3>
+                  </div>
+                  <p className="text-gray-400 leading-relaxed mb-4 text-sm">
+                    Mandatory verification protocols for write operations and destructive queries with real-time risk assessment.
+                  </p>
+                  <div className="flex items-center text-emerald-400 text-sm font-medium group-hover:text-emerald-300 transition-colors">
+                    <span>Security Features</span>
+                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature 3: Educational Transparency - Medium Card */}
+              <div 
+                id="feature-3"
+                data-animate
+                className={`group relative md:col-span-3 lg:col-span-6 transition-all duration-1000 delay-300 ${
+                  isVisible('feature-3') 
+                    ? 'opacity-100 translate-y-0' 
+                    : 'opacity-0 translate-y-12'
+                }`}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-violet-500/10 to-fuchsia-500/5 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full min-h-[380px]">
+                  <div className="relative w-full h-36 mb-5 overflow-hidden rounded-2xl">
+                    <img 
+                      src="/images/explanation.png" 
+                      alt="Educational Transparency" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent rounded-2xl"></div>
+                  </div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-purple-500/20 rounded-xl">
+                      <BarChart3 className="h-6 w-6 text-purple-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white">Educational Transparency</h3>
+                  </div>
+                  <p className="text-gray-400 leading-relaxed mb-4 text-sm">
+                    Real-time AI decision explanation with step-by-step reasoning breakdown and interactive SQL education.
+                  </p>
+                  <div className="flex items-center text-purple-400 text-sm font-medium group-hover:text-purple-300 transition-colors">
+                    <span>Learn More</span>
+                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature 4: Intelligent Prompt Enhancement - Small Card */}
+              <div 
+                id="feature-4"
+                data-animate
+                className={`group relative md:col-span-2 lg:col-span-3 transition-all duration-1000 delay-100 ${
+                  isVisible('feature-4') 
+                    ? 'opacity-100 translate-y-0' 
+                    : 'opacity-0 translate-y-12'
+                }`}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 via-amber-500/10 to-yellow-500/5 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full min-h-[300px]">
+                  <div className="relative w-full h-28 mb-4 overflow-hidden rounded-2xl">
+                    <img 
+                      src="/images/enhance_prompting.png" 
+                      alt="Intelligent Prompt Enhancement" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent rounded-2xl"></div>
+                  </div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-2 bg-orange-500/20 rounded-xl">
+                      <Sparkles className="h-5 w-5 text-orange-400" />
+                    </div>
+                    <h3 className="text-md font-semibold text-white">Prompt Enhancement</h3>
+                  </div>
+                  <p className="text-gray-400 leading-relaxed mb-3 text-sm">
+                    Advanced prompt engineering with semantic optimization for superior AI performance.
+                  </p>
+                  <div className="flex items-center text-orange-400 text-xs font-medium group-hover:text-orange-300 transition-colors">
+                    <span>Enhance</span>
+                    <ArrowRight className="h-3 w-3 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature 5: Real-time Data Visualization - Large Card */}
+              <div 
+                id="feature-5"
+                data-animate
+                className={`group relative md:col-span-4 lg:col-span-6 transition-all duration-1000 delay-200 ${
+                  isVisible('feature-5') 
+                    ? 'opacity-100 translate-y-0' 
+                    : 'opacity-0 translate-y-12'
+                }`}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 via-blue-500/10 to-indigo-500/5 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full min-h-[300px]">
+                  <div className="relative w-full h-40 mb-5 overflow-hidden rounded-2xl">
+                    <img 
+                      src="/images/chart.png" 
+                      alt="Real-time Data Visualization" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent rounded-2xl"></div>
+                  </div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 bg-cyan-500/20 rounded-xl">
+                      <BarChart3 className="h-5 w-5 text-cyan-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white">Real-time Data Visualization</h3>
+                  </div>
+                  <p className="text-gray-400 leading-relaxed mb-3 text-sm">
+                    Interactive visualization engine with dynamic charts, graphs, and analytics dashboards.
+                  </p>
+                  <div className="flex items-center text-cyan-400 text-sm font-medium group-hover:text-cyan-300 transition-colors">
+                    <span>Create Charts</span>
+                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature 6: One-Click Export Intelligence - Medium Card */}
+              <div 
+                id="feature-6"
+                data-animate
+                className={`group relative md:col-span-2 lg:col-span-3 transition-all duration-1000 delay-300 ${
+                  isVisible('feature-6') 
+                    ? 'opacity-100 translate-y-0' 
+                    : 'opacity-0 translate-y-12'
+                }`}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-rose-500/20 via-pink-500/10 to-red-500/5 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full min-h-[300px]">
+                  <div className="relative w-full h-28 mb-4 overflow-hidden rounded-2xl">
+                    <img 
+                      src="/images/export.png" 
+                      alt="One-Click Export Intelligence" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent rounded-2xl"></div>
+                  </div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-2 bg-rose-500/20 rounded-xl">
+                      <FileText className="h-5 w-5 text-rose-400" />
+                    </div>
+                    <h3 className="text-md font-semibold text-white">Export Intelligence</h3>
+                  </div>
+                  <p className="text-gray-400 leading-relaxed mb-3 text-sm">
+                    Multiple format support with metadata preservation and audit trails.
+                  </p>
+                  <div className="flex items-center text-rose-400 text-xs font-medium group-hover:text-rose-300 transition-colors">
+                    <span>Export</span>
+                    <ArrowRight className="h-3 w-3 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -270,35 +623,72 @@ export default function Home() {
         </section>
 
         {/* Footer */}
-        <footer className="border-t border-white/5 py-12">
-          <div className="container mx-auto px-6">
-            <div className="flex flex-col gap-6">
+        <footer className="relative border-t border-white/5 py-16 overflow-hidden">
+          {/* Background gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/95 to-transparent"></div>
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-blue-500/5 blur-[100px] rounded-full"></div>
+          
+          <div 
+            id="footer-content"
+            data-animate
+            className={`container mx-auto px-6 relative z-10 transition-all duration-1000 ${
+              isVisible('footer-content') 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 translate-y-8'
+            }`}
+          >
+            <div className="flex flex-col gap-8">
               {/* Main footer content */}
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                {/* Brand section */}
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <img 
                       src="/icon.png" 
                       alt="ByeDB Icon" 
-                      className="h-8 w-8"
+                      className="h-10 w-10 drop-shadow-lg"
                     />
-                    <div className="absolute inset-0 h-6 w-6 bg-blue-400/20 blur-md rounded-full"></div>
+                    <div className="absolute inset-0 h-8 w-8 bg-blue-400/30 blur-md rounded-full"></div>
                   </div>
-                  <span className="text-lg font-semibold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">ByeDB</span>
+                  <div className="flex flex-col">
+                    <span className="text-xl font-bold bg-gradient-to-r from-white via-blue-100 to-gray-300 bg-clip-text text-transparent">ByeDB</span>
+                    <span className="text-sm text-gray-400">Natural Language to SQL Made Simple</span>
+                  </div>
                 </div>
-                <p className="text-gray-500">
-                  © 2024 ByeDB. Natural Language to SQL Made Simple.
-                </p>
+
+                {/* GitHub link */}
+                <div className="flex items-center gap-4">
+                  <a 
+                    href="https://github.com/MarcusMQF/ByeDB" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-200 group"
+                  >
+                    <svg className="h-5 w-5 text-gray-300 group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                      <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-sm text-gray-300 group-hover:text-white transition-colors">View on GitHub</span>
+                  </a>
+                </div>
               </div>
               
               {/* Developer credits */}
-              <div className="flex items-center justify-center gap-4 pt-4 border-t border-white/5">
-                <span className="text-sm text-gray-400">Built with ❤️ by</span>
-                <AvatarGroup 
-                  items={developers} 
-                  size="sm"
-                  className="flex-shrink-0"
-                />
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-white/5">
+                <div className="flex items-center gap-4">
+                  <span className="text-base text-gray-400">Built with ❤️ by</span>
+                  <AvatarGroup 
+                    items={developers} 
+                    size="lg"
+                    className="flex-shrink-0"
+                  />
+                </div>
+                
+                {/* Copyright */}
+                <div className="flex flex-col sm:flex-row items-center gap-2 text-sm text-gray-500">
+                  <span>© 2025 ByeDB.</span>
+                  <span className="hidden sm:inline">•</span>
+                  <span>All rights reserved.</span>
+                </div>
               </div>
             </div>
           </div>

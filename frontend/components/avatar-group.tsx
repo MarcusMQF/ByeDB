@@ -9,6 +9,7 @@ interface AvatarItem {
   name: string;
   designation: string;
   image: string;
+  linkedin?: string;
 }
 
 interface AvatarGroupProps {
@@ -40,6 +41,12 @@ const Avatar = ({
     sm: "h-8 w-8",
     md: "h-10 w-10",
     lg: "h-12 w-12",
+  };
+
+  const handleClick = () => {
+    if (item.linkedin) {
+      window.open(item.linkedin, '_blank', 'noopener,noreferrer');
+    }
   };
 
   return (
@@ -82,7 +89,8 @@ const Avatar = ({
       <motion.div
         whileHover={{ scale: 1.05, zIndex: 100 }}
         transition={{ type: "spring", stiffness: 200, damping: 15 }}
-        className="relative"
+        className={`relative ${item.linkedin ? 'cursor-pointer' : ''}`}
+        onClick={handleClick}
       >
         <Image
           height={100}
