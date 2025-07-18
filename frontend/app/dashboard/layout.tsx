@@ -12,6 +12,7 @@ import {
 } from "@/components/sidebar";
 import UserDropdown from "@/components/user-dropdown";
 import { SettingsPanelProvider, SettingsPanel } from "@/components/data_panel";
+import { DatasetProvider } from "@/lib/dataset-context";
 
 export default function DashboardLayout({
   children,
@@ -52,10 +53,12 @@ export default function DashboardLayout({
           </div>
         </header>
         <SettingsPanelProvider>
-          <div className="flex h-[calc(100svh-4rem)] overflow-hidden bg-[hsl(240_5%_92.16%)] md:rounded-s-3xl md:group-peer-data-[state=collapsed]/sidebar-inset:rounded-s-none transition-all ease-in-out duration-300">
-            {children}
-            <SettingsPanel />
-          </div>
+          <DatasetProvider>
+            <div className="flex h-[calc(100svh-4rem)] overflow-hidden bg-[hsl(240_5%_92.16%)] md:rounded-s-3xl md:group-peer-data-[state=collapsed]/sidebar-inset:rounded-s-none transition-all ease-in-out duration-300">
+              {children}
+              <SettingsPanel />
+            </div>
+          </DatasetProvider>
         </SettingsPanelProvider>
       </SidebarInset>
     </SidebarProvider>

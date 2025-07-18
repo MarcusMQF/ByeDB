@@ -48,6 +48,7 @@ import {
   CHAT_MODE_KEY,
   CHAT_INPUT_KEY
 } from "@/lib/chat-storage";
+import { useDatasetContext } from "@/lib/dataset-context";
 
 // Helper function to format SQL queries by adding line breaks after semicolons
 const formatSQLQuery = (sqlText: string): string => {
@@ -106,6 +107,7 @@ const CopyButton: React.FC<CopyButtonProps> = ({ text, id, label, isCopied, onCo
 export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { refreshAfterSQLOperation } = useDatasetContext();
   const [messages, setMessages] = useState<Message[]>(() => 
     loadFromLocalStorage(CHAT_MESSAGES_KEY, [])
   );
@@ -247,6 +249,12 @@ export default function Chat() {
       console.log('AI Response Message:', aiResponse); // Debug log
 
       setMessages(prev => [...prev, aiResponse]);
+
+      // Refresh datasets after SQL operations (for non-confirmation responses)
+      if (!requiresApproval && data.meta?.function_called && data.meta.function_called.length > 0) {
+        const sqlQuery = data.meta.function_called[0]?.args?.text;
+        await refreshAfterSQLOperation(sqlQuery);
+      }
     } catch (error) {
       console.error('Error calling API:', error);
       const errorResponse: Message = {
@@ -295,6 +303,12 @@ export default function Chat() {
         }
         return msg;
       }));
+
+      // Refresh datasets after SQL execution
+      if (data.function_called && data.function_called.length > 0) {
+        const sqlQuery = data.function_called[0]?.args?.text;
+        await refreshAfterSQLOperation(sqlQuery);
+      }
     } catch (error) {
       console.error('Error confirming execution:', error);
       const errorResponse: Message = {
@@ -383,6 +397,9 @@ export default function Chat() {
       if (!response.ok) {
         console.error('Failed to clear backend memory:', response.statusText);
       }
+      
+      // Refresh datasets after clearing memory as it might affect dataset state
+      await refreshAfterSQLOperation();
     } catch (error) {
       console.error('Error clearing backend memory:', error);
     }
@@ -743,7 +760,7 @@ export default function Chat() {
                                             />
                                           </div>
                                         </div>
-                                        <div className="p-3 max-h-96 overflow-auto">
+                                        <div className="p-3 max-h-96 overflow-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-500 [&::-webkit-scrollbar-button]:hidden">
                                           <pre className="text-xs font-mono whitespace-pre-wrap text-gray-700 dark:text-gray-300 overflow-x-auto break-words max-w-full">
                                             {(() => {
                                               try {

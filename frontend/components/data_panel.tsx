@@ -12,7 +12,8 @@ import {
   RiCheckLine,
   RiDeleteBinLine,
   RiEyeLine,
-  RiDownloadLine
+  RiDownloadLine,
+  RiRefreshLine
 } from "@remixicon/react";
 import { Label } from "@/components/label";
 import { Button } from "@/components/button";
@@ -31,7 +32,7 @@ import { Badge } from "@/components/badge";
 import { Card } from "@/components/card";
 import { Separator } from "@/components/separator";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
-import { useDatasets } from "@/hooks/use-datasets";
+import { useDatasetContext } from "@/lib/dataset-context";
 
 type SettingsPanelContext = {
   openMobile: boolean;
@@ -88,7 +89,7 @@ const SettingsPanelContent = () => {
   const [uploadingFile, setUploadingFile] = React.useState<{name: string, size: string} | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [showClearDialog, setShowClearDialog] = React.useState(false);
-  const { datasets, uploadFile, error: apiError, exportDatabase, clearAllDatasets } = useDatasets();
+  const { datasets, uploadFile, error: apiError, exportDatabase, clearAllDatasets, isLoading: isDatasetsLoading, lastRefreshTime, refreshDatasets, getDatasetLastUpdated, isDatasetRecentlyUpdated } = useDatasetContext();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (files: FileList | null) => {
@@ -212,7 +213,7 @@ const SettingsPanelContent = () => {
             size={20}
             aria-hidden="true"
           />
-          <h2 className="text-sm font-medium">Data Management</h2>
+          <h2 className="text-sm font-medium">Upload Dataset</h2>
         </div>
       </div>
 
@@ -220,7 +221,7 @@ const SettingsPanelContent = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-medium uppercase text-muted-foreground/80">
-            {datasets.length > 0 ? 'Uploaded Dataset' : 'Upload Dataset'}
+            Upload Dataset
           </h3>
           {datasets.length > 0 && (
             <div className="flex items-center gap-2">
@@ -243,8 +244,9 @@ const SettingsPanelContent = () => {
           </div>
         )}
 
-        {datasets.length === 0 ? (
-          isUploading && uploadingFile ? (
+        {/* Upload Section - Always visible */}
+        <div className="space-y-3">
+          {isUploading && uploadingFile ? (
             /* Upload Progress Container */
             <div className="w-full">
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
@@ -335,32 +337,99 @@ const SettingsPanelContent = () => {
                 </Button>
               </div>
             </div>
-          )
-        ) : (
-          /* Uploaded Dataset Details Container */
-          <div className="w-full space-y-3">
-            {datasets.map((dataset, index) => (
-              <div key={dataset.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex-shrink-0 flex items-center justify-center w-8 h-8">
-                    <Image 
-                      src={getDatasetIcon(dataset.name)}
-                      alt="Dataset file" 
-                      width={24} 
-                      height={24}
-                      className="object-contain"
-                    />
+          )}
+        </div>
+
+        {/* Uploaded Datasets Section - Always visible */}
+        {datasets.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-medium uppercase text-muted-foreground/80">
+                DATASETS
+              </h4>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={refreshDatasets}
+                  disabled={isDatasetsLoading}
+                  className={`
+                    h-6 w-6 p-0 rounded-full
+                    text-muted-foreground hover:text-foreground
+                    hover:bg-gray-100 dark:hover:bg-gray-800
+                    transition-all duration-200 ease-out
+                    hover:scale-110 hover:shadow-sm
+                    active:scale-95
+                    disabled:opacity-70 disabled:cursor-not-allowed
+                    disabled:hover:scale-100 disabled:hover:shadow-none
+                    group relative overflow-hidden
+                  `}
+                  title="Refresh datasets"
+                >
+                  <RiRefreshLine 
+                    className={`w-3.5 h-3.5 transition-transform duration-300 ${
+                      isDatasetsLoading ? 'animate-spin' : 'group-hover:rotate-180'
+                    }`} 
+                  />
+                  
+                  {/* Subtle hover glow effect */}
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </Button>
+              </div>
+            </div>
+            
+            <div className="w-full space-y-3 pb-6">
+              {datasets.map((dataset, index) => {
+                const datasetLastUpdated = getDatasetLastUpdated(dataset.id);
+                const isRecentlyUpdated = isDatasetRecentlyUpdated(dataset.id);
+                return (
+                <div key={dataset.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8">
+                        <Image 
+                          src={getDatasetIcon(dataset.name)}
+                          alt="Dataset file" 
+                          width={24} 
+                          height={24}
+                          className="object-contain"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                          {dataset.name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Last modified: {dataset.lastModified}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Individual dataset last updated timestamp */}
+                    {datasetLastUpdated && (
+                      <div className="flex-shrink-0 text-right">
+                        <div className={`text-xs px-2 py-1 rounded-md border transition-all duration-300 ${
+                          isRecentlyUpdated 
+                            ? 'text-green-700 dark:text-green-300 bg-green-100/80 dark:bg-green-900/30 border-green-300 dark:border-green-600 shadow-sm' 
+                            : 'text-muted-foreground/70 bg-gray-100/50 dark:bg-gray-700/30 border-gray-200/30 dark:border-gray-600/30'
+                        }`}>
+                          <div className="flex items-center gap-1">
+                            <div className={`w-1.5 h-1.5 rounded-full ${
+                              isRecentlyUpdated 
+                                ? 'bg-green-500 animate-pulse' 
+                                : 'bg-gray-400 dark:bg-gray-500'
+                            }`}></div>
+                            <span>{datasetLastUpdated.toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit',
+                              hour12: true 
+                            })}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                      {dataset.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Last modified: {dataset.lastModified}
-                    </p>
-                  </div>
-                </div>
-                
+                  
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="text-center p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
                     <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
@@ -376,35 +445,39 @@ const SettingsPanelContent = () => {
                   </div>
                 </div>
                 
-                {/* File Size Information */}
-                <div className="mb-4">
-                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                        File Size
-                      </span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {/* Calculate estimated file size based on data */}
-                        {dataset.data && dataset.data.length > 0 
-                          ? `${Math.max(0.1, (dataset.rows * dataset.columns * 10) / 1024 / 1024).toFixed(1)} MB`
-                          : 'Unknown'
-                        }
-                      </span>
+                {/* File Size Information - Only for uploaded datasets */}
+                {dataset.source === 'uploaded' && (
+                  <div className="mb-4">
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                          File Size
+                        </span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {/* Calculate estimated file size based on data */}
+                          {dataset.data && dataset.data.length > 0 
+                            ? `${Math.max(0.1, (dataset.rows * dataset.columns * 10) / 1024 / 1024).toFixed(1)} MB`
+                            : 'Unknown'
+                          }
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
                 
                 <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
                   <Badge variant="secondary" className="text-xs font-medium">
                     {dataset.rows === 1 ? '1 record' : `${dataset.rows.toLocaleString()} records`}
                   </Badge>
-                  <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 font-medium">
+                  <div className="flex items-center gap-1 text-xs font-medium text-black dark:text-white">
                     <RiCheckLine className="w-3 h-3" />
-                    <span>Uploaded</span>
+                    <span>{dataset.source === 'uploaded' ? 'Uploaded' : 'Created'}</span>
                   </div>
                 </div>
-              </div>
-            ))}
+                </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
