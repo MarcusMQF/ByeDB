@@ -15,6 +15,7 @@ from typing import Optional
 
 from db_sqlite import LocalSQLiteDatabase
 from llm_gemini import SQLExpertLLM
+from lru_usr_context import LRUUserContext
 
 app = FastAPI(title="ByeDB API", description="Natural Language to SQL API", version="1.0.0")
 
@@ -27,22 +28,13 @@ app.add_middleware(
 )
 
 # Global user context
-user_databases = {}
-user_agents = {}
-
-DB_ROOT = "./user_dbs"
-os.makedirs(DB_ROOT, exist_ok=True)
+user_context = LRUUserContext(capacity=50)
 
 def get_user_database(user_id: str) -> LocalSQLiteDatabase:
-    if user_id not in user_databases:
-        user_databases[user_id] = LocalSQLiteDatabase()
-    return user_databases[user_id]
+    return user_context.get_user_database(user_id)
 
 def get_user_agent(user_id: str) -> SQLExpertLLM:
-    if user_id not in user_agents:
-        user_databases[user_id] = get_user_database(user_id)
-        user_agents[user_id] = SQLExpertLLM(user_databases[user_id])
-    return user_agents[user_id]
+    return user_context.get_user_agent(user_id)
 
 # Models
 class SQLQuestionRequest(BaseModel):
