@@ -73,9 +73,9 @@ class LocalSQLiteDatabase:
                         "type": "NON-SELECT",
                         "message": "Executed successfully."
                     })
-            print(results)
+            # print(results)
             data = [i["data"] for i in results if i["type"] == "SELECT"]
-            return {"success": True, "message": "Executed multiple statements.", "data": data}
+            return {"success": True, "message": "Executed multiple statements.", "data": data, "results": results}
 
         except sqlite3.Error as e:
             self.conn.rollback()

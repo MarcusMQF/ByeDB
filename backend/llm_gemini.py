@@ -224,7 +224,7 @@ When you need to call a function, respond with a JSON object in this format:
             print(f"Loop {i + 1}: Generating response...")
 
             try:
-                print(prompt)
+                # print(prompt)
                 response = self.model.generate_content(prompt)
             except Exception as e:
                 # TODO:
