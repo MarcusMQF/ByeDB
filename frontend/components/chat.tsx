@@ -23,7 +23,9 @@ import {
   RiKeyboardLine,
   RiLoader4Line,
   RiCheckLine,
-  RiBookOpenLine
+  RiBookOpenLine,
+  RiFileCopyLine,
+  RiQuestionLine
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
 import { useRef, useEffect, useState } from "react";
@@ -47,6 +49,60 @@ import {
   CHAT_INPUT_KEY
 } from "@/lib/chat-storage";
 
+// Helper function to format SQL queries by adding line breaks after semicolons
+const formatSQLQuery = (sqlText: string): string => {
+  return sqlText
+    .split(';')
+    .map(statement => statement.trim())
+    .filter(statement => statement.length > 0)
+    .join(';\n') + (sqlText.endsWith(';') ? '' : '');
+};
+
+// Enhanced Copy Button Component
+interface CopyButtonProps {
+  text: string;
+  id: string;
+  label: string;
+  isCopied: boolean;
+  onCopy: (id: string, text: string) => void;
+}
+
+const CopyButton: React.FC<CopyButtonProps> = ({ text, id, label, isCopied, onCopy }) => {
+  return (
+    <button
+      onClick={() => onCopy(id, text)}
+      className={`
+        relative inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium
+        transition-all duration-200 ease-out overflow-hidden group
+        ${isCopied 
+          ? 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 shadow-sm' 
+          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 border border-transparent hover:border-gray-200 dark:hover:border-gray-700'
+        }
+      `}
+      disabled={isCopied}
+    >
+      <div className="relative flex items-center gap-1.5">
+        {isCopied ? (
+          <>
+            <RiCheckLine className="size-3 animate-in zoom-in duration-200 text-green-600 dark:text-green-400" />
+            <span>Copied</span>
+          </>
+        ) : (
+          <>
+            <RiFileCopyLine className="size-3 transition-transform group-hover:scale-110" />
+            <span>{label}</span>
+          </>
+        )}
+      </div>
+      
+      {/* Subtle success shine effect */}
+      {isCopied && (
+        <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-green-100/40 dark:via-green-800/30 to-transparent animate-in slide-in-from-left duration-500"></div>
+      )}
+    </button>
+  );
+};
+
 export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -63,6 +119,7 @@ export default function Chat() {
     loadFromLocalStorage(CHAT_MODE_KEY, 'agent')
   );
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [copiedItems, setCopiedItems] = useState<Set<string>>(new Set()); // Track copied items by unique ID
 
   // Persist messages to localStorage whenever they change
   useEffect(() => {
@@ -223,16 +280,15 @@ export default function Chat() {
 
       const data = await response.json();
       
-      // Update the original message to remove confirmation and add the result
+      // Update the original message to mark it as executed and add execution results
       setMessages(prev => prev.map(msg => {
         if (msg.id === messageId) {
           return {
             ...msg,
-            content: data.success ? data.response : `Error: ${data.error}`,
-            requiresConfirmation: false,
             confirmationData: {
               ...msg.confirmationData,
               executed: true,
+              executionResult: data.success ? data.response : `Error: ${data.error}`,
               function_called: data.function_called || msg.confirmationData?.function_called
             }
           };
@@ -255,7 +311,7 @@ export default function Chat() {
   };
 
   const handleRequestExplanation = async () => {
-    const explanationMessage = "Explain in detail what you did, including all commands used, with clear step-by-step descriptions and explanations for each step.";
+    const explanationMessage = "Please provide a detailed explanation of the SQL operations that were just executed. Do not re-execute any queries, just explain what the previous commands did, their purpose, and the results. Focus on educational explanation without running any new SQL commands.";
     
     // Add user message to chat
     const userMessage: Message = {
@@ -269,13 +325,13 @@ export default function Chat() {
     setIsLoading(true);
 
     try {
-      // Call the backend API
+      // Call the backend API with ask mode to avoid SQL execution
       const response = await fetch('http://localhost:8000/api/sql-question', {
         method: 'POST',
         headers: getApiHeaders(),
         body: JSON.stringify({
           question: explanationMessage,
-          mode: chatMode
+          mode: 'ask' // Force ask mode to prevent SQL execution
         }),
       });
 
@@ -336,6 +392,44 @@ export default function Chat() {
     setInputValue("");
     clearChatStorage();
     setShowClearDialog(false);
+  };
+
+  // Enhanced copy handler with visual feedback
+  const handleCopy = async (id: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedItems(prev => new Set(prev).add(id));
+      
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(id);
+          return newSet;
+        });
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy text:', error);
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopiedItems(prev => new Set(prev).add(id));
+        setTimeout(() => {
+          setCopiedItems(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(id);
+            return newSet;
+          });
+        }, 2000);
+      } catch (fallbackError) {
+        console.error('Fallback copy failed:', fallbackError);
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   const enhancePrompt = async () => {
@@ -478,47 +572,129 @@ export default function Chat() {
                         </div>
                       ) : message.requiresConfirmation ? (
                         <div className="space-y-3">
+                          {/* Original confirmation message */}
                           <p>I need your confirmation to execute this SQL query:</p>
                           {message.confirmationData?.function_called && message.confirmationData.function_called.length > 0 && (
                             <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 border overflow-hidden">
                               <pre className="text-sm font-mono whitespace-pre-wrap text-gray-800 dark:text-gray-200 overflow-x-auto break-words max-w-full">
-                                {message.confirmationData.function_called[0]?.args?.text || 'No SQL command found'}
+                                {formatSQLQuery(message.confirmationData.function_called[0]?.args?.text || 'No SQL command found')}
                               </pre>
                             </div>
                           )}
-                          <Button
-                            onClick={() => handleConfirmExecution(message.confirmationData, message.id)}
-                            disabled={isConfirming === message.id}
-                            className={`
-                              relative overflow-hidden
-                              bg-gradient-to-r from-gray-900 to-black 
-                              hover:from-gray-800 hover:to-gray-900
-                              text-white font-medium
-                              border border-gray-700
-                              shadow-lg hover:shadow-xl
-                              transition-all duration-300 ease-out
-                              focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900
-                              disabled:opacity-70 disabled:cursor-not-allowed
-                              group
-                            `}
-                            size="sm"
-                          >
-                            <div className="flex items-center gap-2">
-                              {isConfirming === message.id ? (
-                                <>
-                                  <RiLoader4Line className="size-4 animate-spin" />
-                                  <span>Executing...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <RiCheckLine className="size-4 transition-transform group-hover:scale-110" />
-                                  <span>Confirm Execution</span>
-                                </>
-                              )}
+                          
+                          {/* Confirmation button or executed indicator */}
+                          {message.confirmationData?.executed ? (
+                            <div className="space-y-3">
+                              <div className="relative inline-flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-50 via-green-50 to-emerald-50 dark:from-emerald-950/40 dark:via-green-950/30 dark:to-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 shadow-sm overflow-hidden group">
+                                {/* Background glow effect */}
+                                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 via-green-400/5 to-emerald-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                
+                                {/* Animated check icon */}
+                                <div className="relative flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg shadow-emerald-500/25">
+                                  <RiCheckLine className="w-4 h-4 text-white animate-pulse" />
+                                  {/* Icon glow */}
+                                  <div className="absolute inset-0 rounded-full bg-emerald-400/30 blur-sm animate-pulse"></div>
+                                </div>
+                                
+                                {/* Success text with enhanced typography */}
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300 tracking-wide">
+                                    Executed Successfully
+                                  </span>
+                                  <span className="text-xs text-emerald-600/70 dark:text-emerald-400/70 font-medium">
+                                    Query completed without errors
+                                  </span>
+                                </div>
+                                
+                                {/* Subtle shimmer effect */}
+                                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
+                              </div>
+                              
                             </div>
-                            {/* Shine effect overlay */}
-                            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out" />
-                          </Button>
+                          ) : (
+                            <Button
+                              onClick={() => handleConfirmExecution(message.confirmationData, message.id)}
+                              disabled={isConfirming === message.id}
+                              className={`
+                                relative overflow-hidden
+                                bg-gradient-to-r from-gray-900 to-black 
+                                hover:from-gray-800 hover:to-gray-900
+                                text-white font-medium
+                                border border-gray-700
+                                shadow-lg hover:shadow-xl
+                                transition-all duration-300 ease-out
+                                focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900
+                                disabled:opacity-70 disabled:cursor-not-allowed
+                                group
+                              `}
+                              size="sm"
+                            >
+                              <div className="flex items-center gap-2">
+                                {isConfirming === message.id ? (
+                                  <>
+                                    <RiLoader4Line className="size-4 animate-spin" />
+                                    <span>Executing...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <RiCheckLine className="size-4 transition-transform group-hover:scale-110" />
+                                    <span>Confirm Execution</span>
+                                  </>
+                                )}
+                              </div>
+                              {/* Shine effect overlay */}
+                              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out" />
+                            </Button>
+                          )}
+                          
+                          {/* Execution results section */}
+                          {message.confirmationData?.executed && message.confirmationData?.executionResult && (
+                            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                              <div className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-2">
+                                Execution Results:
+                              </div>
+                              <div className="space-y-3 w-full min-w-0">
+                                <MarkdownResponse content={message.confirmationData.executionResult} />
+                              </div>
+                              
+                              {/* Need Explanation Button - After execution results */}
+                              <div className="mt-4">
+                                <Button
+                                  onClick={handleRequestExplanation}
+                                  disabled={isLoading}
+                                  className={`
+                                    relative overflow-hidden
+                                    bg-gradient-to-r from-gray-900 to-black 
+                                    hover:from-gray-800 hover:to-gray-900
+                                    text-white font-medium
+                                    border border-gray-700
+                                    shadow-lg hover:shadow-xl
+                                    transition-all duration-300 ease-out
+                                    focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900
+                                    disabled:opacity-70 disabled:cursor-not-allowed
+                                    group
+                                  `}
+                                  size="sm"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    {isLoading ? (
+                                      <>
+                                        <RiLoader4Line className="size-4 animate-spin" />
+                                        <span>Getting explanation...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <RiQuestionLine className="size-4 transition-transform group-hover:scale-110" />
+                                        <span>Need Explanation</span>
+                                      </>
+                                    )}
+                                  </div>
+                                  {/* Shine effect overlay */}
+                                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="space-y-3 w-full min-w-0">
@@ -535,19 +711,20 @@ export default function Chat() {
                                     <div className="bg-gray-100 dark:bg-gray-800 px-3 py-2 border-b border-gray-200 dark:border-gray-700">
                                       <div className="flex items-center justify-between">
                                         <span className="text-xs font-mono text-gray-600 dark:text-gray-400">SQL Query {funcIndex + 1}</span>
-                                        <button
-                                          onClick={() => navigator.clipboard.writeText(func.args.text)}
-                                          className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                                        >
-                                          Copy Query
-                                        </button>
+                                        <CopyButton
+                                          text={formatSQLQuery(func.args.text)}
+                                          id={`query-${message.id}-${funcIndex}`}
+                                          label="Copy Query"
+                                          isCopied={copiedItems.has(`query-${message.id}-${funcIndex}`)}
+                                          onCopy={handleCopy}
+                                        />
                                       </div>
                                     </div>
                                     
                                     {/* SQL Query Code */}
                                     <div className="p-3 border-b border-gray-200 dark:border-gray-700">
                                       <pre className="text-sm font-mono whitespace-pre-wrap text-gray-800 dark:text-gray-200 overflow-x-auto break-words max-w-full">
-                                        {func.args.text}
+                                        {formatSQLQuery(func.args.text)}
                                       </pre>
                                     </div>
                                     
@@ -557,12 +734,13 @@ export default function Chat() {
                                         <div className="bg-gray-75 dark:bg-gray-825 px-3 py-2 border-b border-gray-200 dark:border-gray-700">
                                           <div className="flex items-center justify-between">
                                             <span className="text-xs font-mono text-gray-600 dark:text-gray-400">Query Result</span>
-                                            <button
-                                              onClick={() => navigator.clipboard.writeText(func.content)}
-                                              className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                                            >
-                                              Copy Result
-                                            </button>
+                                            <CopyButton
+                                              text={func.content}
+                                              id={`result-${message.id}-${funcIndex}`}
+                                              label="Copy Result"
+                                              isCopied={copiedItems.has(`result-${message.id}-${funcIndex}`)}
+                                              onCopy={handleCopy}
+                                            />
                                           </div>
                                         </div>
                                         <div className="p-3 max-h-96 overflow-auto">
