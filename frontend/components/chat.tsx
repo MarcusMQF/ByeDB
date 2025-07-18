@@ -623,7 +623,7 @@ export default function Chat() {
                                 border border-gray-700
                                 shadow-lg hover:shadow-xl
                                 transition-all duration-300 ease-out
-                                focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900
+                                focus:outline-none
                                 disabled:opacity-70 disabled:cursor-not-allowed
                                 group
                               `}
@@ -670,7 +670,7 @@ export default function Chat() {
                                     border border-gray-700
                                     shadow-lg hover:shadow-xl
                                     transition-all duration-300 ease-out
-                                    focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900
+                                    focus:outline-none
                                     disabled:opacity-70 disabled:cursor-not-allowed
                                     group
                                   `}
