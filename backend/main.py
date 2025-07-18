@@ -71,7 +71,7 @@ async def ask_sql_question(request: SQLQuestionRequest, user_id: str = Header(..
         if request.mode:
             sql_expert.mode = request.mode
         result = sql_expert.generate_sql_response(request.question)
-
+        print(result)
         return SQLQuestionResponse(
             success=result["success"],
             meta=result,
