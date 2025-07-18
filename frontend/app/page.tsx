@@ -50,24 +50,37 @@ export default function Home() {
 
   const isVisible = (id: string) => visibleElements.has(id);
 
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
+
   const developers = [
     {
       id: 1,
       name: "Marcus",
       designation: "Frontend Developer",
       image: "/images/marcus.png",
+      linkedin: "https://www.linkedin.com/in/mah-qing-fung/",
     },
     {
       id: 2,
       name: "Shan Chien",
       designation: "Backend Developer",
       image: "/images/shanchien.png",
+      linkedin: "https://www.linkedin.com/in/tan-shan-chien-232517337/",
     },
     {
       id: 3,
       name: "Hong Zhang",
       designation: "Backend Developer",
       image: "/images/kim.png",
+      linkedin: "https://www.linkedin.com/in/kim-hong-zhang-4b4168327/",
     },
   ];
 
@@ -109,11 +122,39 @@ export default function Home() {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent drop-shadow-lg">ByeDB</h1>
             </div>
             <nav className="flex items-center gap-6">
-              <Button variant="ghost" className={`transition-all duration-200 ${
-                isScrolled 
-                  ? 'text-gray-300 hover:text-white hover:bg-white/5' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
-              }`}>Features</Button>
+              <Button 
+                variant="ghost" 
+                className={`transition-all duration-200 ${
+                  isScrolled 
+                    ? 'text-gray-300 hover:text-white hover:bg-white/5' 
+                    : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
+                }`}
+                onClick={() => scrollToSection('features-section')}
+              >
+                Features
+              </Button>
+              <Button 
+                variant="ghost" 
+                className={`transition-all duration-200 ${
+                  isScrolled 
+                    ? 'text-gray-300 hover:text-white hover:bg-white/5' 
+                    : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
+                }`}
+                onClick={() => scrollToSection('demo-section')}
+              >
+                Demo
+              </Button>
+              <Button 
+                variant="ghost" 
+                className={`transition-all duration-200 ${
+                  isScrolled 
+                    ? 'text-gray-300 hover:text-white hover:bg-white/5' 
+                    : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
+                }`}
+                onClick={() => scrollToSection('footer-content')}
+              >
+                Our Team
+              </Button>
               <Button variant="ghost" className={`transition-all duration-200 ${
                 isScrolled 
                   ? 'text-gray-300 hover:text-white hover:bg-white/5' 
@@ -209,7 +250,7 @@ export default function Home() {
         </section>
 
         {/* Demo Video Section */}
-        <section className="py-32 relative">
+        <section id="demo-section" className="py-32 relative">
           <div className="container mx-auto px-6">
             <div 
               id="demo-header"
@@ -253,6 +294,7 @@ export default function Home() {
                     controls
                     preload="metadata"
                     poster="/images/chat.png"
+                    style={{ aspectRatio: '16/9' }}
                   >
                     <source src="/video/demo.mp4" type="video/mp4" />
                     Your browser does not support the video tag.
@@ -336,7 +378,7 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <section className="py-32 relative">
+        <section id="features-section" className="py-32 relative">
           <div className="container mx-auto px-6">
             <div 
               id="features-header"
@@ -385,8 +427,8 @@ Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that tr
                         </div>
                         <h3 className="text-xl lg:text-2xl font-bold text-white">Multiagent AI Orchestration</h3>
                       </div>
-                      <p className="text-gray-400 leading-relaxed mb-4 text-base">
-                        Advanced multiagent system with 99.7% accuracy in natural language interpretation. Sophisticated chain-of-thought prompting with contextual embeddings and few-shot learning.
+                      <p className="text-gray-400 leading-relaxed mb-4 text-base text-justify">
+                        With 99.7% accuracy in natural language interpretation, it leverages sophisticated chain-of-thought prompting, contextual embeddings, and few-shot learning to understand complex user intents and translate them into actionable operations. The system operates in two seamless modes: ASK Mode, where users submit queries in plain English, and Agent Mode, where autonomous AI agents execute tasks with minimal human intervention. Whether you're generating SQL, analyzing data, or automating workflows, ByeDB ensures enterprise-grade reliability while eliminating the need for manual coding.
                       </p>
                       <div className="flex items-center text-blue-400 text-sm font-medium group-hover:text-blue-300 transition-colors">
                         <span>Try AI Agent</span>
@@ -633,10 +675,10 @@ Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that tr
               {/* Developer credits */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-white/5">
                 <div className="flex items-center gap-4">
-                  <span className="text-sm text-gray-400">Built with ❤️ by</span>
+                  <span className="text-base text-gray-400">Built with ❤️ by</span>
                   <AvatarGroup 
                     items={developers} 
-                    size="sm"
+                    size="lg"
                     className="flex-shrink-0"
                   />
                 </div>

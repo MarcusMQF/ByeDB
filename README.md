@@ -21,16 +21,9 @@
 
 ByeDB.AI represents the pinnacle of autonomous database intelligence, employing a sophisticated multiagent architecture with advanced prompt engineering pipelines to achieve unprecedented natural language-to-SQL accuracy. Our enterprise-grade platform orchestrates multiple Large Language Models through intelligent agent coordination, delivering measurable performance improvements and educational transparency.
 
-### **🎯 Performance Metrics & Success Indicators**
+## Demo
+https://github.com/user-attachments/assets/73758080-e880-4627-ad48-72a69462354b
 
-| Metric | Achievement | Industry Benchmark |
-|--------|-------------|-------------------|
-| **Query Accuracy** | 99.7% | 85-92% |
-| **Response Time** | <200ms avg | 500-1500ms |
-| **Natural Language Understanding** | 98.4% intent recognition | 80-85% |
-| **SQL Generation Precision** | 97.8% syntactically correct | 70-80% |
-| **Educational Explanation Quality** | 96.2% user satisfaction | N/A |
-| **Security Compliance** | 100% operation confirmation | Variable |
 
 ### **🤖 Multiagent AI Architecture**
 
