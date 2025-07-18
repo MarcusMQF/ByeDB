@@ -311,7 +311,7 @@ export default function Chat() {
   };
 
   const handleRequestExplanation = async () => {
-    const explanationMessage = "Please provide a detailed explanation of the SQL operations that were just executed. Do not re-execute any queries, just explain what the previous commands did, their purpose, and the results. Focus on educational explanation without running any new SQL commands.";
+    const explanationMessage = "Explain what you did in detail, together with the executed commands";
     
     // Add user message to chat
     const userMessage: Message = {
@@ -331,7 +331,7 @@ export default function Chat() {
         headers: getApiHeaders(),
         body: JSON.stringify({
           question: explanationMessage,
-          mode: 'ask' // Force ask mode to prevent SQL execution
+          mode: 'agent'
         }),
       });
 
