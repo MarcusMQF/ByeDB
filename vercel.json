@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "frontend/$1"
+    }
+  ],
+  "env": {
+    "GEMINI_PROMPT_ENHANCE_API_KEY": "@gemini_prompt_enhance_api_key",
+    "NEXT_PUBLIC_BACKEND_URL": "@backend_url"
+  }
+}
