@@ -28,21 +28,28 @@ import {
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
 import { useDatasets } from "@/hooks/use-datasets";
+import { useDatasetContext } from "@/lib/dataset-context";
 import { Badge } from "@/components/badge";
+import { useEffect } from "react";
 
 export default function TablePage() {
-  // Use the datasets hook instead of mock data
+  // Use the datasets context instead of hook directly
   const { 
     datasets, 
     isLoading, 
     error, 
     refreshDatasets, 
     exportDatabase 
-  } = useDatasets();
+  } = useDatasetContext();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set());
+  
+  // Refresh datasets when component mounts or when user navigates to this page
+  useEffect(() => {
+    refreshDatasets();
+  }, [refreshDatasets]);
   
   // Filter datasets based on search term
   const filteredDatasets = datasets.filter(dataset => 

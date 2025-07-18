@@ -9,6 +9,8 @@ export interface Dataset {
   rows: number;
   columns: number;
   lastModified: string;
+  lastUpdated?: Date; // New field for tracking real-time updates
+  source: 'uploaded' | 'created'; // Track how the dataset was created
   data?: any[];
 }
 
@@ -21,6 +23,7 @@ export interface UseDatasets {
   clearAllDatasets: () => Promise<void>;
   clearMemory: () => Promise<void>;
   exportDatabase: () => Promise<void>;
+  getDatasetSummary: () => { totalRows: number; totalColumns: number; totalDatasets: number };
 }
 
 const API_BASE_URL = 'http://localhost:8000';
@@ -29,14 +32,21 @@ export const useDatasets = (): UseDatasets => {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadedTableNames, setUploadedTableNames] = useState<Set<string>>(new Set());
 
   // Convert backend export data to dataset format
-  const convertExportDataToDatasets = (exportData: Record<string, any[]>): Dataset[] => {
+  const convertExportDataToDatasets = (exportData: Record<string, any[]>, uploadedTableNames: Set<string> = new Set()): Dataset[] => {
     return Object.entries(exportData).map(([tableName, tableData]) => {
       const rows = Array.isArray(tableData) ? tableData.length : 0;
       const columns = Array.isArray(tableData) && tableData.length > 0 
         ? Object.keys(tableData[0]).length 
         : 0;
+      
+      // Determine source: system tables are neither uploaded nor created by user
+      let source: 'uploaded' | 'created' = 'created';
+      if (uploadedTableNames.has(tableName)) {
+        source = 'uploaded';
+      }
       
       return {
         id: tableName,
@@ -44,6 +54,8 @@ export const useDatasets = (): UseDatasets => {
         rows,
         columns,
         lastModified: new Date().toISOString().split('T')[0],
+        lastUpdated: new Date(), // Set current time as last updated
+        source,
         data: tableData
       };
     });
@@ -66,7 +78,7 @@ export const useDatasets = (): UseDatasets => {
       const result = await response.json();
       
       if (result.success) {
-        const convertedDatasets = convertExportDataToDatasets(result.data);
+        const convertedDatasets = convertExportDataToDatasets(result.data, uploadedTableNames);
         setDatasets(convertedDatasets);
       } else {
         throw new Error(result.error || 'Failed to export database');
@@ -123,6 +135,10 @@ export const useDatasets = (): UseDatasets => {
         throw new Error(result.error || result.message || 'Upload failed');
       }
 
+      // Track the uploaded table name (file name without extension)
+      const tableName = file.name.replace(/\.[^/.]+$/, "").toLowerCase();
+      setUploadedTableNames(prev => new Set([...prev, tableName]));
+
       // After successful upload, refresh datasets
       await refreshDatasets();
     } catch (err) {
@@ -173,6 +189,7 @@ export const useDatasets = (): UseDatasets => {
       
       // Clear frontend state
       setDatasets([]);
+      setUploadedTableNames(new Set());
       console.log('Database and memory cleared successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to clear datasets';
@@ -254,6 +271,15 @@ export const useDatasets = (): UseDatasets => {
     refreshDatasets();
   }, [refreshDatasets]);
 
+  // Get summary statistics
+  const getDatasetSummary = useCallback(() => {
+    const totalRows = datasets.reduce((sum, dataset) => sum + dataset.rows, 0);
+    const totalColumns = datasets.reduce((sum, dataset) => sum + dataset.columns, 0);
+    const totalDatasets = datasets.length;
+    
+    return { totalRows, totalColumns, totalDatasets };
+  }, [datasets]);
+
   return {
     datasets,
     isLoading,
@@ -263,5 +289,6 @@ export const useDatasets = (): UseDatasets => {
     clearAllDatasets,
     clearMemory,
     exportDatabase,
+    getDatasetSummary,
   };
 };
