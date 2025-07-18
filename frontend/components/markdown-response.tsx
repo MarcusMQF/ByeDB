@@ -330,6 +330,21 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language = 'sql' }) => {
     }
   };
 
+  // Format SQL code with proper line breaks
+  const formatSqlCode = (sqlCode: string) => {
+    if (language === 'sql') {
+      // Split on semicolons and trim whitespace, then join with line breaks
+      return sqlCode
+        .split(';')
+        .map(statement => statement.trim())
+        .filter(statement => statement.length > 0)
+        .join(';\n') + (sqlCode.trim().endsWith(';') ? '' : '');
+    }
+    return sqlCode;
+  };
+
+  const formattedCode = formatSqlCode(code);
+
   return (
     <div className="relative my-2 rounded-lg border bg-slate-50 dark:bg-slate-900 dark:border-slate-700">
       <div className="flex items-center justify-between px-4 py-2 border-b dark:border-slate-700">
@@ -354,7 +369,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language = 'sql' }) => {
       </div>
       <pre className="p-4 overflow-x-auto text-sm">
         <code className="text-slate-800 dark:text-slate-200 font-mono">
-          {code}
+          {formattedCode}
         </code>
       </pre>
     </div>

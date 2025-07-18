@@ -161,7 +161,7 @@ export default function Chat() {
         isUser: false,
         timestamp: new Date(),
         requiresConfirmation: requiresApproval,
-        confirmationData: requiresApproval ? data.meta || data : undefined
+        confirmationData: requiresApproval ? data.meta || data : data // Store all response data to access function_called
       };
 
       console.log('AI Response Message:', aiResponse); // Debug log
@@ -209,7 +209,11 @@ export default function Chat() {
             ...msg,
             content: data.success ? data.response : `Error: ${data.error}`,
             requiresConfirmation: false,
-            confirmationData: undefined
+            confirmationData: {
+              ...msg.confirmationData,
+              executed: true,
+              function_called: data.function_called || msg.confirmationData?.function_called
+            }
           };
         }
         return msg;
@@ -230,7 +234,7 @@ export default function Chat() {
   };
 
   const handleRequestExplanation = async () => {
-    const explanationMessage = "Explain what you did in detail, together with command";
+    const explanationMessage = "Explain in detail what you did, including all commands used, with clear step-by-step descriptions and explanations for each step.";
     
     // Add user message to chat
     const userMessage: Message = {
@@ -497,20 +501,20 @@ export default function Chat() {
                       ) : (
                         <div className="space-y-3">
                           <MarkdownResponse content={message.content} />
-                          {/* Add explanation button for AI responses in agent mode */}
-                          {chatMode === 'agent' && (
+                          {/* Add explanation button for AI responses in agent mode that have completed function calls */}
+                          {chatMode === 'agent' && message.confirmationData?.function_called && message.confirmationData.function_called.length > 0 && message.confirmationData?.executed && (
                             <Button
                               onClick={handleRequestExplanation}
                               disabled={isLoading}
                               className={`
                                 relative overflow-hidden
-                                bg-gradient-to-r from-blue-600 to-blue-700 
-                                hover:from-blue-700 hover:to-blue-800
+                                bg-black
+                                hover:bg-gray-800
                                 text-white font-medium
-                                border border-blue-500
+                                border border-gray-700
                                 shadow-lg hover:shadow-xl
                                 transition-all duration-300 ease-out
-                                focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-gray-900
+                                focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-900
                                 disabled:opacity-70 disabled:cursor-not-allowed
                                 group
                               `}

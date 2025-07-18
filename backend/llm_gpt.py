@@ -6,7 +6,8 @@ from openai.types.chat import ChatCompletionMessageParam
 from dotenv import load_dotenv
 from collections import deque
 
-load_dotenv()
+# Load environment variables from parent directory
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 
 class SQLExpertLLM:

@@ -5,6 +5,10 @@ import pandas as pd
 import io
 import os
 import csv
+from dotenv import load_dotenv
+
+# Load environment variables from parent directory
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 from fastapi import FastAPI, HTTPException
 from fastapi import UploadFile, File, Form
