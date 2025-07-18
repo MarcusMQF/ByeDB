@@ -268,20 +268,3 @@ async def delete_account(user_id: str = Header(...)):
         return {"success": True, "message": "User account and database deleted."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/chart")
-async def get_chart_image(stem: str):
-    try:
-        file_path = cm.get_full_path(stem)
-        if not os.path.isfile(file_path):
-            raise HTTPException(status_code=404, detail="Chart image not found.")
-
-        file_stream = open(file_path, "rb")
-        return StreamingResponse(
-            file_stream,
-            media_type="image/png",
-            headers={"Content-Disposition": f"inline; filename={os.path.basename(file_path)}"}
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
