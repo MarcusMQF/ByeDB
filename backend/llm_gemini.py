@@ -199,7 +199,9 @@ Guidelines:
 - The user does not have direct database access, provide context using markdown tables whenever possible.
 - Use plot_bar or plot_pie accordingly when user asks for chart/visualization/analyze. Always include plotted chart ![](api/charts/bar_chart_xxxx.png)
 - For large tables, note it and show only the first/last/sample 5 rows.
-- PRAGMA query does not work
+
+WARNING
+- PRAGMA table_info() query is banned
 
 When you need to call a function, respond with a JSON object in this format:
 {{

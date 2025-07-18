@@ -38,11 +38,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
-import { 
-  Message, 
-  ChatMode, 
-  loadFromLocalStorage, 
-  saveToLocalStorage, 
+import {
+  Message,
+  ChatMode,
+  loadFromLocalStorage,
+  saveToLocalStorage,
   clearChatStorage,
   CHAT_MESSAGES_KEY,
   CHAT_MODE_KEY,
@@ -75,8 +75,8 @@ const CopyButton: React.FC<CopyButtonProps> = ({ text, id, label, isCopied, onCo
       className={`
         relative inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium
         transition-all duration-200 ease-out overflow-hidden group
-        ${isCopied 
-          ? 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 shadow-sm' 
+        ${isCopied
+          ? 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 shadow-sm'
           : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 border border-transparent hover:border-gray-200 dark:hover:border-gray-700'
         }
       `}
@@ -95,7 +95,7 @@ const CopyButton: React.FC<CopyButtonProps> = ({ text, id, label, isCopied, onCo
           </>
         )}
       </div>
-      
+
       {/* Subtle success shine effect */}
       {isCopied && (
         <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-green-100/40 dark:via-green-800/30 to-transparent animate-in slide-in-from-left duration-500"></div>
