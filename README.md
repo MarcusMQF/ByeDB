@@ -1,5 +1,5 @@
 <div align="center">
-<img src="frontend/public/icon.png" alt="ByeDB Logo" width="200"/>
+<img src="frontend/public/crop.png" alt="ByeDB Logo" width="200"/>
 <h1>ByeDB.AI</h1>
 <p><em>Enterprise-grade multiagent AI platform for autonomous database intelligence—leveraging advanced prompt engineering, contextual memory systems, and multi-LLM orchestration to deliver 99.7% query accuracy with real-time educational feedback and secure operation confirmation protocols.</em></p>
 
@@ -75,36 +75,8 @@ https://github.com/user-attachments/assets/73758080-e880-4627-ad48-72a69462354b
 | **🔒 Critical Operation Confirmation** | Mandatory verification protocols for write operations and destructive queries. Real-time risk assessment with impact analysis and approval workflows. | <img src="frontend/public/images/confirmation.png" alt="Operation Confirmation" width="200"/> |
 | **📚 Educational Transparency** | Real-time AI decision explanation with step-by-step reasoning breakdown. Interactive SQL education and learning insights generation. | <img src="frontend/public/images/explanation.png" alt="AI Explanation" width="200"/> |
 | **🧠 Intelligent Prompt Enhancement** | Advanced prompt engineering pipeline with semantic optimization and context enhancement for superior AI performance. | <img src="frontend/public/images/enhance_prompting.png" alt="Prompt Enhancement" width="200"/> |
-| **⚡ Predictive Autocompletion** | AI-powered query prediction and autocompletion system that anticipates user intent and suggests optimal query structures. | <img src="frontend/public/images/autocomplete.png" alt="Smart Autocompletion" width="200"/> |
-| **📊 Real-time Data Visualization** | Interactive visualization engine that provides instant visual insights of your dataset with dynamic charts, graphs, and analytics dashboards. | <img src="frontend/public/images/visualize.png" alt="Data Visualization" width="200"/> |
+| **📊 Real-time Data Visualization** | Interactive visualization engine that provides instant visual insights of your dataset with dynamic charts, graphs, and analytics dashboards. | <img src="frontend/public/images/chart.png" alt="Data Visualization" width="200"/> |
 | **💾 One-Click Export Intelligence** | Comprehensive data export system with multiple format support, metadata preservation, and automated audit trail generation. | <img src="frontend/public/images/export.png" alt="Data Export" width="200"/> |
-
-### **📊 Enterprise Data Intelligence**
-
-| Capability | Technical Implementation | Success Metrics | Benefits |
-|------------|-------------------------|-----------------|----------|
-| **Semantic Data Import** | Advanced CSV/XLSX parsing with automatic schema inference and data quality assessment | 99.5% Import Success Rate | Effortless data onboarding |
-| **Contextual Visualization** | AI-driven chart recommendations with interactive dashboards and real-time analytics | Sub-200ms Rendering | Instant insights generation |
-| **Performance Monitoring** | Predictive optimization and resource management with intelligent caching | 99.9% System Uptime | Consistent performance |
-| **Export Intelligence** | Multi-format data export with metadata preservation and comprehensive audit trails | 99.9% Export Success | Complete data portability |
-
-### **🔒 Zero-Trust Security Architecture**
-
-| Security Layer | Implementation | Compliance Rate | Protection Level |
-|----------------|----------------|-----------------|------------------|
-| **Local Execution Guarantee** | 100% on-premises processing with no external data transmission | 100% Data Privacy | Enterprise-grade security |
-| **Operation Confirmation System** | Mandatory approval workflow for critical database operations | 100% Confirmation Rate | Zero unauthorized changes |
-| **Session Isolation** | Advanced user memory partitioning with cryptographic session management | 100% Session Security | Complete user isolation |
-| **Query Validation** | Multi-layer SQL injection prevention with semantic safety analysis | 100% Attack Prevention | Bulletproof protection |
-
-### **🛠 Developer Intelligence Platform**
-
-| Technology | Version | Optimization Level | Integration Quality |
-|------------|---------|-------------------|-------------------|
-| **Next.js Frontend** | 15.4.1 with React 19 | Production-optimized | Seamless UX |
-| **TypeScript** | 5.7 with strict mode | Type-safe development | Zero runtime errors |
-| **FastAPI Backend** | Async optimization | High-performance APIs | <200ms response |
-| **Component Intelligence** | Advanced state management with accessibility compliance | Enterprise-ready | Professional UI/UX |
 
 ---
 
@@ -113,7 +85,7 @@ https://github.com/user-attachments/assets/73758080-e880-4627-ad48-72a69462354b
 ByeDB follows a modern microservices architecture with clear separation of concerns:
 
 <div align="center">
-<img src="frontend/public/images/architecture.png" alt="ByeDB Architecture Diagram" width="800"/>
+<img src="frontend/public/images/architecture.png" alt="ByeDB Architecture Diagram" width="900"/>
 </div>
 
 ### **System Overview**
@@ -128,80 +100,62 @@ ByeDB follows a modern microservices architecture with clear separation of conce
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### **🤖 Multiagent AI Pipeline**
-Based on the architecture diagram above, here's our sophisticated multiagent orchestration flow:
+### **🤖 How ByeDB Works**
 
-#### **Client Intelligence Layer**
-1. **Natural Language Processing** – Advanced NLP with 98.4% intent recognition accuracy
-2. **Agent Coordination Interface** – Real-time multiagent communication dashboard
-3. **Educational Feedback System** – AI explanation engine with step-by-step reasoning
-4. **Critical Operation Confirmation** – Mandatory approval workflow for write operations
+ByeDB is built with a simple but effective architecture:
 
-#### **API Orchestration Layer**
-5. **Query Intelligence API** – Multiagent query processing with context optimization
-6. **Educational Transparency API** – Real-time AI decision explanation service
-7. **Security Confirmation API** – Critical operation validation and approval system
-8. **Performance Analytics API** – Real-time metrics and predictive optimization
+#### **Frontend Layer**
+1. **Chat Interface** – User-friendly chat interface for natural language queries
+2. **Data Visualization** – Automatic chart generation from query results
+3. **File Upload** – CSV/Excel import functionality
+4. **Export Options** – Download results in multiple formats
 
-#### **Multiagent Intelligence Core**
-9. **Meta-Prompt Engineering** – Dynamic prompt optimization with A/B testing framework
-10. **Contextual Memory Management** – Persistent conversation state with semantic embeddings
-11. **Agent Coordination Protocol** – Hierarchical planning with consensus mechanisms
-12. **Educational Agent** – Specialized explanation generation with 96.2% user satisfaction
+#### **Backend API Layer**
+5. **Natural Language Processing** – Convert user questions to SQL queries
+6. **Query Execution** – Safe SQL execution with confirmation dialogs
+7. **AI Integration** – OpenAI GPT and Google Gemini model support
+8. **Session Management** – Maintain conversation context
 
-#### **LLM Orchestration (Gemini 2.5 Flash + GPT-4)**
-13. **Intelligent Model Routing** – Dynamic LLM selection based on query complexity and success patterns
-14. **Chain-of-Thought Processing** – Structured reasoning with intermediate validation steps
-15. **Adversarial Validation** – Multi-perspective query verification for enhanced accuracy
-16. **Adaptive Learning System** – Real-time model performance optimization
-17. **Context Enhancement** – Semantic similarity matching for optimal prompt construction
+#### **AI Processing**
+9. **SQL Generation** – Transform natural language into SQL queries
+10. **Query Explanation** – Provide educational explanations of generated SQL
+11. **Safety Checks** – Detect potentially destructive operations
+12. **Result Formatting** – Present data in user-friendly formats
+13. **Conversation Memory** – Remember last 5 conversations for context continuity
 
-#### **Model Context Protocol Intelligence**
-18. **Semantic Query Analysis** – Advanced natural language understanding with contextual embeddings
-19. **Critical Operation Detection** – Automated identification of write/destructive operations requiring confirmation
+#### **Database Layer**
+14. **SQLite Integration** – Local database processing
+15. **Data Import** – Handle CSV/Excel file uploads
+16. **Query Optimization** – Efficient query execution
+17. **Export Functions** – Multiple output format support
 
-#### **Enterprise Database Layer**
-20. **SQLite with Intelligence** – Query optimization, performance monitoring, and security validation
 
-### **🎯 Success Metrics Dashboard**
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    PERFORMANCE ANALYTICS                    │
-├─────────────────────────────────────────────────────────────┤
-│ Query Accuracy:          99.7% ███████████████████████████  │
-│ Response Time:          <200ms ██████████████████████████   │
-│ Intent Recognition:      98.4% ███████████████████████████  │
-│ SQL Generation:          97.8% ██████████████████████████   │
-│ Educational Quality:     96.2% ██████████████████████████   │
-│ Security Compliance:      100% ████████████████████████████ │
-│ System Uptime:           99.9% ███████████████████████████  │
-│ User Satisfaction:       94.8% ██████████████████████████   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-This multiagent architecture ensures:
-- **Autonomous Intelligence**: Self-optimizing AI agents with specialized expertise
-- **Educational Transparency**: Real-time explanation of AI decision-making processes
-- **Security-First Design**: Mandatory confirmation for critical operations
-- **Performance Excellence**: Sub-200ms response times with 99.7% accuracy
-- **Continuous Learning**: Adaptive prompt engineering with success pattern analysis
+This architecture ensures:
+- **Simple Interface**: Easy-to-use chat interface for database queries
+- **Educational Value**: Learn SQL through AI explanations
+- **Safety First**: Confirmation dialogs for potentially dangerous operations
+- **Flexibility**: Support for multiple AI models and data formats
+- **Local Processing**: Your data stays on your machine
+- **Conversation Memory**: AI remembers context from previous interactions
 
 ---
 
 ## API Design
 
-### **Enterprise API Endpoints**
+### **API Endpoints**
 
-| Endpoint | Method | Description | Success Rate | Avg Response Time |
-|----------|--------|-------------|--------------|-------------------|
-| `/api/sql-question` | POST | Multiagent natural language processing | 99.7% | 180ms |
-| `/api/explain-query` | POST | Educational AI explanation generation | 96.2% satisfaction | 95ms |
-| `/api/confirm-operation` | POST | Critical operation validation protocol | 100% compliance | 50ms |
-| `/api/continue-execution` | POST | Contextual query continuation | 98.1% | 120ms |
-| `/api/upload-db` | POST | Intelligent data import with validation | 99.5% | 2.3s |
-| `/api/export-db` | GET | Enterprise data export with audit trail | 99.9% | 450ms |
-| `/api/performance-metrics` | GET | Real-time system analytics | 100% | 25ms |
-| `/api/clear-memory` | POST | Secure session management | 100% | 15ms |
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | Root endpoint |
+| `/health` | GET | Health check |
+| `/api/sql-question` | POST | Natural language to SQL conversion |
+| `/api/continue-execution` | POST | Continue conversation context |
+| `/api/upload-db` | POST | Database file upload |
+| `/api/export-db` | GET | Data export functionality |
+| `/api/export-csv` | GET | CSV export functionality |
+| `/api/clear-memory` | POST | Clear conversation memory |
+| `/api/clear-database` | POST | Clear user database |
+| `/api/delete-account` | POST | Delete user account |
 
 ### **Advanced Request/Response Schemas**
 
@@ -357,100 +311,6 @@ const handleDatasetExploration = (response) => {
 
 ---
 
-### **Enterprise Integration Examples**
-
-#### Advanced TypeScript Integration with Educational Features
-```typescript
-// Multiagent query execution with educational transparency
-const executeIntelligentQuery = async (question: string) => {
-  const response = await fetch('/api/sql-question', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'User-ID': userId,
-      'X-Request-ID': generateRequestId()
-    },
-    body: JSON.stringify({
-      question: question,
-      userId: userId,
-      llm_choice: "auto", // Intelligent model selection
-      explain_reasoning: true,
-      require_confirmation: detectCriticalOperation(question),
-      context_enhancement: "semantic"
-    })
-  });
-
-  const result = await response.json();
-  
-  // Educational transparency - display AI reasoning
-  if (result.educational_explanation) {
-    displayReasoningSteps(result.educational_explanation.reasoning_steps);
-    showSQLBreakdown(result.educational_explanation.sql_breakdown);
-  }
-  
-  // Handle critical operations
-  if (result.security_context?.confirmation_required) {
-    const confirmed = await showConfirmationDialog(result.confirmation_message);
-    if (!confirmed) return null;
-  }
-  
-  return result;
-};
-
-// Performance monitoring integration
-const monitorQueryPerformance = async () => {
-  const metrics = await fetch('/api/performance-metrics').then(r => r.json());
-  updateDashboard({
-    accuracy: metrics.query_accuracy,
-    responseTime: metrics.avg_response_time,
-    userSatisfaction: metrics.educational_satisfaction
-  });
-};
-```
-
-#### Python Enterprise Integration
-```python
-import requests
-import asyncio
-from typing import Dict, Any
-
-class ByeDBIntelligence:
-    def __init__(self, base_url: str, user_id: str):
-        self.base_url = base_url
-        self.user_id = user_id
-        self.session = requests.Session()
-    
-    async def query_with_explanation(self, question: str) -> Dict[str, Any]:
-        """Execute query with full educational transparency"""
-        payload = {
-            "question": question,
-            "userId": self.user_id,
-            "llm_choice": "auto",
-            "explain_reasoning": True,
-            "context_enhancement": "semantic"
-        }
-        
-        response = self.session.post(f"{self.base_url}/api/sql-question", json=payload)
-        result = response.json()
-        
-        # Log performance metrics
-        self._log_performance(result.get('performance_metrics', {}))
-        
-        # Display educational content
-        if result.get('educational_explanation'):
-            self._display_learning_insights(result['educational_explanation'])
-        
-        return result
-    
-    def _log_performance(self, metrics: Dict[str, Any]):
-        """Track system performance for optimization"""
-        print(f"Query executed in {metrics.get('execution_time', 0)}ms")
-        print(f"Agent coordination: {metrics.get('agent_coordination_time', 0)}ms")
-        print(f"Optimization score: {metrics.get('optimization_score', 0)}%")
-```
-
----
-
 ## Enterprise Deployment
 
 ### **Prerequisites**
@@ -527,24 +387,21 @@ npm run dev
 
 2. **Environment Configuration**
    ```bash
-   # Create .env file in backend/
-   echo "OPENAI_API_KEY=your_key" >> backend/.env
-   echo "GOOGLE_API_KEY=your_key" >> backend/.env
+   # Create .env file in root directory
+   echo "OPENAI_API_KEY=your_key" >> .env
+   echo "GEMINI_API_KEY=your_key" >> .env
+   
+   # Create .env file in frontend/
+   echo "GEMINI_PROMPT_ENHANCE_API_KEY=your_key" >> frontend/.env
    ```
 
 3. **Database Setup**
    ```bash
-   # SQLite database is created automatically
-   # Upload sample data via the web interface
+   # In-memory SQLite database is used by default
+   # Upload your data via the web interface
    ```
 
 ### **Production Deployment**
-
-#### **Docker Deployment** (Recommended)
-```dockerfile
-# Coming soon - Docker configuration
-# Supports containerized deployment with docker-compose
-```
 
 #### **Manual Deployment**
 ```bash
@@ -556,7 +413,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 # Frontend (production)
 cd frontend
 npm run build
-npm start
+npm run dev
 ```
 
 ---
@@ -564,53 +421,43 @@ npm start
 ## Configuration
 
 ### **Backend Configuration**
-- **Database**: SQLite with automatic user isolation
-- **AI Models**: Configurable OpenAI/Gemini endpoints
-- **Security**: CORS, input validation, query sanitization
-- **Performance**: Connection pooling, query caching
+- **Database**: SQLite with in-memory storage by default
+- **AI Models**: OpenAI GPT and Google Gemini API integration
+- **Security**: CORS enabled, basic input validation
+- **Memory**: LRU cache for user sessions (50 users max)
 
-### **Enterprise Configuration**
-- **Multiagent Orchestration**: Advanced agent coordination with performance monitoring
-- **AI Model Management**: Intelligent routing between OpenAI GPT-4 and Google Gemini 2.5 Flash
-- **Security Protocols**: Critical operation confirmation and zero-trust architecture
-- **Performance Analytics**: Real-time monitoring with 99.7% accuracy tracking
-
-### **Frontend Intelligence Configuration**
-- **Adaptive UI**: Context-aware themes with educational transparency
-- **Component Intelligence**: Advanced state management with real-time performance feedback
-- **Responsive Analytics**: Mobile-first design with enterprise accessibility compliance
-- **Educational Interface**: Interactive AI explanation system with step-by-step reasoning
+### **Frontend Configuration**
+- **Framework**: Next.js with TypeScript and Tailwind CSS
+- **Components**: Modern React components with responsive design
+- **API Integration**: RESTful API calls to backend services
+- **Environment**: Configurable API endpoints and keys
 
 ---
 
-## Advanced Usage
+## Usage
 
-### **🎯 Educational Query Execution**
-1. **Natural Language Input**: Ask complex questions with contextual understanding
-2. **AI Reasoning Display**: View step-by-step AI decision-making processes
-3. **SQL Education**: Learn query construction through interactive explanations
-4. **Performance Analytics**: Monitor query optimization and execution metrics
+### **🎯 Query Execution**
+1. **Natural Language Input**: Ask questions in plain English
+2. **SQL Generation**: AI converts questions to SQL queries
+3. **Safety Checks**: Confirmation required for write operations
+4. **Data Visualization**: Automatic chart generation from results
 
-### **🔒 Critical Operation Management**
-1. **Automatic Detection**: AI identifies write/destructive operations requiring confirmation
-2. **Risk Assessment**: Real-time impact analysis with data sensitivity evaluation
-3. **Confirmation Protocol**: Mandatory approval workflow for critical database changes
-4. **Audit Trail**: Comprehensive logging of all confirmed operations
+### **🔒 Operation Safety**
+1. **Write Detection**: AI identifies potentially destructive operations
+2. **Confirmation Dialog**: User approval required for database modifications
+3. **Memory Management**: Clear conversation history when needed
+4. **Data Export**: Download results in JSON or CSV format
 
-### **📊 Performance Monitoring**
-1. **Real-time Metrics**: Monitor 99.7% query accuracy and sub-200ms response times
-2. **Agent Coordination**: Track multiagent system performance and optimization
-3. **User Satisfaction**: Educational explanation quality assessment (96.2% satisfaction)
-4. **System Health**: Continuous monitoring with predictive analytics
-
-### **🧠 Multiagent Learning**
-1. **Adaptive Prompts**: Self-improving prompt engineering based on success patterns
-2. **Context Enhancement**: Semantic similarity matching for optimal query construction
-3. **Educational Feedback**: AI-generated explanations for continuous learning
-4. **Performance Optimization**: Real-time agent coordination and model selection
+### **📊 Features**
+1. **Chat Interface**: Conversational database interaction
+2. **File Upload**: Import CSV/Excel files into database
+3. **Conversation Memory**: AI remembers last 5 conversations
+4. **Multiple AI Models**: Switch between OpenAI and Gemini
 
 ---
 
 <div align="center">
-<p><strong>Built by ⭐ Hardcoded Our Life</strong></p>
+  <strong>Made by Team ❤️ Hardcoded Our Life</strong>
+  <br>
+  <strong><em>© FutureHack 2025<em>
 </div>
