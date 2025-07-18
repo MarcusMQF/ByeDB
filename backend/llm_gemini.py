@@ -137,7 +137,38 @@ class SQLExpertLLM:
                         "success": False,
                         "error": result.get("error", "Unknown error")
                     }
+            elif name in ["plot_bar", "plot_pie"]:
+                title = arguments["title"]
+                sql = arguments["text"]
+                print(f"[PLOT {name.upper()}]: {title} | SQL: {sql}")
 
+                # Execute the query
+                result = self.database_client.execute_sql(sql)
+                if not result.get("success"):
+                    return {
+                        "success": False,
+                        "error": result.get("error", "SQL execution failed")
+                    }
+
+                data = result.get("data", [])
+                if not data or len(data[0]) < 2:
+                    return {
+                        "success": False,
+                        "error": "Query must return at least two columns: labels and values"
+                    }
+
+                # Call your chart generator function (update this to match your own)
+                if name == "plot_pie":
+                    image_path_or_url = cm.plot_pie_chart(title, data)
+                else:
+                    image_path_or_url = cm.plot_bar_chart(title, data)
+
+                return {
+                    "success": True,
+                    "result": f"Chart plotted: {title}",
+                    "image": image_path_or_url,
+                    "data": data
+                }
             return {"success": False, "error": f"Function {name} not recognized."}
         except Exception as e:
             return {"success": False, "error": f"Error executing {name}: {str(e)}"}
@@ -154,6 +185,8 @@ You must respond with function calls when database operations is needed.
 Available functions:
 1. execute_sql(text): Execute SQL commands that modify the database (INSERT, UPDATE, DELETE, CREATE TABLE, etc.)
 2. query_sql(text): Query the database for information (SELECT statements). Safe and no confirmation needed.
+3. plot_bar(title, text): Plot a bar chart from SQL SELECT result. First column = labels, second column = values.
+4. plot_pie(title, text): Plot a pie chart from SQL SELECT result. First column = labels, second column = values.
 
 Guidelines:
 - Use `execute_sql` for queries that modify the database (INSERT, UPDATE, DELETE, CREATE TABLE, etc.)
@@ -164,6 +197,7 @@ Guidelines:
 - Avoid repeating known queries
 - Always analyse queried data before providing insights
 - The user does not have direct database access, provide context using markdown tables whenever possible.
+- Use plot_bar or plot_pie accordingly when user asks for chart/visualization/analyze. Always include plotted chart ![](api/charts/bar_chart_xxxx.png)
 - For large tables, note it and show only the first/last/sample 5 rows.
 - PRAGMA query does not work
 
@@ -175,14 +209,16 @@ When you need to call a function, respond with a JSON object in this format:
     }}
 }}
 
-    """
+"""
         else:  # ask mode
             prompt = """You are an expert SQL assistant and an AI Agent from ByeDB.AI. Your job is to help write SQL queries and explain database operations.
 
 - Do NOT execute or suggest any function calls.
 - Simply write or explain SQL queries based on the user's question.
 - Be concise and clear. Return only helpful text or code as needed.
+- Be educative and provide detailed explanation for the user.
 - If the user asks about database structure or data, reply: "Please switch to agent mode to query the database."
+
 """
 
         # Add previous memory if any

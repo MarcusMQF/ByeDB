@@ -16,6 +16,7 @@ from typing import Optional
 from db_sqlite import LocalSQLiteDatabase
 from llm_gemini import SQLExpertLLM
 from lru_usr_context import LRUUserContext
+from generate_chart import cm
 
 app = FastAPI(title="ByeDB API", description="Natural Language to SQL API", version="1.0.0")
 
@@ -264,5 +265,22 @@ async def delete_account(user_id: str = Header(...)):
     try:
         user_context.delete_user(user_id)
         return {"success": True, "message": "User account and database deleted."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/chart")
+async def get_chart_image(stem: str):
+    try:
+        file_path = cm.get_full_path(stem)
+        if not os.path.isfile(file_path):
+            raise HTTPException(status_code=404, detail="Chart image not found.")
+
+        file_stream = open(file_path, "rb")
+        return StreamingResponse(
+            file_stream,
+            media_type="image/png",
+            headers={"Content-Disposition": f"inline; filename={os.path.basename(file_path)}"}
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
