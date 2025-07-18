@@ -1,6 +1,6 @@
 <div align="center">
 <img src="frontend/public/icon.png" alt="ByeDB Logo" width="200"/>
-<h1>ByeDB</h1>
+<h1>ByeDB.AI</h1>
 <p><em>Effortless, AI-powered database exploration and prompt engineering—ByeDB lets you query, analyze, and visualize your data with natural language and modern UI, bridging the gap between raw data and actionable insights.</em></p>
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -17,25 +17,7 @@
 <img src="https://img.shields.io/badge/Google_Gemini-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Google Gemini"/>
 </div>
 
----
-
-## 📋 Table of Contents
-
-- [About](#about)
-- [Features](#features)
-- [Architecture](#architecture)
-- [API Design](#api-design)
-- [Integration Guide](#integration-guide)
-- [Quick Start](#quick-start)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
-## 🚀 About 
+## About 
 
 ByeDB is a cutting-edge, AI-augmented database interface that revolutionizes how users interact with their data. Built for data analysts, engineers, researchers, and business professionals, ByeDB eliminates the complexity of SQL by enabling natural language database queries and providing intelligent data visualization.
 
@@ -49,7 +31,7 @@ ByeDB is a cutting-edge, AI-augmented database interface that revolutionizes how
 
 ---
 
-## ✨ Features
+## Features
 
 ### 🧠 **AI-Powered Query Engine**
 - **Natural Language Querying** – Ask questions in plain English and receive SQL + results
@@ -77,7 +59,7 @@ ByeDB is a cutting-edge, AI-augmented database interface that revolutionizes how
 
 ---
 
-## 🏗 Architecture
+## Architecture
 
 ByeDB follows a modern microservices architecture with clear separation of concerns:
 
@@ -140,7 +122,7 @@ This architecture ensures:
 
 ---
 
-## 🔌 API Design
+## API Design
 
 ### **Core Endpoints**
 
@@ -183,42 +165,6 @@ This architecture ensures:
 
 ---
 
-## 🔗 Integration Guide
-
-### **Frontend Integration**
-
-| Component | Purpose | Location | Key Props |
-|-----------|---------|----------|-----------|
-| `Chat` | Main query interface | `/components/chat.tsx` | `onSubmit`, `isLoading` |
-| `DataPanel` | Results visualization | `/components/data_panel.tsx` | `data`, `columns` |
-| `Dashboard` | Analytics overview | `/app/dashboard/page.tsx` | `userId`, `queries` |
-| `AppSidebar` | Navigation & controls | `/components/app-sidebar.tsx` | `user`, `datasets` |
-
-### **Backend Integration**
-
-| Module | Purpose | Key Functions |
-|--------|---------|---------------|
-| `main.py` | FastAPI application | `app`, routing, middleware |
-| `db_sqlite.py` | Database operations | `LocalSQLiteDatabase` class |
-| `llm_gemini.py` | AI query generation | `SQLExpertLLM` class |
-| `llm_gpt.py` | OpenAI integration | GPT model interface |
-
-### **Environment Configuration**
-
-```env
-# AI Services
-OPENAI_API_KEY=your_openai_key_here
-GOOGLE_API_KEY=your_gemini_key_here
-
-# Database
-DATABASE_URL=sqlite:///./byedb.db
-DB_ROOT=./user_dbs
-
-# Application
-FRONTEND_URL=http://localhost:3000
-BACKEND_URL=http://localhost:8000
-```
-
 ### **API Integration Examples**
 
 #### JavaScript/TypeScript
@@ -255,7 +201,7 @@ response = requests.post(
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ### **Prerequisites**
 - **Node.js** 18+ and npm/yarn
@@ -295,7 +241,7 @@ npm run dev
 
 ---
 
-## 📦 Installation
+## Installation
 
 ### **Development Environment**
 
@@ -344,7 +290,7 @@ npm start
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### **Backend Configuration**
 - **Database**: SQLite with automatic user isolation
@@ -360,7 +306,7 @@ npm start
 
 ---
 
-## 📖 Usage
+## Usage
 
 1. **Upload Data**: Drag and drop CSV/Excel files
 2. **Ask Questions**: Type natural language queries
@@ -370,7 +316,7 @@ npm start
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please see our [Contributing Guidelines](docs/Contributing.md) for details.
 
@@ -382,7 +328,7 @@ We welcome contributions! Please see our [Contributing Guidelines](docs/Contribu
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
