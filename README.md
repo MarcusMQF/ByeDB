@@ -76,15 +76,15 @@ ByeDB.AI represents the pinnacle of autonomous database intelligence, employing 
 
 ### **🚀 Enterprise AI Capabilities Overview**
 
-| Feature | Description | Performance Metrics | Visual Demo |
-|---------|-------------|-------------------|-------------|
-| **🤖 Multiagent AI Orchestration** | Advanced multiagent system with 99.7% accuracy in natural language interpretation. Sophisticated chain-of-thought prompting with contextual embeddings and few-shot learning. | • 99.7% Query Accuracy<br>• <200ms Response Time<br>• 98.4% Intent Recognition | <img src="frontend/public/images/Agent_Ask.png" alt="Agent Ask Mode" width="200"/> |
-| **🔒 Critical Operation Confirmation** | Mandatory verification protocols for write operations and destructive queries. Real-time risk assessment with impact analysis and approval workflows. | • 100% Security Compliance<br>• Zero Data Loss Events<br>• Automated Risk Detection | <img src="frontend/public/images/confirmation.png" alt="Operation Confirmation" width="200"/> |
-| **📚 Educational Transparency** | Real-time AI decision explanation with step-by-step reasoning breakdown. Interactive SQL education and learning insights generation. | • 96.2% User Satisfaction<br>• 94% Learning Effectiveness<br>• Real-time Explanations | <img src="frontend/public/images/explanation.png" alt="AI Explanation" width="200"/> |
-| **🧠 Intelligent Prompt Enhancement** | Advanced prompt engineering pipeline with semantic optimization and context enhancement for superior AI performance. | • 97.8% SQL Generation Precision<br>• 15% Performance Improvement<br>• Adaptive Learning | <img src="frontend/public/images/enhance_prompting.png" alt="Prompt Enhancement" width="200"/> |
-| **⚡ Predictive Autocompletion** | AI-powered query prediction and autocompletion system that anticipates user intent and suggests optimal query structures. | • 92% Prediction Accuracy<br>• 3x Faster Query Input<br>• Context-aware Suggestions | <img src="frontend/public/images/autocompletion.png" alt="Smart Autocompletion" width="200"/> |
-| **📊 Real-time Data Visualization** | Interactive visualization engine that provides instant visual insights of your dataset with dynamic charts, graphs, and analytics dashboards. | • Real-time Data Updates<br>• 15+ Chart Types<br>• Sub-100ms Rendering | <img src="frontend/public/images/visualization.png" alt="Data Visualization" width="200"/> |
-| **💾 One-Click Export Intelligence** | Comprehensive data export system with multiple format support, metadata preservation, and automated audit trail generation. | • 99.9% Export Success Rate<br>• 8 Format Support (CSV, Excel, JSON, etc.)<br>• Instant Download | <img src="frontend/public/images/export.png" alt="Data Export" width="200"/> |
+| Feature | Description | Visual Demo |
+|---------|-------------|-------------|
+| **🤖 Multiagent AI Orchestration** | Advanced multiagent system with 99.7% accuracy in natural language interpretation. Sophisticated chain-of-thought prompting with contextual embeddings and few-shot learning. | <img src="frontend/public/images/ask_agent.png" alt="Agent Ask Mode" width="200"/> |
+| **🔒 Critical Operation Confirmation** | Mandatory verification protocols for write operations and destructive queries. Real-time risk assessment with impact analysis and approval workflows. | <img src="frontend/public/images/confirmation.png" alt="Operation Confirmation" width="200"/> |
+| **📚 Educational Transparency** | Real-time AI decision explanation with step-by-step reasoning breakdown. Interactive SQL education and learning insights generation. | <img src="frontend/public/images/explanation.png" alt="AI Explanation" width="200"/> |
+| **🧠 Intelligent Prompt Enhancement** | Advanced prompt engineering pipeline with semantic optimization and context enhancement for superior AI performance. | <img src="frontend/public/images/enhance_prompting.png" alt="Prompt Enhancement" width="200"/> |
+| **⚡ Predictive Autocompletion** | AI-powered query prediction and autocompletion system that anticipates user intent and suggests optimal query structures. | <img src="frontend/public/images/autocomplete.png" alt="Smart Autocompletion" width="200"/> |
+| **📊 Real-time Data Visualization** | Interactive visualization engine that provides instant visual insights of your dataset with dynamic charts, graphs, and analytics dashboards. | <img src="frontend/public/images/visualize.png" alt="Data Visualization" width="200"/> |
+| **💾 One-Click Export Intelligence** | Comprehensive data export system with multiple format support, metadata preservation, and automated audit trail generation. | <img src="frontend/public/images/export.png" alt="Data Export" width="200"/> |
 
 ### **📊 Enterprise Data Intelligence**
 
@@ -173,7 +173,7 @@ Based on the architecture diagram above, here's our sophisticated multiagent orc
 ### **🎯 Success Metrics Dashboard**
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    PERFORMANCE ANALYTICS                     │
+│                    PERFORMANCE ANALYTICS                    │
 ├─────────────────────────────────────────────────────────────┤
 │ Query Accuracy:          99.7% ███████████████████████████  │
 │ Response Time:          <200ms ██████████████████████████   │
@@ -228,44 +228,46 @@ This multiagent architecture ensures:
 ```json
 {
   "success": true,
-  "query_id": "q_uuid_12345",
-  "sql_query": "SELECT c.customer_name, SUM(o.revenue) as total_revenue, EXTRACT(QUARTER FROM o.order_date) as quarter FROM customers c JOIN orders o ON c.id = o.customer_id GROUP BY c.customer_name, quarter ORDER BY total_revenue DESC LIMIT 10",
-  "results": [
-    {"customer_name": "Acme Corp", "total_revenue": 150000, "quarter": 1},
-    {"customer_name": "TechStart Inc", "total_revenue": 125000, "quarter": 1}
+  "response": "A new table named `Orders` has been successfully created to link `Customers` and `Products`.\n\nHere is the schema for the `Orders` table:\n\n#### Orders Table\n- **Columns:**\n    - `order_id`: INTEGER (Primary Key, Auto-incrementing)\n    - `customer_id`: INTEGER (Foreign Key referencing `Customers` table)\n    - `product_id`: INTEGER (Foreign Key referencing `Products` table)\n    - `order_date`: TEXT (to store the date of the order)\n    - `quantity`: INTEGER (to record how many items were bought)\n\nThis table will allow you to record which customer bought what product, on which date, and in what quantity.\n\nWhat would you like to do next? Perhaps add some sample orders, or view the current state of all tables?",
+  "function_called": [
+    {
+      "call": "execute_sql",
+      "args": {
+        "text": "CREATE TABLE Orders (\n    order_id INTEGER PRIMARY KEY AUTOINCREMENT,\n    customer_id INTEGER NOT NULL,\n    product_id INTEGER NOT NULL,\n    order_date TEXT NOT NULL,\n    quantity INTEGER NOT NULL,\n    FOREIGN KEY (customer_id) REFERENCES Customers(customer_id),\n    FOREIGN KEY (product_id) REFERENCES Products(product_id)\n);"
+      },
+      "content": "{\"success\": true, \"result\": \"Successfully executed: CREATE TABLE Orders...\", \"data\": [], \"updated_tables\": {\"Products\": [{\"product_id\": 1, \"product_name\": \"Laptop\", \"price\": 1200.0}], \"Customers\": [{\"customer_id\": 101, \"customer_name\": \"Alice Smith\", \"email\": \"alice.smith@example.com\"}], \"Orders\": []}}"
+    }
   ],
-  "performance_metrics": {
-    "execution_time": 0.045,
-    "query_complexity": "medium",
-    "optimization_score": 98.7,
-    "agent_coordination_time": 0.012
-  },
-  "educational_explanation": {
-    "reasoning_steps": [
-      "Identified customer revenue aggregation requirement",
-      "Detected need for quarterly breakdown analysis",
-      "Applied JOIN optimization for performance",
-      "Implemented GROUP BY with proper ordering"
-    ],
-    "sql_breakdown": {
-      "tables_used": ["customers", "orders"],
-      "join_strategy": "INNER JOIN on customer ID",
-      "aggregation": "SUM for revenue calculation",
-      "grouping": "Customer name and quarter",
-      "optimization": "Index utilization for performance"
+  "usage": {
+    "note": "Gemini API doesn't provide detailed usage stats"
+  }
+}
+```
+
+#### Dataset Exploration Response
+```json
+{
+  "success": true,
+  "response": "I have explored the dataset. Here's a summary of the available tables and their contents:\n\n### Database Schema and Sample Data\n\nThe database contains two tables: `Products` and `Customers`.\n\n#### Products Table\n- **Columns:**\n    - `product_id`: INTEGER (Primary Key)\n    - `product_name`: TEXT\n    - `price`: REAL\n- **First 5 rows:**\n\n| product_id | product_name | price |\n|---|---|---|\n| 1 | Laptop | 1200.0 |\n| 2 | Mouse | 25.0 |\n| 3 | Keyboard | 75.0 |\n| 4 | Monitor | 300.0 |\n| 5 | Webcam | 50.0 |\n\nWhat would you like to do next?",
+  "function_called": [
+    {
+      "call": "query_sql",
+      "args": {
+        "text": "SELECT name FROM sqlite_master WHERE type='table';"
+      },
+      "content": "{\"success\": true, \"result\": \"Query executed: SELECT name FROM sqlite_master WHERE type='table';\", \"data\": [{\"name\": \"Products\"}, {\"name\": \"Customers\"}]}"
     },
-    "learning_insights": [
-      "This query demonstrates customer segmentation analysis",
-      "Quarterly breakdown helps identify seasonal patterns",
-      "JOIN operations connect related business entities"
-    ]
-  },
-  "security_context": {
-    "operation_type": "READ_ONLY",
-    "confirmation_required": false,
-    "data_sensitivity": "business_analytics"
-  },
-  "enhanced_prompt_used": "Analyze customer revenue patterns with temporal segmentation, ensuring optimal query performance and educational clarity..."
+    {
+      "call": "query_sql", 
+      "args": {
+        "text": "SELECT * FROM Products LIMIT 5; SELECT * FROM Customers LIMIT 5;"
+      },
+      "content": "{\"success\": true, \"result\": \"Query executed successfully\", \"data\": [{\"product_id\": 1, \"product_name\": \"Laptop\", \"price\": 1200.0}, {\"customer_id\": 101, \"customer_name\": \"Alice Smith\", \"email\": \"alice.smith@example.com\"}]}"
+    }
+  ],
+  "usage": {
+    "note": "Gemini API doesn't provide detailed usage stats"
+  }
 }
 ```
 
@@ -273,15 +275,91 @@ This multiagent architecture ensures:
 ```json
 {
   "operation_type": "WRITE",
-  "sql_preview": "DELETE FROM customers WHERE last_activity < '2023-01-01'",
+  "functions_to_execute": [
+    {
+      "call": "execute_sql",
+      "args": {
+        "text": "CREATE TABLE Orders (\n    order_id INTEGER PRIMARY KEY AUTOINCREMENT,\n    customer_id INTEGER NOT NULL,\n    product_id INTEGER NOT NULL,\n    order_date TEXT NOT NULL,\n    quantity INTEGER NOT NULL,\n    FOREIGN KEY (customer_id) REFERENCES Customers(customer_id),\n    FOREIGN KEY (product_id) REFERENCES Products(product_id)\n);"
+      }
+    }
+  ],
+  "confirmation_required": true,
+  "confirmation_message": "Do you want to proceed? (y/n):",
   "impact_assessment": {
-    "affected_rows": 1247,
-    "data_risk_level": "HIGH",
-    "reversibility": "IRREVERSIBLE"
-  },
-  "confirmation_message": "This operation will permanently delete 1,247 inactive customer records. This action cannot be undone.",
-  "require_explicit_consent": true
+    "operation_type": "CREATE_TABLE",
+    "affected_schema": "Orders table creation",
+    "data_risk_level": "MEDIUM",
+    "reversibility": "REVERSIBLE"
+  }
 }
+```
+
+### **Real-World API Integration Examples**
+
+#### Advanced TypeScript Integration with Actual Response Format
+```typescript
+// Execute query with ByeDB's actual response structure
+const executeByeDBQuery = async (question: string) => {
+  const response = await fetch('/api/sql-question', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'User-ID': userId
+    },
+    body: JSON.stringify({
+      question: question,
+      userId: userId
+    })
+  });
+
+  const result = await response.json();
+  
+  // Handle the actual ByeDB response format
+  if (result.success) {
+    // Display the formatted response (includes markdown tables and explanations)
+    displayFormattedResponse(result.response);
+    
+    // Process function calls that were executed
+    if (result.function_called) {
+      result.function_called.forEach(func => {
+        console.log(`Function: ${func.call}`);
+        console.log(`SQL: ${func.args.text}`);
+        
+        // Parse the function result
+        const functionResult = JSON.parse(func.content);
+        if (functionResult.updated_tables) {
+          updateLocalDataVisualization(functionResult.updated_tables);
+        }
+      });
+    }
+    
+    // Handle critical operations requiring confirmation
+    if (result.functions_to_execute) {
+      const confirmed = await showConfirmationDialog(
+        "Do you want to proceed? (y/n):"
+      );
+      if (confirmed) {
+        // Execute the confirmed operation
+        await executeConfirmedOperation(result.functions_to_execute);
+      }
+    }
+  }
+  
+  return result;
+};
+
+// Handle dataset exploration responses
+const handleDatasetExploration = (response) => {
+  if (response.function_called) {
+    const tableData = response.function_called
+      .filter(func => func.call === 'query_sql')
+      .map(func => JSON.parse(func.content).data)
+      .flat();
+    
+    // Update visualization with real table data
+    renderDataTables(tableData);
+  }
+};
 ```
 
 ---
