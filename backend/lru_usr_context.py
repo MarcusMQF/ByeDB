@@ -30,4 +30,9 @@ class LRUUserContext:
     def get_user_agent(self, user_id: str) -> SQLExpertLLM:
         return self.get_session(user_id).agent
 
+    def delete_user(self, user_id: str):
+        evicted_user, _ = self.sessions.pop(user_id)
+        print(f"Deleted user: {evicted_user}")
+
+
 

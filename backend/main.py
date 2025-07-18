@@ -262,13 +262,7 @@ async def clear_database(user_id: str = Header(...)):
 @app.post("/api/delete-account")
 async def delete_account(user_id: str = Header(...)):
     try:
-        db_path = os.path.join(DB_ROOT, f"{user_id}.db")
-        if os.path.exists(db_path):
-            os.remove(db_path)
-            user_databases.pop(user_id, None)
-            user_agents.pop(user_id, None)
-            return {"success": True, "message": "User account and database deleted."}
-        else:
-            raise HTTPException(status_code=404, detail="Database file not found.")
+        user_context.delete_user(user_id)
+        return {"success": True, "message": "User account and database deleted."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

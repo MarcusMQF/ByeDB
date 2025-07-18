@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { getUserId, getApiHeaders, getApiHeadersForFormData } from '@/lib/user-session';
 
 export interface Dataset {
   id: string;
@@ -53,7 +54,9 @@ export const useDatasets = (): UseDatasets => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/export-db`);
+      const response = await fetch(`${API_BASE_URL}/api/export-db`, {
+        headers: getApiHeaders(),
+      });
       
       if (!response.ok) {
         throw new Error(`Failed to fetch datasets: ${response.statusText}`);
@@ -87,11 +90,12 @@ export const useDatasets = (): UseDatasets => {
       formData.append('truncate', truncate.toString());
 
       console.log('Uploading file:', file.name, 'Size:', file.size);
+      console.log('Using user ID:', getUserId());
 
       const response = await fetch(`${API_BASE_URL}/api/upload-db`, {
         method: 'POST',
+        headers: getApiHeadersForFormData(),
         body: formData,
-        // Don't set Content-Type header, let browser set it for FormData
       });
 
       console.log('Upload response status:', response.status, response.statusText);
@@ -136,8 +140,22 @@ export const useDatasets = (): UseDatasets => {
     setError(null);
     
     try {
-      // Note: Backend doesn't have a clear-all endpoint, so we'll just clear the frontend state
-      // You might want to implement a clear-all endpoint in the backend
+      // Call backend to clear database
+      const response = await fetch(`${API_BASE_URL}/api/clear-database`, {
+        method: 'POST',
+        headers: getApiHeaders(),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to clear database: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to clear database');
+      }
+      
+      // Clear frontend state
       setDatasets([]);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to clear datasets';
@@ -151,7 +169,9 @@ export const useDatasets = (): UseDatasets => {
   // Export database
   const exportDatabase = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/export-db`);
+      const response = await fetch(`${API_BASE_URL}/api/export-db`, {
+        headers: getApiHeaders(),
+      });
       
       if (!response.ok) {
         throw new Error(`Export failed: ${response.statusText}`);

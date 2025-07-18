@@ -11,6 +11,7 @@ import {
 } from "@/components/breadcrumb";
 import { Button } from "@/components/button";
 import { ScrollArea } from "@/components/scroll-area";
+import { getApiHeaders } from "@/lib/user-session";
 import {
   RiCloseLine,
   RiShareLine,
@@ -137,9 +138,7 @@ export default function Chat() {
       // Call the backend API
       const response = await fetch('http://localhost:8000/api/sql-question', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getApiHeaders(),
         body: JSON.stringify({
           question: question,
           mode: chatMode // Include the current mode in the request
@@ -161,7 +160,7 @@ export default function Chat() {
         isUser: false,
         timestamp: new Date(),
         requiresConfirmation: requiresApproval,
-        confirmationData: requiresApproval ? data.meta || data : data // Store all response data to access function_called
+        confirmationData: data.meta || data // Always store response data to access function_called
       };
 
       console.log('AI Response Message:', aiResponse); // Debug log
@@ -187,9 +186,7 @@ export default function Chat() {
     try {
       const response = await fetch('http://localhost:8000/api/continue-execution', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getApiHeaders(),
         body: JSON.stringify({
           approve: true,
           context: "User confirmed execution"
@@ -251,9 +248,7 @@ export default function Chat() {
       // Call the backend API
       const response = await fetch('http://localhost:8000/api/sql-question', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getApiHeaders(),
         body: JSON.stringify({
           question: explanationMessage,
           mode: chatMode
@@ -271,6 +266,7 @@ export default function Chat() {
         content: data.success ? data.response : `Error: ${data.error}`,
         isUser: false,
         timestamp: new Date(),
+        confirmationData: data.meta || data // Store response data to access function_called
       };
 
       setMessages(prev => [...prev, aiResponse]);
@@ -301,9 +297,7 @@ export default function Chat() {
       // Clear memory on backend
       const response = await fetch('http://localhost:8000/api/clear-memory', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getApiHeaders(),
       });
 
       if (!response.ok) {
@@ -502,9 +496,76 @@ export default function Chat() {
                         </div>
                       ) : (
                         <div className="space-y-3 w-full min-w-0">
+                          {/* Display executed SQL queries for all responses (not just in agent mode) - ABOVE the response */}
+                          {message.confirmationData?.function_called && message.confirmationData.function_called.length > 0 && (
+                            <div className="space-y-3">
+                              <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                Executed SQL Queries:
+                              </div>
+                              {message.confirmationData.function_called.map((func: any, funcIndex: number) => (
+                                func.call === 'query_sql' && func.args?.text && (
+                                  <div key={funcIndex} className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                    {/* SQL Query Header */}
+                                    <div className="bg-gray-100 dark:bg-gray-800 px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs font-mono text-gray-600 dark:text-gray-400">SQL Query {funcIndex + 1}</span>
+                                        <button
+                                          onClick={() => navigator.clipboard.writeText(func.args.text)}
+                                          className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                                        >
+                                          Copy Query
+                                        </button>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* SQL Query Code */}
+                                    <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                                      <pre className="text-sm font-mono whitespace-pre-wrap text-gray-800 dark:text-gray-200 overflow-x-auto break-words max-w-full">
+                                        {func.args.text}
+                                      </pre>
+                                    </div>
+                                    
+                                    {/* Query Result/Response */}
+                                    {func.content && (
+                                      <div className="bg-gray-25 dark:bg-gray-950">
+                                        <div className="bg-gray-75 dark:bg-gray-825 px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-xs font-mono text-gray-600 dark:text-gray-400">Query Result</span>
+                                            <button
+                                              onClick={() => navigator.clipboard.writeText(func.content)}
+                                              className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                                            >
+                                              Copy Result
+                                            </button>
+                                          </div>
+                                        </div>
+                                        <div className="p-3 max-h-96 overflow-auto">
+                                          <pre className="text-xs font-mono whitespace-pre-wrap text-gray-700 dark:text-gray-300 overflow-x-auto break-words max-w-full">
+                                            {(() => {
+                                              try {
+                                                const parsed = JSON.parse(func.content);
+                                                // Only display the 'data' field if it exists, otherwise show the full content
+                                                const dataToShow = parsed.data !== undefined ? parsed.data : parsed;
+                                                return JSON.stringify(dataToShow, null, 2);
+                                              } catch (e) {
+                                                // If parsing fails, show the raw content
+                                                return func.content;
+                                              }
+                                            })()}
+                                          </pre>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              ))}
+                            </div>
+                          )}
+                          
                           <div className="max-w-full overflow-hidden">
                             <MarkdownResponse content={message.content} />
                           </div>
+                          
                           {/* Add explanation button for AI responses in agent mode that have completed function calls */}
                           {chatMode === 'agent' && message.confirmationData?.function_called && message.confirmationData.function_called.length > 0 && message.confirmationData?.executed && (
                             <Button
