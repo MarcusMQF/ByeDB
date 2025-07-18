@@ -35,7 +35,7 @@ os.makedirs(DB_ROOT, exist_ok=True)
 
 def get_user_database(user_id: str) -> LocalSQLiteDatabase:
     if user_id not in user_databases:
-        user_databases[user_id] = LocalSQLiteDatabase(db_path=db_path)
+        user_databases[user_id] = LocalSQLiteDatabase()
     return user_databases[user_id]
 
 def get_user_agent(user_id: str) -> SQLExpertLLM:
