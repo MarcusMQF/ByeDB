@@ -2,7 +2,6 @@ import random
 from itertools import cycle, islice
 import matplotlib.pyplot as plt
 from typing import List, Dict, Any
-import numbers
 import os
 import time
 from collections import OrderedDict
@@ -12,7 +11,6 @@ class ChartManager:
     def __init__(self, output_dir: str = "charts", max_files: int = 10):
         self.output_dir = output_dir
         self.max_files = max_files
-        self.file_cache = OrderedDict()  # path -> last_access_time
         os.makedirs(self.output_dir, exist_ok=True)
 
     def _get_color_palette(self, length: int) -> List[str]:
@@ -30,40 +28,51 @@ class ChartManager:
         timestamp = int(time.time() * 1000)
         return os.path.join(self.output_dir, f"{prefix}_{timestamp}.png")
 
-    def _register_file(self, path: str):
-        self.file_cache[path] = time.time()
-        self.file_cache.move_to_end(path)
-        if len(self.file_cache) > self.max_files:
-            oldest_path, _ = self.file_cache.popitem(last=False)
-            try:
-                os.remove(oldest_path)
-            except OSError:
-                pass
-
     def _save_plot(self, path: str):
         plt.tight_layout(pad=2)
         plt.savefig(path, bbox_inches="tight", transparent=True, dpi=300)
         plt.close()
-        self._register_file(path)
+        self._touch(path)
+        self._cleanup_old_files()
         return os.path.abspath(path)
 
-    def plot_bar_chart(
-        self,
-        data: List[Dict[str, Any]],
-        label_col: str,
-        value_col: str,
-        output_file: str = None
-    ) -> str:
-        if not data:
-            raise ValueError("No data provided.")
+    def _touch(self, path: str):
+        # Update modified time
+        now = time.time()
+        os.utime(path, (now, now))
 
+    def _cleanup_old_files(self):
+        files = [os.path.join(self.output_dir, f) for f in os.listdir(self.output_dir) if f.endswith(".png")]
+        files = [(f, os.path.getmtime(f)) for f in files]
+        files.sort(key=lambda x: x[1])  # oldest first
+
+        while len(files) > self.max_files:
+            oldest_file, _ = files.pop(0)
+            try:
+                os.remove(oldest_file)
+            except Exception:
+                pass
+
+    def _extract_columns(self, data: List[Dict[str, Any]]):
+        if not data or not isinstance(data[0], dict):
+            raise ValueError("Invalid or empty data")
+
+        keys = list(data[0].keys())
+        if len(keys) < 2:
+            raise ValueError("Data must contain at least two columns")
+
+        label_col, value_col = keys[0], keys[1]
         labels = [row[label_col] for row in data]
         values = [row[value_col] for row in data]
+
+        return labels, values, label_col, value_col
+
+    def plot_bar_chart(self, title: str, data: List[Dict[str, Any]]) -> str:
+        labels, values, label_col, value_col = self._extract_columns(data)
         palette = self._get_color_palette(len(labels))
-
         width = max(6.0, min(14.0, 0.6 * len(labels)))
-        plt.figure(figsize=(width, 7), facecolor='none')
 
+        plt.figure(figsize=(width, 7), facecolor='none')
         plt.rcParams.update({
             "font.family": "DejaVu Sans",
             "axes.edgecolor": "none",
@@ -74,29 +83,17 @@ class ChartManager:
         plt.bar(labels, values, color=palette, edgecolor="none")
         plt.xlabel(label_col, fontsize=12)
         plt.ylabel(value_col, fontsize=12)
-        plt.title("Bar Chart", fontsize=16, fontweight="bold")
+        plt.title(title or "Bar Chart", fontsize=16, fontweight="bold")
         plt.xticks(rotation=45, ha="right")
         plt.grid(axis='y', linestyle='--', alpha=0.3)
 
-        output_file = output_file or self._generate_filename("bar_chart")
-        return self._save_plot(output_file)
+        return self._save_plot(self._generate_filename("bar_chart"))
 
-    def plot_pie_chart(
-        self,
-        data: List[Dict[str, Any]],
-        label_col: str,
-        value_col: str,
-        output_file: str = None
-    ) -> str:
-        if not data:
-            raise ValueError("No data provided.")
-
-        labels = [row[label_col] for row in data]
-        values = [row[value_col] for row in data]
+    def plot_pie_chart(self, title: str, data: List[Dict[str, Any]]) -> str:
+        labels, values, label_col, value_col = self._extract_columns(data)
         palette = self._get_color_palette(len(labels))
 
         plt.figure(figsize=(7, 7), facecolor='none')
-
         plt.rcParams.update({
             "font.family": "DejaVu Sans",
             "axes.edgecolor": "none",
@@ -112,26 +109,24 @@ class ChartManager:
             startangle=140,
             wedgeprops={"linewidth": 0}
         )
-        plt.title("Pie Chart", fontsize=16, fontweight="bold")
+        plt.title(title or "Pie Chart", fontsize=16, fontweight="bold")
         plt.axis("equal")
 
-        output_file = output_file or self._generate_filename("pie_chart")
-        return self._save_plot(output_file)
+        return self._save_plot(self._generate_filename("pie_chart"))
 
-cm = ChartManager()
+cm = ChartManager(output_dir="charts", max_files=5)
 
 if __name__ == "__main__":
     data = [
-        {"product_id": 1, "product_name": "Laptop", "price": 1200.0},
-        {"product_id": 2, "product_name": "Mouse", "price": 25.0},
-        {"product_id": 3, "product_name": "Keyboard", "price": 75.0},
-        {"product_id": 4, "product_name": "Monitor", "price": 300.0},
-        {"product_id": 5, "product_name": "Webcam", "price": 50.0}
+        {"product_name": "Laptop", "price": 1200.0},
+        {"product_name": "Mouse", "price": 25.0},
+        {"product_name": "Keyboard", "price": 75.0},
+        {"product_name": "Monitor", "price": 300.0},
+        {"product_name": "Webcam", "price": 50.0}
     ]
 
-    cm = ChartManager(output_dir="charts", max_files=5)
-    bar_path = cm.plot_bar_chart(data, label_col="product_name", value_col="price")
-    pie_path = cm.plot_pie_chart(data, label_col="product_name", value_col="price")
+    bar_path = cm.plot_bar_chart("Top Products by Price", data)
+    pie_path = cm.plot_pie_chart("Product Price Distribution", data)
 
     print("Bar chart saved to:", bar_path)
     print("Pie chart saved to:", pie_path)
