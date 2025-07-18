@@ -385,7 +385,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
   const parseMarkdown = (text: string) => {
     const elements: React.ReactNode[] = [];
     let currentIndex = 0;
-    
+
     // Regular expressions for different markdown elements
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
     const inlineCodeRegex = /`([^`]+)`/g;
@@ -396,7 +396,8 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
     const subBulletRegex = /^[\s]{2,}-\s+(.+)$/gm;
     const numberedRegex = /^(\d+)\.\s+(.+)$/gm;
     const tableRegex = /(?:^\|.*\|$(?:\n^\|.*\|$)*)/gm;
-    
+    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g; // New: Regex for images ![](alt_text)(url)
+
     // Find all special elements first
     const codeBlocks: { start: number; end: number; match: string; language?: string; code: string }[] = [];
     const headers: { start: number; end: number; match: string; level: number; text: string }[] = [];
@@ -405,6 +406,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
     const subBullets: { start: number; end: number; match: string; text: string }[] = [];
     const numberedItems: { start: number; end: number; match: string; number: string; text: string }[] = [];
     const tables: { start: number; end: number; match: string; data: string[][]; headers?: string[] }[] = [];
+    const images: { start: number; end: number; match: string; alt: string; src: string }[] = []; // New: Array to store image matches
     let match;
     
     // Find code blocks
@@ -510,13 +512,24 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
         }
       }
     }
-    
+
+    // New: Find images
+    while ((match = imageRegex.exec(text)) !== null) {
+      images.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        match: match[0],
+        alt: match[1],
+        src: match[2],
+      });
+    }
+
     // Process text, handling special elements
     type TextPart = {
       text: string;
       start: number;
       end: number;
-      type: 'text' | 'code' | 'header' | 'hr' | 'bullet' | 'subBullet' | 'numbered' | 'table';
+      type: 'text' | 'code' | 'header' | 'hr' | 'bullet' | 'subBullet' | 'numbered' | 'table' | 'image'; // New: Add 'image' type
       language?: string;
       code?: string;
       headerLevel?: number;
@@ -527,10 +540,12 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
       numberedText?: string;
       tableData?: string[][];
       tableHeaders?: string[];
+      imageAlt?: string; // New: Alt text for image
+      imageSrc?: string; // New: Source for image
     };
 
     let textParts: TextPart[] = [{ text, start: 0, end: text.length, type: 'text' }];
-    
+
     // Combine all special elements and sort by position
     const allElements = [
       ...codeBlocks.map(block => ({ ...block, type: 'code' as const })),
@@ -539,9 +554,10 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
       ...bullets.map(bullet => ({ ...bullet, type: 'bullet' as const })),
       ...subBullets.map(subBullet => ({ ...subBullet, type: 'subBullet' as const })),
       ...numberedItems.map(item => ({ ...item, type: 'numbered' as const })),
-      ...tables.map(table => ({ ...table, type: 'table' as const }))
+      ...tables.map(table => ({ ...table, type: 'table' as const })),
+      ...images.map(image => ({ ...image, type: 'image' as const })), // New: Add images to allElements
     ].sort((a, b) => b.start - a.start); // Reverse order for processing
-    
+
     // Split text around all special elements
     for (const element of allElements) {
       const newParts: TextPart[] = [];
@@ -550,7 +566,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
           newParts.push(part);
           continue;
         }
-        
+
         if (element.start >= part.start && element.end <= part.end) {
           // Add text before element
           if (element.start > part.start) {
@@ -561,7 +577,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
               type: 'text'
             });
           }
-          
+
           // Add the special element
           if (element.type === 'code') {
             newParts.push({
@@ -622,8 +638,21 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
               tableData: element.data,
               tableHeaders: element.headers
             });
+          } else if (element.type === 'image') { // New: Handle image type
+            let finalSrc = element.src;
+            if (finalSrc.startsWith('api/')) {
+              finalSrc = `http://localhost:8000/${finalSrc}`;
+            }
+            newParts.push({
+              text: element.match,
+              start: element.start,
+              end: element.end,
+              type: 'image',
+              imageAlt: element.alt,
+              imageSrc: finalSrc
+            });
           }
-          
+
           // Add text after element
           if (element.end < part.end) {
             newParts.push({
@@ -639,16 +668,16 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
       }
       textParts = newParts;
     }
-    
+
     // Process each part
     let elementIndex = 0;
     for (const part of textParts) {
       if (part.type === 'code' && part.code !== undefined && part.language !== undefined) {
         elements.push(
-          <CodeBlock 
-            key={`code-${elementIndex++}`} 
-            code={part.code} 
-            language={part.language} 
+          <CodeBlock
+            key={`code-${elementIndex++}`}
+            code={part.code}
+            language={part.language}
           />
         );
       } else if (part.type === 'header' && part.headerText !== undefined && part.headerLevel !== undefined) {
@@ -998,6 +1027,15 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
             headers={part.tableHeaders}
           />
         );
+      } else if (part.type === 'image' && part.imageSrc !== undefined) { // New: Render images
+        elements.push(
+          <img
+            key={`image-${elementIndex++}`}
+            src={part.imageSrc}
+            alt={part.imageAlt || ''}
+            className="my-2 max-w-full h-auto max-h-[50vh] object-contain"
+          />
+        );
       } else if (part.type === 'text') {
         // Process regular text for inline formatting
         const processInlineFormatting = (text: string) => {
@@ -1173,4 +1211,4 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
   );
 };
 
-export default MarkdownResponse; 
+export default MarkdownResponse;

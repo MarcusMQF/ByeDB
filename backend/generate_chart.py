@@ -87,7 +87,8 @@ class ChartManager:
         plt.xticks(rotation=45, ha="right")
         plt.grid(axis='y', linestyle='--', alpha=0.3)
 
-        return self._save_plot(self._generate_filename("bar_chart"))
+        full_path = self._save_plot(self._generate_filename("bar_chart"))
+        return self._get_name(full_path)
 
     def plot_pie_chart(self, title: str, data: List[Dict[str, Any]]) -> str:
         labels, values, label_col, value_col = self._extract_columns(data)
@@ -112,9 +113,16 @@ class ChartManager:
         plt.title(title or "Pie Chart", fontsize=16, fontweight="bold")
         plt.axis("equal")
 
-        return self._save_plot(self._generate_filename("pie_chart"))
+        full_path = self._save_plot(self._generate_filename("bar_chart"))
+        return self._get_name(full_path)
 
-cm = ChartManager(output_dir="charts", max_files=5)
+    def _get_name(self, filename: str) -> str:
+        return f"api/charts/{os.path.basename(filename)}"
+
+    def get_full_path(self, name: str) -> str:
+        return os.path.abspath(os.path.join(self.output_dir, os.path.basename(name)))
+
+cm = ChartManager(output_dir="charts", max_files=20)
 
 if __name__ == "__main__":
     data = [
@@ -125,8 +133,8 @@ if __name__ == "__main__":
         {"product_name": "Webcam", "price": 50.0}
     ]
 
-    bar_path = cm.plot_bar_chart("Top Products by Price", data)
-    pie_path = cm.plot_pie_chart("Product Price Distribution", data)
+    bar_name = cm.plot_bar_chart("Top Products by Price", data)
+    pie_name = cm.plot_pie_chart("Product Price Distribution", data)
 
-    print("Bar chart saved to:", bar_path)
-    print("Pie chart saved to:", pie_path)
+    print("Bar chart saved to:", bar_name)
+    print("Pie chart saved to:", pie_name)

@@ -10,12 +10,14 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Header
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
 
 from db_sqlite import LocalSQLiteDatabase
 from llm_gemini import SQLExpertLLM
 from lru_usr_context import LRUUserContext
+from generate_chart import cm
 
 app = FastAPI(title="ByeDB API", description="Natural Language to SQL API", version="1.0.0")
 
@@ -26,7 +28,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+app.mount("/api/charts", StaticFiles(directory=cm.output_dir), name="charts")
 # Global user context
 user_context = LRUUserContext(capacity=50)
 
