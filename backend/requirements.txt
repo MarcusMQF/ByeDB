@@ -5,3 +5,4 @@ fastapi
 python-multipart
 uvicorn
 openpyxl
+pandas
