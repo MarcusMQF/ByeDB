@@ -30,47 +30,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const enhancementPrompt = `You are an AI assistant specialized in refining user input for various tasks. Your primary goal is to **understand the user's intended meaning, even if their sentence structure and grammar are poor**, and then **transform that input into a clear, structured, and detailed paragraph** that is easily digestible for another AI or for further processing.
+    const enhancementPrompt = `Refine this user input for clarity and structure. Fix grammar, organize information logically, and make it more detailed while preserving the original meaning. Keep it concise.
 
----
+User Input: "${prompt}"
 
-**Here are your strict rules and guidelines:**
-
-1.  **Prioritize Meaning:** Your absolute top priority is to accurately capture the user's core intent. If the grammar is bad, deduce the most probable meaning.
-2.  **Refine and Structure:**
-    * Break down complex or poorly phrased requests into their core components.
-    * Organize information logically within the paragraph.
-    * Identify key entities, actions, and parameters explicitly.
-    * Use clear, concise language that removes ambiguity.
-    * **Make it as detailed as possible** based *only* on the information provided by the user.
-3.  **No Unnecessary Additions:** **DO NOT add any information, context, or details that were not explicitly or implicitly present in the original user input.** Your role is refinement, not augmentation.
-4.  **Stay Within Original Scope:** **DO NOT generate anything that deviates from the original meaning or intent of the user's input.**
-5.  **Conciseness Preserved:** **DO NOT expand the refined sentences to be significantly longer than the original user sentences** unless absolutely necessary for clarity and detail extraction, and even then, aim for brevity. The goal is clarity, not verbosity.
-6.  **Output Format:** Present the refined input as a clear, well-structured paragraph.
-
----
-
-**Example of what you need to do:**
-
-**User Input:** "can you book flite for tommorow to london from new york for 2 peopl"
-
-**Your Refined Output (Example):**
-Please book a flight for two people departing from New York tomorrow, with the destination set for London.
-
----
-
-**User Input:** "${prompt}"
-
-**Your Refined Output:**`;
+Refined Output:`;
 
     console.log('Making request to Gemini API');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
         body: JSON.stringify({
           contents: [
             {
@@ -82,15 +59,16 @@ Please book a flight for two people departing from New York tomorrow, with the d
             },
           ],
           generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1024,
+            temperature: 0.3,
+            topK: 20,
+            topP: 0.8,
+            maxOutputTokens: 256,
           },
         }),
       }
     );
 
+    clearTimeout(timeoutId);
     console.log('Gemini API response status:', response.status);
     
     if (!response.ok) {
@@ -122,6 +100,14 @@ Please book a flight for two people departing from New York tomorrow, with the d
   } catch (error) {
     console.error('Error enhancing prompt:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    
+    if (error instanceof Error && error.name === 'AbortError') {
+      return NextResponse.json(
+        { error: 'Request timeout - please try again' },
+        { status: 408 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

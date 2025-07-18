@@ -482,26 +482,38 @@ export default function Chat() {
       });
 
       if (!response.ok) {
+        if (response.status === 408) {
+          throw new Error('Request timeout - please try a shorter prompt');
+        }
         throw new Error('Failed to enhance prompt');
       }
 
       const data = await response.json();
       const enhancedText = data.enhancedPrompt.replace(/\s+/g, ' ').trim();
 
-      // Clear current input and start typing animation
-      setInputValue("");
-      
-      // Typing animation effect
-      let currentIndex = 0;
-      const typingInterval = setInterval(() => {
-        if (currentIndex < enhancedText.length) {
-          setInputValue(enhancedText.substring(0, currentIndex + 1));
-          currentIndex++;
-        } else {
-          clearInterval(typingInterval);
-          setIsEnhancing(false);
-        }
-      }, 30); // Adjust speed as needed (30ms per character)
+      // Check if enhanced text is short enough for instant display
+      const shouldUseInstantMode = enhancedText.length < 100;
+
+      if (shouldUseInstantMode) {
+        // Instant mode for short responses
+        setInputValue(enhancedText);
+        setIsEnhancing(false);
+      } else {
+        // Clear current input and start typing animation
+        setInputValue("");
+        
+        // Typing animation effect for longer responses
+        let currentIndex = 0;
+        const typingInterval = setInterval(() => {
+          if (currentIndex < enhancedText.length) {
+            setInputValue(enhancedText.substring(0, currentIndex + 1));
+            currentIndex++;
+          } else {
+            clearInterval(typingInterval);
+            setIsEnhancing(false);
+          }
+        }, 15); // Faster typing speed (15ms per character)
+      }
 
     } catch (error) {
       console.error('Error enhancing prompt:', error);
