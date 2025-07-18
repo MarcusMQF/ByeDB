@@ -85,6 +85,29 @@ class SQLExpertLLM:
                 result = self.database_client.execute_sql(sql, multi_statement=True)
 
                 if result.get("success"):
+                    # After successful execution, automatically get table info to show updated state
+                    try:
+                        # Get all table names
+                        tables_result = self.database_client.execute_sql("SELECT name FROM sqlite_master WHERE type='table'")
+                        if tables_result.get("success") and tables_result.get("data"):
+                            table_names = [row['name'] for row in tables_result['data']]
+                            
+                            # Get data from all tables (limit to reasonable amount)
+                            all_table_data = {}
+                            for table_name in table_names:
+                                table_data_result = self.database_client.execute_sql(f"SELECT * FROM {table_name} LIMIT 10")
+                                if table_data_result.get("success"):
+                                    all_table_data[table_name] = table_data_result.get("data", [])
+                            
+                            return {
+                                "success": True,
+                                "result": f"Successfully executed: {sql}",
+                                "data": result.get("data", []),
+                                "updated_tables": all_table_data
+                            }
+                    except Exception as e:
+                        print(f"Warning: Could not fetch updated table state: {e}")
+                    
                     return {
                         "success": True,
                         "result": f"Successfully executed: {sql}",
@@ -130,15 +153,24 @@ Available functions:
 1. execute_sql(text): Execute SQL commands that modify the database (INSERT, UPDATE, DELETE, CREATE TABLE, etc.)
 2. query_sql(text): Query the database for information (SELECT statements). Safe and no confirmation needed.
 
+IMPORTANT: When users ask about their dataset, data, or tables, you MUST first call query_sql to check what exists.
+
 Guidelines:
 - Use `execute_sql` for queries that modify the database (INSERT, UPDATE, DELETE, CREATE TABLE, etc.)
 - Use `query_sql` for SELECT statements and data inspection
+- ALWAYS call query_sql first when asked about dataset/tables/data content
+- First check: SELECT name FROM sqlite_master WHERE type='table'
+- Then check table contents if tables exist
+- After executing any SQL command that modifies data, ALWAYS show the updated table state
+- When execute_sql returns "updated_tables" data, display it in a clear table format
 - If the user's request is unclear, ask for clarification
 - Always analyze the data before providing insights
 - If a function failed, don't keep retrying
 - If the user asks to visualise datas, prioritize using markdown table format
 - Prefer a single function call with a longer SQL string, than calling functions repeatedly
 - Do not repeat the same query if result is known
+- NEVER assume the database state without querying it first
+- Always show the current state of affected tables after modifications
 
 When you need to call a function, respond with a JSON object in this format:
 {{
@@ -155,7 +187,7 @@ When you need to call a function, respond with a JSON object in this format:
 - Do NOT execute or suggest any function calls.
 - Simply write or explain SQL queries based on the user's question.
 - Be concise and clear. Return only helpful text or code as needed.
-- If the user asks any function calls for uploaded dataset, simply return the message ask user to switch to agent mode. 
+- If the user asks about their dataset, data, tables, or wants to see/access/query any uploaded data, respond with: "To access and query your uploaded dataset, please switch to agent mode."
 
 """
 

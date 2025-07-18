@@ -19,7 +19,9 @@ import {
   RiArrowUpSLine,
   RiRobot2Line,
   RiQuestionAnswerLine,
-  RiKeyboardLine
+  RiKeyboardLine,
+  RiLoader4Line,
+  RiCheckLine
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
 import { useRef, useEffect, useState } from "react";
@@ -51,6 +53,7 @@ export default function Chat() {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isConfirming, setIsConfirming] = useState<string | null>(null); // Track which message is being confirmed
   const [chatMode, setChatMode] = useState<ChatMode>('agent');
   const [showClearDialog, setShowClearDialog] = useState(false);
 
@@ -157,7 +160,7 @@ export default function Chat() {
         isUser: false,
         timestamp: new Date(),
         requiresConfirmation: requiresApproval,
-        confirmationData: requiresApproval ? data : undefined
+        confirmationData: requiresApproval ? data.meta || data : undefined
       };
 
       console.log('AI Response Message:', aiResponse); // Debug log
@@ -179,6 +182,7 @@ export default function Chat() {
   };
 
   const handleConfirmExecution = async (confirmationData: any, messageId: string) => {
+    setIsConfirming(messageId); // Set loading state for this specific message
     try {
       const response = await fetch('http://localhost:8000/api/continue-execution', {
         method: 'POST',
@@ -219,6 +223,8 @@ export default function Chat() {
       };
 
       setMessages(prev => [...prev, errorResponse]);
+    } finally {
+      setIsConfirming(null); // Clear loading state
     }
   };
 
@@ -389,13 +395,46 @@ export default function Chat() {
                         <p>{message.content}</p>
                       ) : message.requiresConfirmation ? (
                         <div className="space-y-3">
-                          <p>I need your confirmation to execute this SQL query.</p>
+                          <p>I need your confirmation to execute this SQL query:</p>
+                          {message.confirmationData?.function_called && message.confirmationData.function_called.length > 0 && (
+                            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 border">
+                              <pre className="text-sm font-mono whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+                                {message.confirmationData.function_called[0]?.args?.text || 'No SQL command found'}
+                              </pre>
+                            </div>
+                          )}
                           <Button
                             onClick={() => handleConfirmExecution(message.confirmationData, message.id)}
-                            className="bg-black hover:bg-gray-800 text-white transition-colors duration-200"
+                            disabled={isConfirming === message.id}
+                            className={`
+                              relative overflow-hidden
+                              bg-gradient-to-r from-gray-900 to-black 
+                              hover:from-gray-800 hover:to-gray-900
+                              text-white font-medium
+                              border border-gray-700
+                              shadow-lg hover:shadow-xl
+                              transition-all duration-300 ease-out
+                              focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900
+                              disabled:opacity-70 disabled:cursor-not-allowed
+                              group
+                            `}
                             size="sm"
                           >
-                            Confirm Execution
+                            <div className="flex items-center gap-2">
+                              {isConfirming === message.id ? (
+                                <>
+                                  <RiLoader4Line className="size-4 animate-spin" />
+                                  <span>Executing...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <RiCheckLine className="size-4 transition-transform group-hover:scale-110" />
+                                  <span>Confirm Execution</span>
+                                </>
+                              )}
+                            </div>
+                            {/* Shine effect overlay */}
+                            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out" />
                           </Button>
                         </div>
                       ) : (
