@@ -346,7 +346,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language = 'sql' }) => {
   const formattedCode = formatSqlCode(code);
 
   return (
-    <div className="relative my-2 rounded-lg border bg-slate-50 dark:bg-slate-900 dark:border-slate-700">
+    <div className="relative my-2 rounded-lg border bg-slate-50 dark:bg-slate-900 dark:border-slate-700 w-full max-w-full overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 border-b dark:border-slate-700">
         <span className="text-sm font-medium text-slate-600 dark:text-slate-400 uppercase">
           {language}
@@ -367,8 +367,8 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language = 'sql' }) => {
           </span>
         </Button>
       </div>
-      <pre className="p-4 overflow-x-auto text-sm">
-        <code className="text-slate-800 dark:text-slate-200 font-mono">
+      <pre className="p-4 overflow-x-auto text-sm max-w-full">
+        <code className="text-slate-800 dark:text-slate-200 font-mono break-words">
           {formattedCode}
         </code>
       </pre>
@@ -1151,7 +1151,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
         
         const formattedContent = processInlineFormatting(part.text);
         elements.push(
-          <div key={`text-${elementIndex++}`} className="whitespace-pre-wrap mb-1 mt-0">
+          <div key={`text-${elementIndex++}`} className="whitespace-pre-wrap mb-1 mt-0 break-words max-w-full overflow-hidden">
             {formattedContent}
           </div>
         );
@@ -1162,7 +1162,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
   };
 
   return (
-    <div className="space-y-0.5">
+    <div className="space-y-0.5 w-full max-w-full min-w-0 overflow-hidden">
       {parseMarkdown(content)}
     </div>
   );

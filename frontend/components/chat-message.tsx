@@ -26,7 +26,7 @@ export function ChatMessage({ isUser, children, content }: ChatMessageProps) {
   return (
     <article
       className={cn(
-        "flex items-start gap-4 text-[15px] leading-relaxed",
+        "flex items-start gap-4 text-[15px] leading-relaxed w-full min-w-0",
         isUser && "justify-end",
       )}
     >
@@ -45,7 +45,9 @@ export function ChatMessage({ isUser, children, content }: ChatMessageProps) {
         height={40}
       />
       <div
-        className={cn(isUser ? "bg-muted px-4 py-3 rounded-xl" : "space-y-4")}
+        className={cn(
+          isUser ? "bg-muted px-4 py-3 rounded-xl max-w-[80%] min-w-0" : "space-y-4 flex-1 min-w-0"
+        )}
       >
         <div className="flex flex-col gap-3">
           <p className="sr-only">{isUser ? "You" : "ByeDB"} said:</p>

@@ -424,7 +424,7 @@ export default function Chat() {
       {/* Messages - Scrollable area */}
       <ScrollArea className="flex-1 overflow-hidden">
         <div className="px-4 md:px-6 lg:px-8 pb-4 h-full">
-          <div className="max-w-3xl mx-auto mt-6 space-y-4 pb-6">
+          <div className="max-w-3xl mx-auto mt-6 space-y-4 pb-6 min-w-0">{/* Added min-w-0 for proper flex shrinking */}
             {messages.length === 0 ? (
               <div className="text-center my-8">
                 <div className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-full border border-blue-200/60 dark:border-blue-800/40 shadow-sm text-xs font-medium py-1.5 px-3 text-blue-700 dark:text-blue-300">
@@ -450,16 +450,18 @@ export default function Chat() {
                   </div>
                 </div>
                 {messages.map((message, index) => (
-                  <div key={message.id} className={index > 0 && messages[index-1].isUser !== message.isUser ? "mt-6" : ""}>
+                  <div key={message.id} className={`${index > 0 && messages[index-1].isUser !== message.isUser ? "mt-6" : ""} w-full min-w-0`}>
                     <ChatMessage isUser={message.isUser} content={message.content}>
                       {message.isUser ? (
-                        <p>{message.content}</p>
+                        <div className="break-words max-w-full">
+                          <p>{message.content}</p>
+                        </div>
                       ) : message.requiresConfirmation ? (
                         <div className="space-y-3">
                           <p>I need your confirmation to execute this SQL query:</p>
                           {message.confirmationData?.function_called && message.confirmationData.function_called.length > 0 && (
-                            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 border">
-                              <pre className="text-sm font-mono whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+                            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 border overflow-hidden">
+                              <pre className="text-sm font-mono whitespace-pre-wrap text-gray-800 dark:text-gray-200 overflow-x-auto break-words max-w-full">
                                 {message.confirmationData.function_called[0]?.args?.text || 'No SQL command found'}
                               </pre>
                             </div>
@@ -499,8 +501,10 @@ export default function Chat() {
                           </Button>
                         </div>
                       ) : (
-                        <div className="space-y-3">
-                          <MarkdownResponse content={message.content} />
+                        <div className="space-y-3 w-full min-w-0">
+                          <div className="max-w-full overflow-hidden">
+                            <MarkdownResponse content={message.content} />
+                          </div>
                           {/* Add explanation button for AI responses in agent mode that have completed function calls */}
                           {chatMode === 'agent' && message.confirmationData?.function_called && message.confirmationData.function_called.length > 0 && message.confirmationData?.executed && (
                             <Button
