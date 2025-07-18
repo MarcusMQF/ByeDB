@@ -81,7 +81,7 @@ class SQLExpertLLM:
             if name == "execute_sql":
                 sql = arguments["text"]
                 print(f"[EXECUTE SQL]: {sql}")
-                result = self.database_client.execute_sql(sql, multi_statement=True)
+                result = self.database_client.execute_sql(sql)
 
                 if result.get("success"):
                     return {

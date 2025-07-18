@@ -82,12 +82,12 @@ class SQLExpertLLM:
             if name == "execute_sql":
                 sql = arguments["text"]
                 print(f"[EXECUTE SQL]: {sql}")
-                result = self.database_client.execute_sql(sql, multi_statement=True)
+                result = self.database_client.execute_sql(sql)
 
                 if result.get("success"):
                     return {
                         "success": True,
-                        "result": f"Successfully executed: {sql}",
+                        "result": f"Successfully executed multiple statements",
                         "data": result.get("data", [])
                     }
                 else:
@@ -133,11 +133,11 @@ Available functions:
 Guidelines:
 - Use `execute_sql` for queries that modify the database (INSERT, UPDATE, DELETE, CREATE TABLE, etc.)
 - Use `query_sql` for SELECT statements and data inspection
+- Prefer a single function call with a longer SQL string, than calling functions repeatedly. This applies to query_sql too.
 - If the user's request is unclear, ask for clarification
 - Always analyze the data before providing insights
 - If a function failed, don't keep retrying
-- If the user asks to visualise datas, prioritize using markdown table format
-- Prefer a single function call with a longer SQL string, than calling functions repeatedly
+- Prioritize using markdown table format for data visualisation
 - Do not repeat the same query if result is known
 
 When you need to call a function, respond with a JSON object in this format:
@@ -148,7 +148,7 @@ When you need to call a function, respond with a JSON object in this format:
     }}
 }}
 
-    """
+"""
         else:  # ask mode
             prompt = """You are an expert SQL assistant and an AI Agent from ByeDB.AI. Your job is to help write SQL queries and explain database operations.
 
@@ -160,21 +160,19 @@ When you need to call a function, respond with a JSON object in this format:
 """
 
         # Add previous memory if any
-        if self.conversation_memory:
-            prompt += "Previous conversations:\n"
-            for i, conversation in enumerate(self.conversation_memory):
-                prompt += f"Conversation {i + 1}:\n"
-                for message in conversation:
-                    role = message["role"]
-                    content = message["content"]
-                    prompt += f"{role}: {content}\n"
-                prompt += "\n"
+        for i, conversation in enumerate(self.conversation_memory):
+            prompt += f"Conversation {i + 1}:\n"
+            for message in conversation:
+                role = message["role"]
+                content = message["content"]
+                prompt += f"{role}: {content}\n"
+            prompt += "\n"
 
-        prompt += f"Current question: {context.user_question}\n"
+        prompt += f"Current question: {context.user_question}"
 
         # Add session context if available
         if context.session_context:
-            prompt += f"\nPrevious function results:\n{context.session_context}"
+            prompt += f"\n{context.session_context}"
 
         prompt += "\nResponse:"
         return prompt
@@ -226,6 +224,7 @@ When you need to call a function, respond with a JSON object in this format:
             print(f"Loop {i + 1}: Generating response...")
 
             try:
+                print(prompt)
                 response = self.model.generate_content(prompt)
             except Exception as e:
                 # TODO:

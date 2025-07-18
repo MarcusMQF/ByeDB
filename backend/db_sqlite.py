@@ -2,6 +2,7 @@ import io
 import sqlite3
 from typing import Dict, Any, List, Optional, Tuple
 import pandas as pd
+import sqlparse
 
 class LocalSQLiteDatabase:
     """
@@ -42,48 +43,42 @@ class LocalSQLiteDatabase:
             self.conn = None
             self.cursor = None
 
-    def execute_sql(self, sql_query: str, params: Tuple = (), multi_statement: bool = False) -> Dict[str, Any]:
-        """
-        Executes an arbitrary SQL query or multiple SQL statements.
-
-        Args:
-            sql_query (str): The SQL query string to execute.
-            params (Tuple): Parameters to bind to the SQL query (for parameterized queries).
-                           Note: Parameters are not supported with multi_statement=True.
-            multi_statement (bool): If True, allows executing multiple SQL statements.
-                                  If False, executes only a single statement.
-
-        Returns:
-            Dict[str, Any]: A dictionary indicating success/failure, a message, and data (if any).
-        """
+    def execute_sql(self, sql_query: str) -> Dict[str, Any]:
         if not self.conn or not self.cursor:
             return {"success": False, "error": "Database not connected."}
 
         try:
-            if multi_statement:
-                # Use executescript for multiple statements
-                if params:
-                    return {"success": False,
-                            "error": "Parameters are not supported with multi_statement=True. Use single statements with parameters instead."}
+            statements = sqlparse.split(sql_query)
+            results = []
 
-                # executescript() doesn't return results, so we can't get SELECT data
-                self.cursor.executescript(sql_query)
-                self.conn.commit()
-                return {"success": True, "message": "Multi-statement script executed successfully.", "data": []}
-            else:
-                # Single statement execution
-                self.cursor.execute(sql_query, params)
-                # Check if the query was a SELECT statement
-                if sql_query.strip().upper().startswith("SELECT"):
+            for statement in statements:
+                statement = statement.strip()
+                if not statement:
+                    continue
+
+                self.cursor.execute(statement)
+                upper_stmt = statement.upper()
+                if upper_stmt.startswith("SELECT"):
                     rows = self.cursor.fetchall()
-                    # Convert rows to list of dictionaries for easier handling
                     data = [dict(row) for row in rows]
-                    return {"success": True, "message": "Query executed successfully.", "data": data}
+                    results.append({
+                        "statement": statement,
+                        "type": "SELECT",
+                        "data": data
+                    })
                 else:
-                    self.conn.commit()  # Commit changes for non-SELECT queries
-                    return {"success": True, "message": "Command executed successfully.", "data": []}
+                    self.conn.commit()
+                    results.append({
+                        "statement": statement,
+                        "type": "NON-SELECT",
+                        "message": "Executed successfully."
+                    })
+            print(results)
+            data = [i["data"] for i in results if i["type"] == "SELECT"]
+            return {"success": True, "message": "Executed multiple statements.", "data": data}
+
         except sqlite3.Error as e:
-            self.conn.rollback()  # Rollback in case of error
+            self.conn.rollback()
             return {"success": False, "error": str(e)}
         except Exception as e:
             return {"success": False, "error": f"An unexpected error occurred: {e}"}
@@ -99,7 +94,7 @@ class LocalSQLiteDatabase:
         Returns:
             Dict[str, Any]: A dictionary indicating success/failure and a message.
         """
-        return self.execute_sql(script, multi_statement=True)
+        return self.execute_sql(script)
 
     def execute_statements(self, statements: List[str]) -> Dict[str, Any]:
         """
