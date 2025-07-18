@@ -25,8 +25,17 @@ class ChartManager:
         return list(islice(cycle(cycled_colors), length))
 
     def _generate_filename(self, prefix: str) -> str:
-        timestamp = int(time.time() * 1000)
-        return os.path.join(self.output_dir, f"{prefix}_{timestamp}.png")
+        existing = {
+            fname for fname in os.listdir(self.output_dir)
+            if fname.startswith(prefix) and fname.endswith(".png")
+        }
+
+        i = 1
+        while True:
+            filename = f"{prefix}_{i}.png"
+            if filename not in existing:
+                return os.path.join(self.output_dir, filename)
+            i += 1
 
     def _save_plot(self, path: str):
         plt.tight_layout(pad=2)
