@@ -208,6 +208,133 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Demo Video Section */}
+        <section className="py-32 relative">
+          <div className="container mx-auto px-6">
+            <div 
+              id="demo-header"
+              data-animate
+              className={`text-center mb-20 transition-all duration-1000 ${
+                isVisible('demo-header') 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+            >
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-full px-4 py-2 mb-6">
+                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                <span className="text-sm text-emerald-300 font-medium">Live Demo</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+                See ByeDB in Action
+              </h2>
+              <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
+                Watch how ByeDB transforms natural language into powerful SQL queries and stunning visualizations in real-time.
+              </p>
+            </div>
+
+            <div 
+              id="demo-video"
+              data-animate
+              className={`relative max-w-6xl mx-auto transition-all duration-1000 delay-200 ${
+                isVisible('demo-video') 
+                  ? 'opacity-100 translate-y-0 scale-100' 
+                  : 'opacity-0 translate-y-12 scale-95'
+              }`}
+            >
+              {/* Background glow effects */}
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 rounded-3xl blur-3xl"></div>
+              <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 rounded-[2rem] blur-2xl"></div>
+              
+              {/* Video container */}
+              <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-3 overflow-hidden">
+                <div className="relative rounded-2xl overflow-hidden bg-black/20">
+                  <video 
+                    className="w-full h-auto rounded-2xl shadow-2xl"
+                    controls
+                    preload="metadata"
+                    poster="/images/chat.png"
+                  >
+                    <source src="/video/demo.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                  
+                  {/* Video overlay gradients */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/5 via-transparent to-transparent rounded-2xl pointer-events-none"></div>
+                  
+                  {/* Play button overlay (shows when video is paused) */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                    <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
+                      <div className="w-0 h-0 border-l-[12px] border-l-white border-y-[8px] border-y-transparent ml-1"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature highlights below video */}
+              <div 
+                id="demo-highlights"
+                data-animate
+                className={`grid md:grid-cols-3 gap-6 mt-12 transition-all duration-1000 delay-400 ${
+                  isVisible('demo-highlights') 
+                    ? 'opacity-100 translate-y-0' 
+                    : 'opacity-0 translate-y-8'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="relative w-12 h-12 mx-auto mb-4">
+                    <div className="absolute inset-0 bg-emerald-500/30 rounded-xl blur-sm"></div>
+                    <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center w-full h-full shadow-lg shadow-emerald-500/25">
+                      <MessageSquare className="h-6 w-6 text-emerald-400" />
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Natural Language Input</h3>
+                  <p className="text-gray-400 text-sm">See how simple questions become complex SQL queries</p>
+                </div>
+                
+                <div className="text-center">
+                  <div className="relative w-12 h-12 mx-auto mb-4">
+                    <div className="absolute inset-0 bg-teal-500/30 rounded-xl blur-sm"></div>
+                    <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center w-full h-full shadow-lg shadow-teal-500/25">
+                      <BarChart3 className="h-6 w-6 text-teal-400" />
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Instant Visualizations</h3>
+                  <p className="text-gray-400 text-sm">Watch data transform into beautiful charts automatically</p>
+                </div>
+                
+                <div className="text-center">
+                  <div className="relative w-12 h-12 mx-auto mb-4">
+                    <div className="absolute inset-0 bg-cyan-500/30 rounded-xl blur-sm"></div>
+                    <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center w-full h-full shadow-lg shadow-cyan-500/25">
+                      <Zap className="h-6 w-6 text-cyan-400" />
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Lightning Fast</h3>
+                  <p className="text-gray-400 text-sm">Experience real-time processing and instant results</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Call to action */}
+            <div 
+              id="demo-cta"
+              data-animate
+              className={`text-center mt-16 transition-all duration-1000 delay-600 ${
+                isVisible('demo-cta') 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-8'
+              }`}
+            >
+              <Button size="lg" className="h-14 px-10 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium rounded-full shadow-lg shadow-emerald-500/25" asChild>
+                <a href="/dashboard" className="flex items-center gap-2">
+                  Try It Yourself
+                  <ArrowRight className="h-5 w-5" />
+                </a>
+              </Button>
+            </div>
+          </div>
+        </section>
+
         {/* Features Section */}
         <section className="py-32 relative">
           <div className="container mx-auto px-6">
@@ -221,259 +348,234 @@ export default function Home() {
               }`}
             >
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                Complete Data Analysis Workflow
+                What makes ByeDB Powerful?
               </h2>
               <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
-                From natural language queries to stunning visualizations, ByeDB streamlines every step of your data journey.
-              </p>
+Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that transforms natural language questions into actionable insights and beautiful visualizations—effortlessly.              </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-              {/* Feature 1: Smart SQL Generation */}
+            <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-4 max-w-7xl mx-auto">
+              {/* Feature 1: Multiagent AI Orchestration - Large Hero Card */}
               <div 
                 id="feature-1"
                 data-animate
-                className={`group relative transition-all duration-1000 delay-100 ${
+                className={`group relative md:col-span-6 lg:col-span-12 transition-all duration-1000 delay-100 ${
                   isVisible('feature-1') 
                     ? 'opacity-100 translate-y-0' 
                     : 'opacity-0 translate-y-12'
                 }`}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-indigo-500/10 to-blue-600/5 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full">
-                  <div className="mb-6">
-                    <div className="relative w-full h-48 mb-6 overflow-hidden rounded-2xl">
-                      <img 
-                        src="/images/ask_agent.png" 
-                        alt="Natural Language Query" 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent rounded-2xl"></div>
-                    </div>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 bg-blue-500/20 rounded-xl">
-                        <MessageSquare className="h-6 w-6 text-blue-400" />
+                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full min-h-[380px]">
+                  <div className="flex flex-col lg:flex-row gap-6 h-full">
+                    <div className="lg:w-1/2">
+                      <div className="relative w-full h-56 lg:h-full overflow-hidden rounded-2xl">
+                        <img 
+                          src="/images/ask_agent.png" 
+                          alt="Multiagent AI Orchestration" 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent rounded-2xl"></div>
                       </div>
-                      <h3 className="text-xl font-semibold text-white">Natural Language Queries</h3>
                     </div>
-                  </div>
-                  <p className="text-gray-400 leading-relaxed mb-4">
-                    Simply ask questions in plain English and watch as ByeDB converts them into optimized SQL queries automatically.
-                  </p>
-                  <div className="flex items-center text-blue-400 text-sm font-medium group-hover:text-blue-300 transition-colors">
-                    <span>Try a query</span>
-                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                    <div className="lg:w-1/2 flex flex-col justify-center">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-blue-500/20 rounded-xl">
+                          <MessageSquare className="h-6 w-6 text-blue-400" />
+                        </div>
+                        <h3 className="text-xl lg:text-2xl font-bold text-white">Multiagent AI Orchestration</h3>
+                      </div>
+                      <p className="text-gray-400 leading-relaxed mb-4 text-base">
+                        Advanced multiagent system with 99.7% accuracy in natural language interpretation. Sophisticated chain-of-thought prompting with contextual embeddings and few-shot learning.
+                      </p>
+                      <div className="flex items-center text-blue-400 text-sm font-medium group-hover:text-blue-300 transition-colors">
+                        <span>Try AI Agent</span>
+                        <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Feature 2: SQL Execution */}
+              {/* Feature 2: Critical Operation Confirmation - Medium Card */}
               <div 
                 id="feature-2"
                 data-animate
-                className={`group relative transition-all duration-1000 delay-200 ${
+                className={`group relative md:col-span-3 lg:col-span-6 transition-all duration-1000 delay-200 ${
                   isVisible('feature-2') 
                     ? 'opacity-100 translate-y-0' 
                     : 'opacity-0 translate-y-12'
                 }`}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-cyan-500/5 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full">
-                  <div className="mb-6">
-                    <div className="relative w-full h-48 mb-6 overflow-hidden rounded-2xl">
-                      <img 
-                        src="/images/sql_execution.png" 
-                        alt="SQL Execution" 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent rounded-2xl"></div>
-                    </div>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 bg-emerald-500/20 rounded-xl">
-                        <Database className="h-6 w-6 text-emerald-400" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-white">Instant SQL Execution</h3>
-                    </div>
+                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full min-h-[380px]">
+                  <div className="relative w-full h-36 mb-5 overflow-hidden rounded-2xl">
+                    <img 
+                      src="/images/confirmation.png" 
+                      alt="Critical Operation Confirmation" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent rounded-2xl"></div>
                   </div>
-                  <p className="text-gray-400 leading-relaxed mb-4">
-                    Execute complex queries instantly with our optimized database engine. Get results in milliseconds, not minutes.
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-emerald-500/20 rounded-xl">
+                      <Database className="h-6 w-6 text-emerald-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white">Critical Operation Confirmation</h3>
+                  </div>
+                  <p className="text-gray-400 leading-relaxed mb-4 text-sm">
+                    Mandatory verification protocols for write operations and destructive queries with real-time risk assessment.
                   </p>
                   <div className="flex items-center text-emerald-400 text-sm font-medium group-hover:text-emerald-300 transition-colors">
-                    <span>Execute query</span>
+                    <span>Security Features</span>
                     <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </div>
 
-              {/* Feature 3: Data Visualization */}
+              {/* Feature 3: Educational Transparency - Medium Card */}
               <div 
                 id="feature-3"
                 data-animate
-                className={`group relative transition-all duration-1000 delay-300 ${
+                className={`group relative md:col-span-3 lg:col-span-6 transition-all duration-1000 delay-300 ${
                   isVisible('feature-3') 
                     ? 'opacity-100 translate-y-0' 
                     : 'opacity-0 translate-y-12'
                 }`}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-violet-500/10 to-fuchsia-500/5 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full">
-                  <div className="mb-6">
-                    <div className="relative w-full h-48 mb-6 overflow-hidden rounded-2xl">
-                      <img 
-                        src="/images/visualize.png" 
-                        alt="Data Visualization" 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent rounded-2xl"></div>
-                    </div>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 bg-purple-500/20 rounded-xl">
-                        <BarChart3 className="h-6 w-6 text-purple-400" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-white">Smart Visualizations</h3>
-                    </div>
+                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full min-h-[380px]">
+                  <div className="relative w-full h-36 mb-5 overflow-hidden rounded-2xl">
+                    <img 
+                      src="/images/explanation.png" 
+                      alt="Educational Transparency" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent rounded-2xl"></div>
                   </div>
-                  <p className="text-gray-400 leading-relaxed mb-4">
-                    Transform your data into beautiful, interactive charts and graphs automatically. Perfect for presentations and reports.
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-purple-500/20 rounded-xl">
+                      <BarChart3 className="h-6 w-6 text-purple-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white">Educational Transparency</h3>
+                  </div>
+                  <p className="text-gray-400 leading-relaxed mb-4 text-sm">
+                    Real-time AI decision explanation with step-by-step reasoning breakdown and interactive SQL education.
                   </p>
                   <div className="flex items-center text-purple-400 text-sm font-medium group-hover:text-purple-300 transition-colors">
-                    <span>Create chart</span>
+                    <span>Learn More</span>
                     <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </div>
 
-              {/* Feature 4: Data Upload */}
+              {/* Feature 4: Intelligent Prompt Enhancement - Small Card */}
               <div 
                 id="feature-4"
                 data-animate
-                className={`group relative transition-all duration-1000 delay-100 ${
+                className={`group relative md:col-span-2 lg:col-span-3 transition-all duration-1000 delay-100 ${
                   isVisible('feature-4') 
                     ? 'opacity-100 translate-y-0' 
                     : 'opacity-0 translate-y-12'
                 }`}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 via-amber-500/10 to-yellow-500/5 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full">
-                  <div className="mb-6">
-                    <div className="relative w-full h-48 mb-6 overflow-hidden rounded-2xl">
-                      <img 
-                        src="/images/dataset.png" 
-                        alt="Dataset Management" 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent rounded-2xl"></div>
-                    </div>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 bg-orange-500/20 rounded-xl">
-                        <FileText className="h-6 w-6 text-orange-400" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-white">Easy Data Import</h3>
-                    </div>
+                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full min-h-[300px]">
+                  <div className="relative w-full h-28 mb-4 overflow-hidden rounded-2xl">
+                    <img 
+                      src="/images/enhance_prompting.png" 
+                      alt="Intelligent Prompt Enhancement" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent rounded-2xl"></div>
                   </div>
-                  <p className="text-gray-400 leading-relaxed mb-4">
-                    Upload CSV, Excel files, or connect to existing databases. Support for multiple data sources and formats.
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-2 bg-orange-500/20 rounded-xl">
+                      <Sparkles className="h-5 w-5 text-orange-400" />
+                    </div>
+                    <h3 className="text-md font-semibold text-white">Prompt Enhancement</h3>
+                  </div>
+                  <p className="text-gray-400 leading-relaxed mb-3 text-sm">
+                    Advanced prompt engineering with semantic optimization for superior AI performance.
                   </p>
-                  <div className="flex items-center text-orange-400 text-sm font-medium group-hover:text-orange-300 transition-colors">
-                    <span>Upload data</span>
-                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                  <div className="flex items-center text-orange-400 text-xs font-medium group-hover:text-orange-300 transition-colors">
+                    <span>Enhance</span>
+                    <ArrowRight className="h-3 w-3 ml-2 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </div>
 
-              {/* Feature 5: Export Results */}
+              {/* Feature 5: Real-time Data Visualization - Large Card */}
               <div 
                 id="feature-5"
                 data-animate
-                className={`group relative transition-all duration-1000 delay-200 ${
+                className={`group relative md:col-span-4 lg:col-span-6 transition-all duration-1000 delay-200 ${
                   isVisible('feature-5') 
                     ? 'opacity-100 translate-y-0' 
                     : 'opacity-0 translate-y-12'
                 }`}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 via-blue-500/10 to-indigo-500/5 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full">
-                  <div className="mb-6">
-                    <div className="relative w-full h-48 mb-6 overflow-hidden rounded-2xl">
-                      <img 
-                        src="/images/export.png" 
-                        alt="Export Results" 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent rounded-2xl"></div>
-                    </div>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 bg-cyan-500/20 rounded-xl">
-                        <ArrowRight className="h-6 w-6 text-cyan-400" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-white">Export & Share</h3>
-                    </div>
+                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full min-h-[300px]">
+                  <div className="relative w-full h-40 mb-5 overflow-hidden rounded-2xl">
+                    <img 
+                      src="/images/chart.png" 
+                      alt="Real-time Data Visualization" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent rounded-2xl"></div>
                   </div>
-                  <p className="text-gray-400 leading-relaxed mb-4">
-                    Export your results, charts, and reports in multiple formats. Share insights with your team effortlessly.
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 bg-cyan-500/20 rounded-xl">
+                      <BarChart3 className="h-5 w-5 text-cyan-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white">Real-time Data Visualization</h3>
+                  </div>
+                  <p className="text-gray-400 leading-relaxed mb-3 text-sm">
+                    Interactive visualization engine with dynamic charts, graphs, and analytics dashboards.
                   </p>
                   <div className="flex items-center text-cyan-400 text-sm font-medium group-hover:text-cyan-300 transition-colors">
-                    <span>Export data</span>
+                    <span>Create Charts</span>
                     <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </div>
 
-              {/* Feature 6: AI Enhancement */}
+              {/* Feature 6: One-Click Export Intelligence - Medium Card */}
               <div 
                 id="feature-6"
                 data-animate
-                className={`group relative transition-all duration-1000 delay-300 ${
+                className={`group relative md:col-span-2 lg:col-span-3 transition-all duration-1000 delay-300 ${
                   isVisible('feature-6') 
                     ? 'opacity-100 translate-y-0' 
                     : 'opacity-0 translate-y-12'
                 }`}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-rose-500/20 via-pink-500/10 to-red-500/5 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full">
-                  <div className="mb-6">
-                    <div className="relative w-full h-48 mb-6 overflow-hidden rounded-2xl">
-                      <img 
-                        src="/images/enhance_prompting.png" 
-                        alt="AI Enhancement" 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent rounded-2xl"></div>
-                    </div>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 bg-rose-500/20 rounded-xl">
-                        <Sparkles className="h-6 w-6 text-rose-400" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-white">AI-Powered Insights</h3>
-                    </div>
+                <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 h-full min-h-[300px]">
+                  <div className="relative w-full h-28 mb-4 overflow-hidden rounded-2xl">
+                    <img 
+                      src="/images/export.png" 
+                      alt="One-Click Export Intelligence" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent rounded-2xl"></div>
                   </div>
-                  <p className="text-gray-400 leading-relaxed mb-4">
-                    Get intelligent suggestions, query optimizations, and insights powered by advanced AI to enhance your analysis.
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-2 bg-rose-500/20 rounded-xl">
+                      <FileText className="h-5 w-5 text-rose-400" />
+                    </div>
+                    <h3 className="text-md font-semibold text-white">Export Intelligence</h3>
+                  </div>
+                  <p className="text-gray-400 leading-relaxed mb-3 text-sm">
+                    Multiple format support with metadata preservation and audit trails.
                   </p>
-                  <div className="flex items-center text-rose-400 text-sm font-medium group-hover:text-rose-300 transition-colors">
-                    <span>Get insights</span>
-                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                  <div className="flex items-center text-rose-400 text-xs font-medium group-hover:text-rose-300 transition-colors">
+                    <span>Export</span>
+                    <ArrowRight className="h-3 w-3 ml-2 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Bottom CTA */}
-            <div 
-              id="features-cta"
-              data-animate
-              className={`text-center mt-16 transition-all duration-1000 delay-400 ${
-                isVisible('features-cta') 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
-            >
-              <Button size="lg" className="h-14 px-10 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium rounded-full shadow-lg shadow-blue-500/25" asChild>
-                <a href="/dashboard" className="flex items-center gap-2">
-                  Experience All Features
-                  <ArrowRight className="h-5 w-5" />
-                </a>
-              </Button>
             </div>
           </div>
         </section>
