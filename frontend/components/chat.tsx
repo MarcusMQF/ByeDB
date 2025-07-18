@@ -252,8 +252,16 @@ export default function Chat() {
 
       // Refresh datasets after SQL operations (for non-confirmation responses)
       if (!requiresApproval && data.meta?.function_called && data.meta.function_called.length > 0) {
-        const sqlQuery = data.meta.function_called[0]?.args?.text;
-        await refreshAfterSQLOperation(sqlQuery);
+        // Get all SQL queries from function calls
+        const sqlQueries = data.meta.function_called
+          .filter((func: any) => func.args?.text)
+          .map((func: any) => func.args.text);
+        
+        if (sqlQueries.length > 0) {
+          // For multiple queries, we can combine them or just use the first one for refresh
+          // The refresh function typically checks for data modifications, so any query should trigger it
+          await refreshAfterSQLOperation(sqlQueries[0]);
+        }
       }
     } catch (error) {
       console.error('Error calling API:', error);
@@ -306,8 +314,16 @@ export default function Chat() {
 
       // Refresh datasets after SQL execution
       if (data.function_called && data.function_called.length > 0) {
-        const sqlQuery = data.function_called[0]?.args?.text;
-        await refreshAfterSQLOperation(sqlQuery);
+        // Get all SQL queries from function calls
+        const sqlQueries = data.function_called
+          .filter((func: any) => func.args?.text)
+          .map((func: any) => func.args.text);
+        
+        if (sqlQueries.length > 0) {
+          // For multiple queries, we can combine them or just use the first one for refresh
+          // The refresh function typically checks for data modifications, so any query should trigger it
+          await refreshAfterSQLOperation(sqlQueries[0]);
+        }
       }
     } catch (error) {
       console.error('Error confirming execution:', error);
@@ -590,12 +606,23 @@ export default function Chat() {
                       ) : message.requiresConfirmation ? (
                         <div className="space-y-3">
                           {/* Original confirmation message */}
-                          <p>I need your confirmation to execute this SQL query:</p>
+                          <p>I need your confirmation to execute {message.confirmationData?.function_called?.length > 1 ? 'these SQL queries' : 'this SQL query'}:</p>
                           {message.confirmationData?.function_called && message.confirmationData.function_called.length > 0 && (
-                            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 border overflow-hidden">
-                              <pre className="text-sm font-mono whitespace-pre-wrap text-gray-800 dark:text-gray-200 overflow-x-auto break-words max-w-full">
-                                {formatSQLQuery(message.confirmationData.function_called[0]?.args?.text || 'No SQL command found')}
-                              </pre>
+                            <div className="space-y-3">
+                              {message.confirmationData.function_called.map((func: any, funcIndex: number) => (
+                                func.args?.text && (
+                                  <div key={funcIndex} className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 border overflow-hidden">
+                                    {message.confirmationData.function_called.length > 1 && (
+                                      <div className="text-xs text-gray-600 dark:text-gray-400 font-medium mb-2">
+                                        SQL Query {funcIndex + 1}:
+                                      </div>
+                                    )}
+                                    <pre className="text-sm font-mono whitespace-pre-wrap text-gray-800 dark:text-gray-200 overflow-x-auto break-words max-w-full">
+                                      {formatSQLQuery(func.args.text)}
+                                    </pre>
+                                  </div>
+                                )
+                              ))}
                             </div>
                           )}
                           
@@ -722,7 +749,7 @@ export default function Chat() {
                                 Executed SQL Queries:
                               </div>
                               {message.confirmationData.function_called.map((func: any, funcIndex: number) => (
-                                func.call === 'query_sql' && func.args?.text && (
+                                func.args?.text && (
                                   <div key={funcIndex} className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                                     {/* SQL Query Header */}
                                     <div className="bg-gray-100 dark:bg-gray-800 px-3 py-2 border-b border-gray-200 dark:border-gray-700">
