@@ -36,28 +36,52 @@ import {
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
-
-type Message = {
-  id: string;
-  content: string;
-  isUser: boolean;
-  timestamp: Date;
-  requiresConfirmation?: boolean;
-  confirmationData?: any;
-};
-
-type ChatMode = 'agent' | 'ask';
+import { 
+  Message, 
+  ChatMode, 
+  loadFromLocalStorage, 
+  saveToLocalStorage, 
+  clearChatStorage,
+  CHAT_MESSAGES_KEY,
+  CHAT_MODE_KEY,
+  CHAT_INPUT_KEY
+} from "@/lib/chat-storage";
 
 export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState("");
+  const [messages, setMessages] = useState<Message[]>(() => 
+    loadFromLocalStorage(CHAT_MESSAGES_KEY, [])
+  );
+  const [inputValue, setInputValue] = useState(() => 
+    loadFromLocalStorage(CHAT_INPUT_KEY, "")
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isConfirming, setIsConfirming] = useState<string | null>(null); // Track which message is being confirmed
-  const [chatMode, setChatMode] = useState<ChatMode>('agent');
+  const [chatMode, setChatMode] = useState<ChatMode>(() => 
+    loadFromLocalStorage(CHAT_MODE_KEY, 'agent')
+  );
   const [showClearDialog, setShowClearDialog] = useState(false);
+
+  // Persist messages to localStorage whenever they change
+  useEffect(() => {
+    saveToLocalStorage(CHAT_MESSAGES_KEY, messages);
+  }, [messages]);
+
+  // Persist chat mode to localStorage whenever it changes
+  useEffect(() => {
+    saveToLocalStorage(CHAT_MODE_KEY, chatMode);
+  }, [chatMode]);
+
+  // Persist input value to localStorage with debouncing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      saveToLocalStorage(CHAT_INPUT_KEY, inputValue);
+    }, 500); // Debounce input saving by 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [inputValue]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -307,8 +331,10 @@ export default function Chat() {
       console.error('Error clearing backend memory:', error);
     }
 
-    // Clear frontend chat
+    // Clear frontend chat and localStorage
     setMessages([]);
+    setInputValue("");
+    clearChatStorage();
     setShowClearDialog(false);
   };
 
