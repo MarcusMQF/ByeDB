@@ -133,31 +133,17 @@ export default function Home() {
 
         {/* Platform Screenshot - Full Width */}
         <section className="relative w-full px-4 lg:px-8 pb-20 -mt-35">
-          <div className="relative w-full max-w-[1200px] mx-auto">
+          <div className="relative w-full max-w-[1400px] mx-auto">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-cyan-500/20 rounded-3xl blur-3xl"></div>
-            <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 overflow-hidden">
-              {/* Browser Header */}
-              <div className="flex items-center gap-2 mb-6 pb-4 border-b border-white/10">
-                <div className="flex gap-2">
-                  <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                  <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                </div>
-                <div className="flex-1 mx-4">
-                  <div className="bg-white/5 rounded-lg px-4 py-2 text-sm text-gray-400">
-                    https://byedb.com/dashboard
-                  </div>
-                </div>
-              </div>
-
-              {/* Actual Platform Image */}
-              <div className="relative rounded-xl overflow-hidden">
+            <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-2 overflow-hidden">
+              {/* Chat Interface Image */}
+              <div className="relative rounded-2xl overflow-hidden">
                 <img 
-                  src="/byedb_capture.png" 
-                  alt="ByeDB Platform Dashboard" 
-                  className="w-full h-auto rounded-xl shadow-2xl"
+                  src="/images/chat.png" 
+                  alt="ByeDB Chat Interface" 
+                  className="w-full h-auto rounded-2xl shadow-2xl object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent rounded-xl"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent rounded-2xl"></div>
               </div>
             </div>
           </div>
