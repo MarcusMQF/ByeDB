@@ -1,6 +1,6 @@
 import json
 from typing import Optional
-
+import traceback
 import pandas as pd
 import io
 import os
@@ -258,6 +258,7 @@ import io
 async def export_csv():
     try:
         tables_result = database.list_tables()
+        print(tables_result)
         if not tables_result["success"]:
             raise HTTPException(status_code=500, detail=tables_result["error"])
 
@@ -282,7 +283,7 @@ async def export_csv():
             "Content-Disposition": "attachment; filename=exported_tables.zip"
         })
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=traceback.format_exception(e))
 
 
 class ContinueRequest(BaseModel):

@@ -74,7 +74,7 @@ class LocalSQLiteDatabase:
                         "message": "Executed successfully."
                     })
             # print(results)
-            data = [i["data"] for i in results if i["type"] == "SELECT"]
+            data = [row for i in results if i["type"] == "SELECT" for row in i["data"]]
             return {"success": True, "message": "Executed multiple statements.", "data": data, "results": results}
 
         except sqlite3.Error as e:
@@ -393,16 +393,27 @@ if __name__ == "__main__":
         name TEXT NOT NULL
     );
     INSERT INTO users (name) VALUES ('Alice');
-    """, multi_statement=True)
+    """)
     print(f"CREATE TABLE result: {create_table_result}")
     if not create_table_result["success"]:
         print(f"Error creating table: {create_table_result.get('error')}")
 
-    list_tables_result = db.list_tables()
-    print(f"List tables result after creation attempt: {list_tables_result}")
-    x = db.export_all_data()
-    print(x)
+    # list_tables_result = db.list_tables()
+    # print(f"List tables result after creation attempt: {list_tables_result}")
+    # x = db.export_all_data()
+    # print(x)
 
-    print(db.load_all_data(x["data"]))
+    # print(db.load_all_data(x["data"]))
+    tables_result = db.list_tables()
+    print(tables_result)
+
+    table_names = [row["name"] for row in tables_result["data"]]
+    print(table_names)
+    for table in table_names:
+        query_result = db.execute_sql(f"SELECT * FROM {table}")
+        if not query_result["success"]:
+            continue
+        print(query_result)
+        print(query_result["data"][0].keys() if query_result["data"] else [])
 
 
