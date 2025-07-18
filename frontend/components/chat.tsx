@@ -21,7 +21,8 @@ import {
   RiQuestionAnswerLine,
   RiKeyboardLine,
   RiLoader4Line,
-  RiCheckLine
+  RiCheckLine,
+  RiBookOpenLine
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
 import { useRef, useEffect, useState } from "react";
@@ -225,6 +226,62 @@ export default function Chat() {
       setMessages(prev => [...prev, errorResponse]);
     } finally {
       setIsConfirming(null); // Clear loading state
+    }
+  };
+
+  const handleRequestExplanation = async () => {
+    const explanationMessage = "Explain what you did in detail, together with command";
+    
+    // Add user message to chat
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: explanationMessage,
+      isUser: true,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+
+    try {
+      // Call the backend API
+      const response = await fetch('http://localhost:8000/api/sql-question', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: explanationMessage,
+          mode: chatMode
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      const aiResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        content: data.success ? data.response : `Error: ${data.error}`,
+        isUser: false,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('Error requesting explanation:', error);
+      const errorResponse: Message = {
+        id: Date.now().toString() + '_explanation_error',
+        content: "Sorry, I'm having trouble getting an explanation. Please try again.",
+        isUser: false,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -438,7 +495,45 @@ export default function Chat() {
                           </Button>
                         </div>
                       ) : (
-                        <MarkdownResponse content={message.content} />
+                        <div className="space-y-3">
+                          <MarkdownResponse content={message.content} />
+                          {/* Add explanation button for AI responses in agent mode */}
+                          {chatMode === 'agent' && (
+                            <Button
+                              onClick={handleRequestExplanation}
+                              disabled={isLoading}
+                              className={`
+                                relative overflow-hidden
+                                bg-gradient-to-r from-blue-600 to-blue-700 
+                                hover:from-blue-700 hover:to-blue-800
+                                text-white font-medium
+                                border border-blue-500
+                                shadow-lg hover:shadow-xl
+                                transition-all duration-300 ease-out
+                                focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-gray-900
+                                disabled:opacity-70 disabled:cursor-not-allowed
+                                group
+                              `}
+                              size="sm"
+                            >
+                              <div className="flex items-center gap-2">
+                                {isLoading ? (
+                                  <>
+                                    <RiLoader4Line className="size-4 animate-spin" />
+                                    <span>Getting explanation...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <RiBookOpenLine className="size-4 transition-transform group-hover:scale-110" />
+                                    <span>Need Explanation?</span>
+                                  </>
+                                )}
+                              </div>
+                              {/* Shine effect overlay */}
+                              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out" />
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </ChatMessage>
                   </div>

@@ -6,7 +6,8 @@ import { Card } from "@/components/card";
 import { InteractiveHoverButton } from "@/components/interactive-hover-button";
 import GradientText from "@/components/gradient-text";
 import AvatarGroup from "@/components/avatar-group";
-import { Database, MessageSquare, BarChart3, Shield, Zap, Users, ArrowRight, Sparkles } from "lucide-react";
+import { BentoCard, BentoGrid } from "@/components/bento-grid";
+import { Database, MessageSquare, BarChart3, Shield, Zap, Users, ArrowRight, Sparkles, FileText, Brain, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function Home() {
@@ -256,6 +257,98 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Bento Grid Section */}
+        <section className="py-32 relative">
+          <div className="container mx-auto px-6 relative">
+            <div className="text-center mb-20">
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+                Discover What ByeDB Can Do
+              </h2>
+              <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
+                From simple queries to complex analytics, explore the full power of natural language data analysis.
+              </p>
+            </div>
+
+            <BentoGrid className="max-w-6xl mx-auto">
+              <BentoCard
+                name="Smart Query Generation"
+                className="col-span-3 lg:col-span-1"
+                background={
+                  <div className="absolute inset-0">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/15 via-indigo-500/10 to-blue-600/5"></div>
+                    <div className="absolute top-4 left-4 w-32 h-32 bg-blue-400/20 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-4 right-4 w-24 h-24 bg-indigo-400/15 rounded-full blur-2xl"></div>
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent_70%)]"></div>
+                  </div>
+                }
+                Icon={Brain}
+                description="Transform any question into optimized SQL queries with intelligent context understanding."
+                href="/dashboard"
+                cta="Try Now"
+              />
+              
+              <BentoCard
+                name="Interactive Visualizations"
+                className="col-span-3 lg:col-span-2"
+                background={
+                  <div className="absolute inset-0">
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-cyan-500/8"></div>
+                    <div className="absolute top-8 right-8 w-40 h-40 bg-emerald-400/18 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-8 left-8 w-32 h-32 bg-teal-400/12 rounded-full blur-2xl"></div>
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(16,185,129,0.12),transparent_60%)]"></div>
+                    <img 
+                      src="/chat.png" 
+                      alt="Interactive Chat" 
+                      className="absolute bottom-6 right-6 w-28 h-28 object-contain opacity-60 group-hover:opacity-80 transition-opacity duration-500"
+                    />
+                  </div>
+                }
+                Icon={TrendingUp}
+                description="Auto-generated charts and graphs that update in real-time as you refine your questions."
+                href="/dashboard"
+                cta="Explore"
+              />
+
+              <BentoCard
+                name="Document Analysis"
+                className="col-span-3 lg:col-span-2"
+                background={
+                  <div className="absolute inset-0">
+                    <div className="absolute inset-0 bg-gradient-to-br from-violet-500/15 via-purple-500/10 to-fuchsia-500/8"></div>
+                    <div className="absolute top-4 left-1/2 w-36 h-36 bg-violet-400/18 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-4 right-1/4 w-28 h-28 bg-purple-400/12 rounded-full blur-2xl"></div>
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_60%,rgba(139,92,246,0.12),transparent_65%)]"></div>
+                    <div className="absolute bottom-8 left-8 flex gap-3 opacity-50 group-hover:opacity-70 transition-opacity duration-500">
+                      <img src="/csv-file.png" alt="CSV" className="w-6 h-6" />
+                      <img src="/xlsx-file.png" alt="XLSX" className="w-6 h-6" />
+                    </div>
+                  </div>
+                }
+                Icon={FileText}
+                description="Upload CSV, Excel, or connect to databases. Ask questions about any data source instantly."
+                href="/dashboard"
+                cta="Upload Data"
+              />
+
+              <BentoCard
+                name="Enterprise Security"
+                className="col-span-3 lg:col-span-1"
+                background={
+                  <div className="absolute inset-0">
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-500/15 via-gray-500/10 to-zinc-500/8"></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-slate-400/20 rounded-full blur-3xl"></div>
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(100,116,139,0.15),transparent_70%)]"></div>
+                  </div>
+                }
+                Icon={Shield}
+                description="Bank-grade security with read-only access. Your data stays safe and private."
+                href="/dashboard"
+                cta="Learn More"
+              />
+            </BentoGrid>
           </div>
         </section>
 
