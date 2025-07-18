@@ -1,11 +1,7 @@
 <div align="center">
-<img src="frontend/public/crop.png" alt="ByeDB Logo" width="200"/>
+<img src="frontend/public/crop.png" alt="ByeDB Logo" width="150"/>
 <h1>ByeDB.AI</h1>
 <p><em>Enterprise-grade multiagent AI platform for autonomous database intelligence—leveraging advanced prompt engineering, contextual memory systems, and multi-LLM orchestration to deliver 99.7% query accuracy with real-time educational feedback and secure operation confirmation protocols.</em></p>
-
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.0.0-green.svg)](README.md)
-[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](README.md)
 
 <img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js"/>
 <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"/>
@@ -19,7 +15,7 @@
 
 ## About 
 
-ByeDB.AI represents the pinnacle of autonomous database intelligence, employing a sophisticated multiagent architecture with advanced prompt engineering pipelines to achieve unprecedented natural language-to-SQL accuracy. Our enterprise-grade platform orchestrates multiple Large Language Models through intelligent agent coordination, delivering measurable performance improvements and educational transparency.
+ByeDB.AI redefines autonomous database intelligence, leveraging a sophisticated multi-agent architecture and advanced prompt engineering to deliver unprecedented natural language-to-SQL accuracy. This enterprise-grade platform orchestrates multiple Large Language Models through intelligent agent coordination, driving measurable performance improvements and offering unparalleled educational transparency. The result is a comprehensive suite of features that empowers users to effortlessly transform complex queries into actionable insights.
 
 ## Demo
 https://github.com/user-attachments/assets/73758080-e880-4627-ad48-72a69462354b
@@ -67,7 +63,7 @@ https://github.com/user-attachments/assets/73758080-e880-4627-ad48-72a69462354b
 
 ## Features
 
-### **🚀 Enterprise AI Capabilities Overview**
+### **Enterprise AI Capabilities Overview**
 
 | Feature | Description | Visual Demo |
 |---------|-------------|-------------|
@@ -100,7 +96,7 @@ ByeDB follows a modern microservices architecture with clear separation of conce
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### **🤖 How ByeDB Works**
+### **How ByeDB Works**
 
 ByeDB is built with a simple but effective architecture:
 
@@ -159,57 +155,34 @@ This architecture ensures:
 
 ### **Advanced Request/Response Schemas**
 
-#### Multiagent SQL Question Request
+#### SQL Question Request
 ```json
 {
-  "question": "Show me the top 10 customers by revenue with quarterly breakdown",
-  "userId": "user-uuid-here",
-  "llm_choice": "auto", // "auto", "gpt", "gemini", or "multiagent"
-  "explain_reasoning": true,
-  "require_confirmation": false,
-  "context_enhancement": "semantic"
+  "question": "Show me all products",
+  "context": "optional context",
+  "mode": "agent"
 }
 ```
 
-#### Enhanced Response with Educational Transparency
+#### Standard Response Format
 ```json
 {
   "success": true,
-  "response": "A new table named `Orders` has been successfully created to link `Customers` and `Products`.\n\nHere is the schema for the `Orders` table:\n\n#### Orders Table\n- **Columns:**\n    - `order_id`: INTEGER (Primary Key, Auto-incrementing)\n    - `customer_id`: INTEGER (Foreign Key referencing `Customers` table)\n    - `product_id`: INTEGER (Foreign Key referencing `Products` table)\n    - `order_date`: TEXT (to store the date of the order)\n    - `quantity`: INTEGER (to record how many items were bought)\n\nThis table will allow you to record which customer bought what product, on which date, and in what quantity.\n\nWhat would you like to do next? Perhaps add some sample orders, or view the current state of all tables?",
-  "function_called": [
-    {
-      "call": "execute_sql",
-      "args": {
-        "text": "CREATE TABLE Orders (\n    order_id INTEGER PRIMARY KEY AUTOINCREMENT,\n    customer_id INTEGER NOT NULL,\n    product_id INTEGER NOT NULL,\n    order_date TEXT NOT NULL,\n    quantity INTEGER NOT NULL,\n    FOREIGN KEY (customer_id) REFERENCES Customers(customer_id),\n    FOREIGN KEY (product_id) REFERENCES Products(product_id)\n);"
-      },
-      "content": "{\"success\": true, \"result\": \"Successfully executed: CREATE TABLE Orders...\", \"data\": [], \"updated_tables\": {\"Products\": [{\"product_id\": 1, \"product_name\": \"Laptop\", \"price\": 1200.0}], \"Customers\": [{\"customer_id\": 101, \"customer_name\": \"Alice Smith\", \"email\": \"alice.smith@example.com\"}], \"Orders\": []}}"
-    }
-  ],
-  "usage": {
-    "note": "Gemini API doesn't provide detailed usage stats"
-  }
-}
-```
-
-#### Dataset Exploration Response
-```json
-{
-  "success": true,
-  "response": "I have explored the dataset. Here's a summary of the available tables and their contents:\n\n### Database Schema and Sample Data\n\nThe database contains two tables: `Products` and `Customers`.\n\n#### Products Table\n- **Columns:**\n    - `product_id`: INTEGER (Primary Key)\n    - `product_name`: TEXT\n    - `price`: REAL\n- **First 5 rows:**\n\n| product_id | product_name | price |\n|---|---|---|\n| 1 | Laptop | 1200.0 |\n| 2 | Mouse | 25.0 |\n| 3 | Keyboard | 75.0 |\n| 4 | Monitor | 300.0 |\n| 5 | Webcam | 50.0 |\n\nWhat would you like to do next?",
+  "response": "I can help you add a new product. What is the product ID, product name, and price?",
   "function_called": [
     {
       "call": "query_sql",
       "args": {
-        "text": "SELECT name FROM sqlite_master WHERE type='table';"
+        "text": "SELECT name, type FROM sqlite_master WHERE type='table';"
       },
-      "content": "{\"success\": true, \"result\": \"Query executed: SELECT name FROM sqlite_master WHERE type='table';\", \"data\": [{\"name\": \"Products\"}, {\"name\": \"Customers\"}]}"
+      "content": "{\"success\": true, \"result\": \"Query executed: SELECT name, type FROM sqlite_master WHERE type='table';\", \"data\": [{\"name\": \"products\", \"type\": \"table\"}, {\"name\": \"orders\", \"type\": \"table\"}]}"
     },
     {
-      "call": "query_sql", 
+      "call": "query_sql",
       "args": {
-        "text": "SELECT * FROM Products LIMIT 5; SELECT * FROM Customers LIMIT 5;"
+        "text": "SELECT * FROM products;"
       },
-      "content": "{\"success\": true, \"result\": \"Query executed successfully\", \"data\": [{\"product_id\": 1, \"product_name\": \"Laptop\", \"price\": 1200.0}, {\"customer_id\": 101, \"customer_name\": \"Alice Smith\", \"email\": \"alice.smith@example.com\"}]}"
+      "content": "{\"success\": true, \"result\": \"Query executed: SELECT * FROM products;\", \"data\": [{\"product_id\": 1, \"product_name\": \"Laptop\", \"price\": 1200}, {\"product_id\": 2, \"product_name\": \"Mouse\", \"price\": 25}]}"
     }
   ],
   "usage": {
@@ -218,32 +191,26 @@ This architecture ensures:
 }
 ```
 
-#### Critical Operation Confirmation Request
+#### Confirmation Required Response
 ```json
 {
-  "operation_type": "WRITE",
-  "functions_to_execute": [
+  "success": true,
+  "response": "Confirmation Required",
+  "function_called": [
     {
       "call": "execute_sql",
       "args": {
-        "text": "CREATE TABLE Orders (\n    order_id INTEGER PRIMARY KEY AUTOINCREMENT,\n    customer_id INTEGER NOT NULL,\n    product_id INTEGER NOT NULL,\n    order_date TEXT NOT NULL,\n    quantity INTEGER NOT NULL,\n    FOREIGN KEY (customer_id) REFERENCES Customers(customer_id),\n    FOREIGN KEY (product_id) REFERENCES Products(product_id)\n);"
+        "text": "INSERT INTO products (product_id, product_name, price) VALUES (5, 'Webcam', 50);"
       }
     }
   ],
-  "confirmation_required": true,
-  "confirmation_message": "Do you want to proceed? (y/n):",
-  "impact_assessment": {
-    "operation_type": "CREATE_TABLE",
-    "affected_schema": "Orders table creation",
-    "data_risk_level": "MEDIUM",
-    "reversibility": "REVERSIBLE"
-  }
+  "requires_approval": true
 }
 ```
 
 ### **Real-World API Integration Examples**
 
-#### Advanced TypeScript Integration with Actual Response Format
+#### TypeScript Integration with Actual Response Format
 ```typescript
 // Execute query with ByeDB's actual response structure
 const executeByeDBQuery = async (question: string) => {
@@ -255,7 +222,7 @@ const executeByeDBQuery = async (question: string) => {
     },
     body: JSON.stringify({
       question: question,
-      userId: userId
+      mode: "agent"
     })
   });
 
@@ -263,8 +230,8 @@ const executeByeDBQuery = async (question: string) => {
   
   // Handle the actual ByeDB response format
   if (result.success) {
-    // Display the formatted response (includes markdown tables and explanations)
-    displayFormattedResponse(result.response);
+    // Display the response message
+    console.log('Response:', result.response);
     
     // Process function calls that were executed
     if (result.function_called) {
@@ -274,38 +241,32 @@ const executeByeDBQuery = async (question: string) => {
         
         // Parse the function result
         const functionResult = JSON.parse(func.content);
-        if (functionResult.updated_tables) {
-          updateLocalDataVisualization(functionResult.updated_tables);
+        if (functionResult.data) {
+          console.log('Data:', functionResult.data);
         }
       });
     }
     
-    // Handle critical operations requiring confirmation
-    if (result.functions_to_execute) {
+    // Handle operations requiring approval
+    if (result.requires_approval) {
       const confirmed = await showConfirmationDialog(
         "Do you want to proceed? (y/n):"
       );
       if (confirmed) {
-        // Execute the confirmed operation
-        await executeConfirmedOperation(result.functions_to_execute);
+        // Continue execution
+        const continueResponse = await fetch('/api/continue-execution', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-ID': userId
+          },
+          body: JSON.stringify({})
+        });
       }
     }
   }
   
   return result;
-};
-
-// Handle dataset exploration responses
-const handleDatasetExploration = (response) => {
-  if (response.function_called) {
-    const tableData = response.function_called
-      .filter(func => func.call === 'query_sql')
-      .map(func => JSON.parse(func.content).data)
-      .flat();
-    
-    // Update visualization with real table data
-    renderDataTables(tableData);
-  }
 };
 ```
 
