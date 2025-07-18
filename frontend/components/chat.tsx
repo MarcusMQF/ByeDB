@@ -311,7 +311,7 @@ export default function Chat() {
   };
 
   const handleRequestExplanation = async () => {
-    const explanationMessage = "Explain what you did in detail, together with the executed commands";
+    const explanationMessage = "Please provide a detailed explanation of the SQL operations that were just executed.";
     
     // Add user message to chat
     const userMessage: Message = {
