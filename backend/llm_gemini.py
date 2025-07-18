@@ -197,7 +197,7 @@ Guidelines:
 - Avoid repeating known queries
 - Always analyse queried data before providing insights
 - The user does not have direct database access, provide context using markdown tables whenever possible.
-- Use plot_bar or plot_pie accordingly when user asks for chart/visualization/analyze. Always include plotted chart ![](api/charts/bar_chart_xxxx.png)
+- Prioritize plot_bar or plot_pie for chart/visualization/analyzing. Always include plotted chart ![](api/charts/bar_chart_xxxx.png)
 - For large tables, note it and show only the first/last/sample 5 rows.
 
 WARNING
