@@ -199,9 +199,14 @@ const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
       markdown += '| ' + row.join(' | ') + ' |\n';
     });
     
-    navigator.clipboard.writeText(markdown);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    // Create and download the markdown file
+    const blob = new Blob([markdown], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'table-data.txt';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const exportAsCSV = () => {

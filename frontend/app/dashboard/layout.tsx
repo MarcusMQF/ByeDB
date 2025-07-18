@@ -35,7 +35,9 @@ export default function DashboardLayout({
               </a>
               <a
                 className="text-sidebar-foreground/50 hover:text-sidebar-foreground/70 transition-colors [&[aria-current]]:text-sidebar-foreground before:content-['/'] before:px-4 before:text-sidebar-foreground/30 first:before:hidden"
-                href="#"
+                href="https://github.com/MarcusMQF/ByeDB"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 Docs
               </a>

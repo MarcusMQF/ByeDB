@@ -19,6 +19,7 @@ export interface UseDatasets {
   refreshDatasets: () => Promise<void>;
   uploadFile: (file: File, truncate?: boolean) => Promise<void>;
   clearAllDatasets: () => Promise<void>;
+  clearMemory: () => Promise<void>;
   exportDatabase: () => Promise<void>;
 }
 
@@ -141,26 +142,72 @@ export const useDatasets = (): UseDatasets => {
     
     try {
       // Call backend to clear database
-      const response = await fetch(`${API_BASE_URL}/api/clear-database`, {
+      const dbResponse = await fetch(`${API_BASE_URL}/api/clear-database`, {
+        method: 'POST',
+        headers: getApiHeaders(),
+      });
+      
+      if (!dbResponse.ok) {
+        throw new Error(`Failed to clear database: ${dbResponse.statusText}`);
+      }
+      
+      const dbResult = await dbResponse.json();
+      if (!dbResult.success) {
+        throw new Error(dbResult.message || 'Failed to clear database');
+      }
+
+      // Call backend to clear memory
+      const memoryResponse = await fetch(`${API_BASE_URL}/api/clear-memory`, {
+        method: 'POST',
+        headers: getApiHeaders(),
+      });
+      
+      if (!memoryResponse.ok) {
+        throw new Error(`Failed to clear memory: ${memoryResponse.statusText}`);
+      }
+      
+      const memoryResult = await memoryResponse.json();
+      if (!memoryResult.success) {
+        throw new Error(memoryResult.message || 'Failed to clear memory');
+      }
+      
+      // Clear frontend state
+      setDatasets([]);
+      console.log('Database and memory cleared successfully');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to clear datasets';
+      setError(errorMessage);
+      console.error('Error clearing datasets:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Clear memory only
+  const clearMemory = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/clear-memory`, {
         method: 'POST',
         headers: getApiHeaders(),
       });
       
       if (!response.ok) {
-        throw new Error(`Failed to clear database: ${response.statusText}`);
+        throw new Error(`Failed to clear memory: ${response.statusText}`);
       }
       
       const result = await response.json();
       if (!result.success) {
-        throw new Error(result.message || 'Failed to clear database');
+        throw new Error(result.message || 'Failed to clear memory');
       }
       
-      // Clear frontend state
-      setDatasets([]);
+      console.log('Memory cleared successfully');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to clear datasets';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to clear memory';
       setError(errorMessage);
-      console.error('Error clearing datasets:', err);
+      console.error('Error clearing memory:', err);
     } finally {
       setIsLoading(false);
     }
@@ -214,6 +261,7 @@ export const useDatasets = (): UseDatasets => {
     refreshDatasets,
     uploadFile,
     clearAllDatasets,
+    clearMemory,
     exportDatabase,
   };
 };

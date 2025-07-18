@@ -30,7 +30,7 @@ import { ScrollArea } from "@/components/scroll-area";
 import { Badge } from "@/components/badge";
 import { Card } from "@/components/card";
 import { Separator } from "@/components/separator";
-import { parseFile, ParsedFileData } from "@/lib/file-parser";
+import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { useDatasets } from "@/hooks/use-datasets";
 
 type SettingsPanelContext = {
@@ -82,22 +82,14 @@ const SettingsPanelProvider = ({ children }: { children: React.ReactNode }) => {
 SettingsPanelProvider.displayName = "SettingsPanelProvider";
 
 const SettingsPanelContent = () => {
-  const [dataset, setDataset] = React.useState<ParsedFileData | null>(null);
   const [isDragging, setIsDragging] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [uploadingFile, setUploadingFile] = React.useState<{name: string, size: string} | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const { uploadFile, error: apiError, exportDatabase } = useDatasets();
+  const [showClearDialog, setShowClearDialog] = React.useState(false);
+  const { datasets, uploadFile, error: apiError, exportDatabase, clearAllDatasets } = useDatasets();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  const handleExport = async () => {
-    try {
-      await exportDatabase();
-    } catch (error) {
-      setError(`Failed to export database: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
 
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -135,37 +127,6 @@ const SettingsPanelContent = () => {
       clearInterval(progressInterval);
       setUploadProgress(100);
       
-      // Parse file locally for immediate preview (if possible)
-      try {
-        if (fileName.endsWith('.csv') || fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-          const parsedData = await parseFile(file);
-          setDataset(parsedData);
-        } else {
-          // For JSON/DB files, create basic dataset info
-          setDataset({
-            name: file.name,
-            type: 'csv', // Default type for display
-            size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-            rows: 0, // Will be updated when backend data is fetched
-            columns: 0,
-            data: [],
-            headers: []
-          });
-        }
-      } catch (parseError) {
-        console.warn('Could not parse file for preview:', parseError);
-        // Still set a basic dataset info since upload succeeded
-        setDataset({
-          name: file.name,
-          type: 'csv', // Default type for display
-          size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-          rows: 0,
-          columns: 0,
-          data: [],
-          headers: []
-        });
-      }
-      
       // Small delay to show 100% completion
       setTimeout(() => {
         setIsUploading(false);
@@ -199,12 +160,50 @@ const SettingsPanelContent = () => {
     handleFileUpload(e.dataTransfer.files);
   };
 
-  const getFileIconSrc = (type: string) => {
-    return type === 'csv' ? '/csv-file.png' : '/xlsx-file.png';
+  const handleClearDatasets = async () => {
+    try {
+      await clearAllDatasets();
+      setShowClearDialog(false);
+    } catch (error) {
+      console.error('Failed to clear datasets:', error);
+    }
+  };
+
+  // Function to get the appropriate icon based on dataset name/format
+  const getDatasetIcon = (datasetName: string) => {
+    const fileName = datasetName.toLowerCase();
+    
+    // CSV and Excel files use sheet icon
+    if (fileName.endsWith('.csv') || fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      return '/icons/sheet.png';
+    } 
+    // Database files use db icon
+    else if (fileName.endsWith('.db') || fileName.endsWith('.sqlite') || fileName.endsWith('.sqlite3')) {
+      return '/icons/db.png';
+    } 
+    // JSON files use json icon
+    else if (fileName.endsWith('.json')) {
+      return '/icons/json.png';
+    }
+    
+    // For tables without extensions (from backend), determine by common patterns
+    // If it looks like a typical table name, use sheet icon as default
+    return '/icons/sheet.png';
   };
 
   return (
     <>
+      {/* Confirmation Dialog for Clear Dataset */}
+      <ConfirmationDialog
+        title="Are you absolutely sure?"
+        description="This action cannot be undone. This will permanently delete your datasets and clear the chat memory."
+        confirmText="Clear Dataset"
+        cancelText="Cancel"
+        onConfirm={handleClearDatasets}
+        open={showClearDialog}
+        onOpenChange={setShowClearDialog}
+      />
+
       {/* Sidebar header */}
       <div className="py-5">
         <div className="flex items-center gap-2">
@@ -221,17 +220,20 @@ const SettingsPanelContent = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-medium uppercase text-muted-foreground/80">
-            Upload Dataset
+            {datasets.length > 0 ? 'Uploaded Dataset' : 'Upload Dataset'}
           </h3>
-          {dataset && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDataset(null)}
-              className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500"
-            >
-              <RiDeleteBinLine className="w-3 h-3" />
-            </Button>
+          {datasets.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowClearDialog(true)}
+                className="h-6 px-2 text-xs text-muted-foreground hover:text-red-500 flex items-center gap-1"
+              >
+                <RiDeleteBinLine className="w-3 h-3" />
+                <span>Clear Dataset</span>
+              </Button>
+            </div>
           )}
         </div>
 
@@ -241,17 +243,23 @@ const SettingsPanelContent = () => {
           </div>
         )}
 
-        {!dataset ? (
+        {datasets.length === 0 ? (
           isUploading && uploadingFile ? (
             /* Upload Progress Container */
             <div className="w-full">
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 bg-gray-100 dark:bg-gray-700 rounded">
-                    <RiFileTextLine className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  <div className="flex-shrink-0 flex items-center justify-center w-8 h-8">
+                    <Image 
+                      src={getDatasetIcon(uploadingFile.name)}
+                      alt="Uploading file" 
+                      width={18} 
+                      height={18}
+                      className="object-contain"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                       {uploadingFile.name}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -259,14 +267,14 @@ const SettingsPanelContent = () => {
                     </p>
                   </div>
                   <div className="flex-shrink-0">
-                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
                       {Math.round(uploadProgress)}%
                     </span>
                   </div>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                   <div 
-                    className="bg-gradient-to-r from-gray-800 to-gray-900 dark:from-gray-200 dark:to-gray-100 h-1.5 rounded-full transition-all duration-300 ease-out" 
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 h-2 rounded-full transition-all duration-300 ease-out" 
                     style={{ width: `${uploadProgress}%` }}
                   ></div>
                 </div>
@@ -314,7 +322,7 @@ const SettingsPanelContent = () => {
                     Drag & drop or click to browse
                   </p>
                   <p className="text-xs text-gray-400 dark:text-gray-500">
-                    CSV or XLSX files only
+                    CSV, XLSX, JSON or DB files only
                   </p>
                 </div>
                 
@@ -329,55 +337,74 @@ const SettingsPanelContent = () => {
             </div>
           )
         ) : (
-          /* Dataset Info Card */
-          <div className="w-full">
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded">
-                  <Image 
-                    src={getFileIconSrc(dataset.type)} 
-                    alt={`${dataset.type.toUpperCase()} file`} 
-                    width={20} 
-                    height={20}
-                    className="object-contain"
-                  />
+          /* Uploaded Dataset Details Container */
+          <div className="w-full space-y-3">
+            {datasets.map((dataset, index) => (
+              <div key={dataset.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex-shrink-0 flex items-center justify-center w-8 h-8">
+                    <Image 
+                      src={getDatasetIcon(dataset.name)}
+                      alt="Dataset file" 
+                      width={24} 
+                      height={24}
+                      className="object-contain"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                      {dataset.name}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Last modified: {dataset.lastModified}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                    {dataset.name}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {dataset.size}
-                  </p>
+                
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="text-center p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                      {dataset.rows.toLocaleString()}
+                    </p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Rows</p>
+                  </div>
+                  <div className="text-center p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                      {dataset.columns}
+                    </p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Columns</p>
+                  </div>
                 </div>
-                <div className="flex-shrink-0 flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">
-                    {dataset.rows.toLocaleString()} rows
+                
+                {/* File Size Information */}
+                <div className="mb-4">
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                        File Size
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {/* Calculate estimated file size based on data */}
+                        {dataset.data && dataset.data.length > 0 
+                          ? `${Math.max(0.1, (dataset.rows * dataset.columns * 10) / 1024 / 1024).toFixed(1)} MB`
+                          : 'Unknown'
+                        }
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <Badge variant="secondary" className="text-xs font-medium">
+                    {dataset.rows === 1 ? '1 record' : `${dataset.rows.toLocaleString()} records`}
                   </Badge>
-                  <Badge variant="secondary" className="text-xs">
-                    {dataset.columns} cols
-                  </Badge>
+                  <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 font-medium">
+                    <RiCheckLine className="w-3 h-3" />
+                    <span>Uploaded</span>
+                  </div>
                 </div>
               </div>
-              
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  className="flex-1 bg-gradient-to-r from-gray-900 to-black hover:from-black hover:to-gray-900 text-white shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-700 hover:border-gray-600"
-                >
-                  <RiEyeLine className="w-4 h-4 mr-2" />
-                  Preview
-                </Button>
-                <Button 
-                  size="sm" 
-                  className="flex-1 bg-gradient-to-r from-gray-900 to-black hover:from-black hover:to-gray-900 text-white shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-700 hover:border-gray-600"
-                  onClick={handleExport}
-                >
-                  <RiDownloadLine className="w-4 h-4 mr-2" />
-                  Export
-                </Button>
-              </div>
-            </div>
+            ))}
           </div>
         )}
       </div>

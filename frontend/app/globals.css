@@ -204,3 +204,13 @@
     transform: translateY(-6px);
   }
 }
+
+/* Custom scrollbar styles for table data - invisible like chat window */
+.scrollbar-thin {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  display: none; /* WebKit browsers (Chrome, Safari, Edge) */
+}
