@@ -15,6 +15,7 @@ class LRUUserContext:
         self.sessions = OrderedDict()  # {user_id: UserSession}
 
     def get_session(self, user_id: str) -> UserSession:
+        print(f"get_session:User id: {user_id}")
         if user_id in self.sessions:
             self.sessions.move_to_end(user_id)
         else:
