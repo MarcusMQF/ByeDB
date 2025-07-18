@@ -149,103 +149,6 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="container mx-auto px-6">
-          <div className="max-w-5xl mx-auto text-center">
-
-             {/* Feature Highlights */}
-             <div className="grid md:grid-cols-3 gap-8 mt-20">
-               <div className="text-center">
-                 <div className="relative inline-flex mb-4">
-                   <MessageSquare className="h-8 w-8 text-blue-400" />
-                   <div className="absolute inset-0 h-8 w-8 bg-blue-400/20 blur-md rounded-full"></div>
-                 </div>
-                 <h3 className="text-lg font-semibold mb-2 text-white">Interactive Disambiguation</h3>
-                 <p className="text-gray-400 text-sm">
-                   Smart clarification when your question could mean multiple things
-                 </p>
-               </div>
-               
-               <div className="text-center">
-                 <div className="relative inline-flex mb-4">
-                   <Shield className="h-8 w-8 text-green-400" />
-                   <div className="absolute inset-0 h-8 w-8 bg-green-400/20 blur-md rounded-full"></div>
-                 </div>
-                 <h3 className="text-lg font-semibold mb-2 text-white">Explainable Results</h3>
-                 <p className="text-gray-400 text-sm">
-                   See the generated SQL and understand how results were calculated
-                 </p>
-               </div>
-               
-               <div className="text-center">
-                 <div className="relative inline-flex mb-4">
-                   <BarChart3 className="h-8 w-8 text-purple-400" />
-                   <div className="absolute inset-0 h-8 w-8 bg-purple-400/20 blur-md rounded-full"></div>
-                 </div>
-                 <h3 className="text-lg font-semibold mb-2 text-white">Auto Visualizations</h3>
-                 <p className="text-gray-400 text-sm">
-                   Intelligent charts generated automatically based on your data
-                 </p>
-               </div>
-             </div>
-           </div>
-         </section>
-
-        {/* Features Section */}
-        <section className="py-32 relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/[0.02] to-transparent"></div>
-          <div className="container mx-auto px-6 relative">
-            <div className="text-center mb-20">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                Why Choose ByeDB?
-              </h2>
-              <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
-                Built for both technical and non-technical users, with enterprise-grade security and performance.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div className="flex items-start gap-6 group">
-                <div className="relative">
-                  <Zap className="h-10 w-10 text-yellow-400 mt-1" />
-                  <div className="absolute inset-0 h-10 w-10 bg-yellow-400/20 blur-md rounded-full"></div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold mb-3 text-white">Lightning Fast</h3>
-                  <p className="text-gray-400 leading-relaxed">
-                    Get results in seconds, not minutes. Optimized for performance at scale.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-6 group">
-                <div className="relative">
-                  <Users className="h-10 w-10 text-blue-400 mt-1" />
-                  <div className="absolute inset-0 h-10 w-10 bg-blue-400/20 blur-md rounded-full"></div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold mb-3 text-white">Conversational Context</h3>
-                  <p className="text-gray-400 leading-relaxed">
-                    Ask follow-up questions naturally. "Now show me just the US data" just works.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-6 group">
-                <div className="relative">
-                  <Shield className="h-10 w-10 text-red-400 mt-1" />
-                  <div className="absolute inset-0 h-10 w-10 bg-red-400/20 blur-md rounded-full"></div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold mb-3 text-white">Safety First</h3>
-                  <p className="text-gray-400 leading-relaxed">
-                    Read-only by design. No risk of accidental data modification or deletion.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Bento Grid Section */}
         <section className="py-32 relative">
           <div className="container mx-auto px-6 relative">
@@ -254,7 +157,7 @@ export default function Home() {
                 Discover What ByeDB Can Do
               </h2>
               <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
-                From simple queries to complex analytics, explore the full power of natural language data analysis.
+                Empower your data science workflow with AI-driven insights, advanced analytics, and seamless visualization—all through natural conversation.
               </p>
             </div>
 
