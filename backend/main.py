@@ -6,6 +6,8 @@ import zipfile
 import tempfile
 import traceback
 import pandas as pd
+import uuid
+import time
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Header
 from fastapi.responses import StreamingResponse
@@ -33,12 +35,36 @@ user_agents = {}
 DB_ROOT = "./user_dbs"
 os.makedirs(DB_ROOT, exist_ok=True)
 
-def get_user_database(user_id: str) -> LocalSQLiteDatabase:
+def generate_user_id(method: str = "uuid") -> str:
+    """Generate a user ID using different methods.
+    
+    Args:
+        method: "uuid", "timestamp", or "uuid_short"
+    
+    Returns:
+        Generated user ID string
+    """
+    if method == "uuid":
+        return str(uuid.uuid4())
+    elif method == "timestamp":
+        return str(int(time.time() * 1000))  # milliseconds
+    elif method == "uuid_short":
+        return str(uuid.uuid4()).split('-')[0]  # First 8 characters
+    else:
+        return str(uuid.uuid4())
+
+def get_user_database(user_id: str = None) -> LocalSQLiteDatabase:
+    if user_id is None:
+        user_id = generate_user_id("timestamp")  # You can change this to "uuid" or "uuid_short"
+    
     if user_id not in user_databases:
         user_databases[user_id] = LocalSQLiteDatabase()
     return user_databases[user_id]
 
-def get_user_agent(user_id: str) -> SQLExpertLLM:
+def get_user_agent(user_id: str = None) -> SQLExpertLLM:
+    if user_id is None:
+        user_id = generate_user_id("timestamp")  # You can change this to "uuid" or "uuid_short"
+    
     if user_id not in user_agents:
         user_databases[user_id] = get_user_database(user_id)
         user_agents[user_id] = SQLExpertLLM(user_databases[user_id])
@@ -70,8 +96,12 @@ async def health_check():
     return {"status": "healthy", "service": "ByeDB API"}
 
 @app.post("/api/sql-question", response_model=SQLQuestionResponse)
-async def ask_sql_question(request: SQLQuestionRequest, user_id: str = Header(...)):
+async def ask_sql_question(request: SQLQuestionRequest, user_id: str = Header(None)):
     try:
+        # Generate user_id if not provided
+        if not user_id:
+            user_id = generate_user_id("timestamp")
+        
         sql_expert = get_user_agent(user_id)
         if not request.question.strip():
             raise HTTPException(status_code=400, detail="Question cannot be empty")
@@ -91,8 +121,12 @@ async def ask_sql_question(request: SQLQuestionRequest, user_id: str = Header(..
 
 
 @app.post("/api/continue-execution", response_model=SQLQuestionResponse)
-async def continue_execution(request: ContinueRequest, user_id: str = Header(...)):
+async def continue_execution(request: ContinueRequest, user_id: str = Header(None)):
     try:
+        # Generate user_id if not provided
+        if not user_id:
+            user_id = generate_user_id("timestamp")
+            
         if not request.approve:
             return SQLQuestionResponse(success=False, meta={}, error="Execution not approved.")
         sql_expert = get_user_agent(user_id)
@@ -108,8 +142,12 @@ async def continue_execution(request: ContinueRequest, user_id: str = Header(...
 
 
 @app.post("/api/upload-db")
-async def upload_database(file: UploadFile = File(...), truncate: bool = Form(True), user_id: str = Header(...)):
+async def upload_database(file: UploadFile = File(...), truncate: bool = Form(True), user_id: str = Header(None)):
     try:
+        # Generate user_id if not provided
+        if not user_id:
+            user_id = generate_user_id("timestamp")
+            
         db = get_user_database(user_id)
         filename = file.filename.lower()
         contents = await file.read()
@@ -163,7 +201,11 @@ async def upload_database(file: UploadFile = File(...), truncate: bool = Form(Tr
 
 
 @app.get("/api/export-db")
-async def export_database(file_type: str = "json", user_id: str = Header(...)):
+async def export_database(file_type: str = "json", user_id: str = Header(None)):
+    # Generate user_id if not provided
+    if not user_id:
+        user_id = generate_user_id("timestamp")
+        
     db = get_user_database(user_id)
     try:
         export_result = db.export_all_data()
@@ -217,7 +259,11 @@ async def export_database(file_type: str = "json", user_id: str = Header(...)):
 
 
 @app.get("/api/export-csv")
-async def export_csv(user_id: str = Header(...)):
+async def export_csv(user_id: str = Header(None)):
+    # Generate user_id if not provided
+    if not user_id:
+        user_id = generate_user_id("timestamp")
+        
     db = get_user_database(user_id)
     try:
         tables_result = db.list_tables()
@@ -248,8 +294,12 @@ async def export_csv(user_id: str = Header(...)):
 
 
 @app.post("/api/clear-memory")
-async def clear_memory(user_id: str = Header(...)):
+async def clear_memory(user_id: str = Header(None)):
     try:
+        # Generate user_id if not provided
+        if not user_id:
+            user_id = generate_user_id("timestamp")
+            
         sql_expert = get_user_agent(user_id)
         sql_expert.clear_memory()
         return {"success": True, "message": "Memory cleared successfully."}
@@ -258,8 +308,12 @@ async def clear_memory(user_id: str = Header(...)):
 
 
 @app.post("/api/clear-database")
-async def clear_database(user_id: str = Header(...)):
+async def clear_database(user_id: str = Header(None)):
     try:
+        # Generate user_id if not provided
+        if not user_id:
+            user_id = generate_user_id("timestamp")
+            
         db = get_user_database(user_id)
         db.clear_database()
         return {"success": True, "message": "Database cleared successfully."}
@@ -268,8 +322,12 @@ async def clear_database(user_id: str = Header(...)):
 
 
 @app.post("/api/delete-account")
-async def delete_account(user_id: str = Header(...)):
+async def delete_account(user_id: str = Header(None)):
     try:
+        # Generate user_id if not provided (though this endpoint might not make sense without a specific user_id)
+        if not user_id:
+            raise HTTPException(status_code=400, detail="User ID is required for account deletion")
+            
         db_path = os.path.join(DB_ROOT, f"{user_id}.db")
         if os.path.exists(db_path):
             os.remove(db_path)
