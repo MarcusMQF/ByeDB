@@ -85,6 +85,29 @@ class SQLExpertLLM:
                 result = self.database_client.execute_sql(sql)
 
                 if result.get("success"):
+                    # After successful execution, automatically get table info to show updated state
+                    try:
+                        # Get all table names
+                        tables_result = self.database_client.execute_sql("SELECT name FROM sqlite_master WHERE type='table'")
+                        if tables_result.get("success") and tables_result.get("data"):
+                            table_names = [row['name'] for row in tables_result['data']]
+
+                            # Get data from all tables (limit to reasonable amount)
+                            all_table_data = {}
+                            for table_name in table_names:
+                                table_data_result = self.database_client.execute_sql(f"SELECT * FROM {table_name} LIMIT 10")
+                                if table_data_result.get("success"):
+                                    all_table_data[table_name] = table_data_result.get("data", [])
+
+                            return {
+                                "success": True,
+                                "result": f"Successfully executed: {sql}",
+                                "data": result.get("data", []),
+                                "updated_tables": all_table_data
+                            }
+                    except Exception as e:
+                        print(f"Warning: Could not fetch updated table state: {e}")
+
                     return {
                         "success": True,
                         "result": f"Successfully executed multiple statements",
@@ -148,15 +171,14 @@ When you need to call a function, respond with a JSON object in this format:
     }}
 }}
 
-"""
+    """
         else:  # ask mode
             prompt = """You are an expert SQL assistant and an AI Agent from ByeDB.AI. Your job is to help write SQL queries and explain database operations.
 
 - Do NOT execute or suggest any function calls.
 - Simply write or explain SQL queries based on the user's question.
 - Be concise and clear. Return only helpful text or code as needed.
-- If the user asks any function calls for uploaded dataset, simply return the message ask user to switch to agent mode. 
-
+- If the user asks about database structure or data, reply: "Please switch to agent mode to query the database."
 """
 
         # Add previous memory if any
@@ -224,7 +246,6 @@ When you need to call a function, respond with a JSON object in this format:
             print(f"Loop {i + 1}: Generating response...")
 
             try:
-                # print(prompt)
                 response = self.model.generate_content(prompt)
             except Exception as e:
                 # TODO:

@@ -30,7 +30,14 @@ contexts = {
 }
 
 database = LocalSQLiteDatabase()
-sql_expert = SQLExpertLLM(database)
+
+try:
+    sql_expert = SQLExpertLLM(database)
+    print("✅ SQLExpertLLM initialized successfully")
+except Exception as e:
+    print(f"❌ Failed to initialize SQLExpertLLM: {e}")
+    print("💡 Please set the GEMINI_API_KEY environment variable")
+    sql_expert = None
 
 
 class SQLQuestionRequest(BaseModel):
@@ -52,6 +59,13 @@ async def ask_sql_question(request: SQLQuestionRequest):
     Process a natural language SQL question and return an expert response
     """
     try:
+        if sql_expert is None:
+            return SQLQuestionResponse(
+                success=False,
+                meta={},
+                error="GEMINI_API_KEY environment variable is not set. Please configure it before using the API."
+            )
+            
         if not request.question.strip():
             raise HTTPException(status_code=400, detail="Question cannot be empty")
 
@@ -282,6 +296,13 @@ async def continue_execution(request: ContinueRequest):
     Confirms whether to proceed with the last generated SQL query and executes it if approved.
     """
     try:
+        if sql_expert is None:
+            return SQLQuestionResponse(
+                success=False,
+                meta={},
+                error="GEMINI_API_KEY environment variable is not set. Please configure it before using the API."
+            )
+            
         if not request.approve:
             return SQLQuestionResponse(success=False, meta={}, error="Execution not approved.")
 
