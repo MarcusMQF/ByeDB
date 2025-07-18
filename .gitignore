@@ -227,3 +227,5 @@ yarn-error.log*
 # Typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/backend/charts/
