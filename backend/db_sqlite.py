@@ -166,17 +166,17 @@ class LocalSQLiteDatabase:
 
     def list_tables(self) -> Dict[str, Any]:
         """
-        Lists all tables in the database.
+        Lists all user-defined tables in the database (excluding internal ones like sqlite_sequence).
 
         Returns:
             Dict[str, Any]: A dictionary with success status and a list of table names.
         """
-        sql = "SELECT name FROM sqlite_master WHERE type='table';"
+        sql = "SELECT name FROM sqlite_master WHERE type='table' AND name != 'sqlite_sequence';"
         return self.execute_sql(sql)
 
     def export_all_data(self) -> Dict[str, Any]:
         """
-        Exports all tables and their data from the database.
+        Exports all user-defined tables and their data from the database.
 
         Returns:
             Dict[str, Any]: A dictionary with success status and exported data.
@@ -185,7 +185,9 @@ class LocalSQLiteDatabase:
             return {"success": False, "error": "Database not connected."}
 
         try:
-            tables_result = self.list_tables()
+            tables_result = self.execute_sql(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name != 'sqlite_sequence';"
+            )
             if not tables_result["success"]:
                 return {"success": False, "error": "Failed to retrieve table list."}
 
