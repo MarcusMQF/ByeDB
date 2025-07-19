@@ -25,14 +25,12 @@ interface TableProps {
 }
 
 const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
-  const [copied, setCopied] = useState(false);
-
   // Process inline formatting for table cells
   const processInlineFormatting = (text: string) => {
     // Step 1: Protect code blocks with placeholders
     const codeBlocks: string[] = [];
     const inlineCodeRegex = /`([^`]+)`/g;
-    let textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
+    const textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
       const index = codeBlocks.length;
       codeBlocks.push(code);
       return `__CODE_PLACEHOLDER_${index}__`;
@@ -717,7 +715,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
           // Step 1: Protect code blocks with placeholders
           const codeBlocks: string[] = [];
           const inlineCodeRegex = /`([^`]+)`/g;
-          let textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
+          const textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
             const index = codeBlocks.length;
             codeBlocks.push(code);
             return `__CODE_PLACEHOLDER_${index}__`;
