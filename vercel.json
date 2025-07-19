@@ -13,7 +13,6 @@
     }
   ],
   "env": {
-    "GEMINI_PROMPT_ENHANCE_API_KEY": "@gemini_prompt_enhance_api_key",
-    "NEXT_PUBLIC_BACKEND_URL": "@backend_url"
+    "NEXT_PUBLIC_API_BASE_URL": "http://localhost:8000"
   }
 }
