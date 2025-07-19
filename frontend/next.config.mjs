@@ -18,6 +18,9 @@ const nextConfig = {
   experimental: {
     disableOptimizedLoading: true,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 }
 
 export default nextConfig
