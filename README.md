@@ -286,6 +286,64 @@ const executeByeDBQuery = async (question: string) => {
   return result;
 };
 ```
+---
+
+## Conversation Memory in ByeDB.AI
+
+ByeDB.AI uses conversation memory to provide a more natural, accurate, and context-aware SQL assistant experience. This enables the platform to understand follow-up questions, maintain context, and deliver multi-step analytical workflows.
+
+### Key Advantages
+- **Conversational Context:** The AI understands follow-up queries (e.g., "And what about...?") and applies context from previous turns.
+- **Natural and Fluid Interaction:** Users interact more intuitively, without repeating information.
+- **Reduced Redundancy:** No need to specify database/table/core intent repeatedly if implied by the conversation.
+- **Improved Accuracy:** Multi-step analytics build on previous results.
+- **Disambiguation:** The AI can ask for clarification and remember the original ambiguous query.
+
+### Implementation Snippet
+```python
+# Memory to store last 3 conversations
+self.conversation_memory = deque(maxlen=3)
+
+# If we reach here, it means MAX_LOOPS were hit without a final direct response
+final_response = "Maximum function call iterations reached. Please refine your query or try again."
+current_conversation.append({"role": "assistant", "content": final_response})
+self.conversation_memory.append(current_conversation)
+return {
+    "success": False,
+    "response": final_response,
+    "function_called": function_called,
+    "usage": usage
+}
+
+def build_messages_with_memory(self, user_question: str) -> List[ChatCompletionMessageParam]:
+    """Build messages including conversation memory"""
+    messages = []
+    # Add system message with dynamic schema
+    messages.append({
+        "role": "system",
+        "content": f"""You are an expert SQL assistant. You have access to the following database:
+
+You must always respond using function calls when the user asks for database operations.
+
+Guidelines:
+- Use `execute_sql` for queries that modify the database (INSERT, UPDATE, DELETE, CREATE TABLE, etc.)
+- Use `query_sql` for SELECT statements and data inspection
+- Use `get_schema_info` to get current table structure or list all tables
+- If the user's request is unclear, ask for clarification
+- Always analyze the data before providing insights
+- If a function failed, do not keep retrying
+"""
+    })
+    # Add previous conversations from memory
+    for conversation in self.conversation_memory:
+        messages.extend(conversation)
+    # Add current user question
+    messages.append({
+        "role": "user",
+        "content": user_question
+    })
+    return messages
+```
 
 ---
 
@@ -378,65 +436,6 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 cd frontend
 npm run build
 npm run dev
-```
-
----
-
-## Conversation Memory in ByeDB.AI
-
-ByeDB.AI uses conversation memory to provide a more natural, accurate, and context-aware SQL assistant experience. This enables the platform to understand follow-up questions, maintain context, and deliver multi-step analytical workflows.
-
-### Key Advantages
-- **Conversational Context:** The AI understands follow-up queries (e.g., "And what about...?") and applies context from previous turns.
-- **Natural and Fluid Interaction:** Users interact more intuitively, without repeating information.
-- **Reduced Redundancy:** No need to specify database/table/core intent repeatedly if implied by the conversation.
-- **Improved Accuracy:** Multi-step analytics build on previous results.
-- **Disambiguation:** The AI can ask for clarification and remember the original ambiguous query.
-
-### Implementation Snippet
-```python
-# Memory to store last 3 conversations
-self.conversation_memory = deque(maxlen=3)
-
-# If we reach here, it means MAX_LOOPS were hit without a final direct response
-final_response = "Maximum function call iterations reached. Please refine your query or try again."
-current_conversation.append({"role": "assistant", "content": final_response})
-self.conversation_memory.append(current_conversation)
-return {
-    "success": False,
-    "response": final_response,
-    "function_called": function_called,
-    "usage": usage
-}
-
-def build_messages_with_memory(self, user_question: str) -> List[ChatCompletionMessageParam]:
-    """Build messages including conversation memory"""
-    messages = []
-    # Add system message with dynamic schema
-    messages.append({
-        "role": "system",
-        "content": f"""You are an expert SQL assistant. You have access to the following database:
-
-You must always respond using function calls when the user asks for database operations.
-
-Guidelines:
-- Use `execute_sql` for queries that modify the database (INSERT, UPDATE, DELETE, CREATE TABLE, etc.)
-- Use `query_sql` for SELECT statements and data inspection
-- Use `get_schema_info` to get current table structure or list all tables
-- If the user's request is unclear, ask for clarification
-- Always analyze the data before providing insights
-- If a function failed, do not keep retrying
-"""
-    })
-    # Add previous conversations from memory
-    for conversation in self.conversation_memory:
-        messages.extend(conversation)
-    # Add current user question
-    messages.append({
-        "role": "user",
-        "content": user_question
-    })
-    return messages
 ```
 
 ---
