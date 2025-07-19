@@ -495,7 +495,7 @@ export default function Chat() {
 
     try {
       // Call the backend API
-      const response = await fetch('http://localhost:8000/api/sql-question', {
+      const response = await fetch('https://byedb-ai-cml2.onrender.com/api/sql-question', {
         method: 'POST',
         headers: getApiHeaders(),
         body: JSON.stringify({
@@ -543,7 +543,7 @@ export default function Chat() {
       console.error('Error calling API:', error);
       const errorResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: "Sorry, I'm having trouble connecting to the server. Please make sure the backend is running on http://localhost:8000",
+        content: "Sorry, I'm having trouble connecting to the server. Please make sure the backend is running on https://byedb-ai-cml2.onrender.com",
         isUser: false,
         timestamp: new Date(),
       };
@@ -557,7 +557,7 @@ export default function Chat() {
   const handleConfirmExecution = async (confirmationData: any, messageId: string) => {
     setIsConfirming(messageId); // Set loading state for this specific message
     try {
-      const response = await fetch('http://localhost:8000/api/continue-execution', {
+      const response = await fetch('https://byedb-ai-cml2.onrender.com/api/continue-execution', {
         method: 'POST',
         headers: getApiHeaders(),
         body: JSON.stringify({
@@ -632,7 +632,7 @@ export default function Chat() {
 
     try {
       // Call the backend API with ask mode to avoid SQL execution
-      const response = await fetch('http://localhost:8000/api/sql-question', {
+      const response = await fetch('https://byedb-ai-cml2.onrender.com/api/sql-question', {
         method: 'POST',
         headers: getApiHeaders(),
         body: JSON.stringify({
@@ -681,7 +681,7 @@ export default function Chat() {
   const handleClearChat = async () => {
     try {
       // Clear memory on backend
-      const response = await fetch('http://localhost:8000/api/clear-memory', {
+      const response = await fetch('https://byedb-ai-cml2.onrender.com/api/clear-memory', {
         method: 'POST',
         headers: getApiHeaders(),
       });

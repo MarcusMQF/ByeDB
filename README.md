@@ -497,7 +497,7 @@ npm install
 
 # Configure performance monitoring
 export NEXT_PUBLIC_ENABLE_ANALYTICS="true"
-export NEXT_PUBLIC_API_BASE_URL="http://localhost:8000"
+export NEXT_PUBLIC_API_BASE_URL="https://byedb-ai-cml2.onrender.com"
 
 # Launch with production optimization
 npm run dev
@@ -505,10 +505,10 @@ npm run dev
 
 ### **4. Enterprise Access Points**
 - **Intelligence Dashboard**: http://localhost:3000
-- **API Gateway**: http://localhost:8000
-- **OpenAPI Documentation**: http://localhost:8000/docs
-- **Performance Metrics**: http://localhost:8000/metrics
-- **Health Check**: http://localhost:8000/health
+- **API Gateway**: https://byedb-ai-cml2.onrender.com
+- **OpenAPI Documentation**: https://byedb-ai-cml2.onrender.com/docs
+- **Performance Metrics**: https://byedb-ai-cml2.onrender.com/metrics
+- **Health Check**: https://byedb-ai-cml2.onrender.com/health
 
 ---
 

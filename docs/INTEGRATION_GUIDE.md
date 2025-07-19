@@ -186,7 +186,7 @@ frontend/
    - Make sure you're using HTTPS or localhost
 
 4. **Frontend not connecting to backend**
-   - Check that the backend is running on `http://localhost:8000`
+   - Check that the backend is running on `https://byedb-ai-cml2.onrender.com`
    - Verify CORS settings in `main.py`
 
 ### Testing Individual Components

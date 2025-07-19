@@ -641,7 +641,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
           } else if (element.type === 'image') { // New: Handle image type
             let finalSrc = element.src;
             if (finalSrc.startsWith('api/')) {
-              finalSrc = `http://localhost:8000/${finalSrc}`;
+              finalSrc = `https://byedb-ai-cml2.onrender.com/${finalSrc}`;
             }
             newParts.push({
               text: element.match,

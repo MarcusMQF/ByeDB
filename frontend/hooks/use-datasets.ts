@@ -26,7 +26,7 @@ export interface UseDatasets {
   getDatasetSummary: () => { totalRows: number; totalColumns: number; totalDatasets: number };
 }
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://byedb-ai-cml2.onrender.com';
 
 export const useDatasets = (): UseDatasets => {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
