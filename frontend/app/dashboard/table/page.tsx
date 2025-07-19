@@ -10,9 +10,8 @@ import {
   TableRow,
 } from "@/components/table";
 import { useState } from "react";
-import { RiSearchLine, RiRefreshLine, RiDownloadLine, RiExpandUpDownLine, RiTableLine, RiShareLine, RiShareCircleLine } from "@remixicon/react";
+import { RiSearchLine, RiRefreshLine, RiDownloadLine, RiExpandUpDownLine, RiTableLine } from "@remixicon/react";
 import { Input } from "@/components/input";
-import Link from "next/link";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -27,7 +26,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
-import { useDatasets } from "@/hooks/use-datasets";
 import { useDatasetContext } from "@/lib/dataset-context";
 import { Badge } from "@/components/badge";
 import { useEffect } from "react";
@@ -43,7 +41,6 @@ export default function TablePage() {
   } = useDatasetContext();
   
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set());
   
   // Refresh datasets when component mounts or when user navigates to this page
@@ -56,9 +53,6 @@ export default function TablePage() {
     dataset.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Get the selected dataset for detailed view
-  const selectedDataset = datasets.find(d => d.id === selectedTable);
-  
   // Toggle table expansion
   const toggleTableExpansion = (tableId: string) => {
     const newExpanded = new Set(expandedTables);
