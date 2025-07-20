@@ -25,6 +25,8 @@ interface TableProps {
 }
 
 const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
+  const [copied, setCopied] = useState(false);
+  
   // Process inline formatting for table cells
   const processInlineFormatting = (text: string) => {
     // Step 1: Protect code blocks with placeholders

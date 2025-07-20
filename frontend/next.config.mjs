@@ -11,7 +11,8 @@ const nextConfig = {
   },
   // Disable all development indicators and overlays
   devIndicators: {
-    position: 'bottom-left',
+    buildActivity: false,
+    buildActivityPosition: 'bottom-right'
   },
   // Disable development overlay completely
   experimental: {
