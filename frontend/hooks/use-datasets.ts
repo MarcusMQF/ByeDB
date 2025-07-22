@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getUserId, getApiHeaders, getApiHeadersForFormData } from '@/lib/user-session';
+import { getApiConfig } from '@/lib/api-config';
 
 export interface Dataset {
   id: string;
@@ -26,9 +27,8 @@ export interface UseDatasets {
   getDatasetSummary: () => { totalRows: number; totalColumns: number; totalDatasets: number };
 }
 
-const API_BASE_URL = 'http://localhost:8000';
-
 export const useDatasets = (): UseDatasets => {
+  const { endpoints } = getApiConfig();
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +67,7 @@ export const useDatasets = (): UseDatasets => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/export-db`, {
+      const response = await fetch(endpoints.exportDb, {
         headers: getApiHeaders(),
       });
       
@@ -105,7 +105,7 @@ export const useDatasets = (): UseDatasets => {
       console.log('Uploading file:', file.name, 'Size:', file.size);
       console.log('Using user ID:', getUserId());
 
-      const response = await fetch(`${API_BASE_URL}/api/upload-db`, {
+      const response = await fetch(endpoints.uploadDb, {
         method: 'POST',
         headers: getApiHeadersForFormData(),
         body: formData,
@@ -158,7 +158,7 @@ export const useDatasets = (): UseDatasets => {
     
     try {
       // Call backend to clear database
-      const dbResponse = await fetch(`${API_BASE_URL}/api/clear-database`, {
+      const dbResponse = await fetch(endpoints.clearDatabase, {
         method: 'POST',
         headers: getApiHeaders(),
       });
@@ -173,7 +173,7 @@ export const useDatasets = (): UseDatasets => {
       }
 
       // Call backend to clear memory
-      const memoryResponse = await fetch(`${API_BASE_URL}/api/clear-memory`, {
+      const memoryResponse = await fetch(endpoints.clearMemory, {
         method: 'POST',
         headers: getApiHeaders(),
       });
@@ -206,7 +206,7 @@ export const useDatasets = (): UseDatasets => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/clear-memory`, {
+      const response = await fetch(endpoints.clearMemory, {
         method: 'POST',
         headers: getApiHeaders(),
       });
@@ -233,7 +233,7 @@ export const useDatasets = (): UseDatasets => {
   // Export database
   const exportDatabase = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/export-db`, {
+      const response = await fetch(endpoints.exportDb, {
         headers: getApiHeaders(),
       });
       

@@ -49,6 +49,7 @@ import {
 } from "@/lib/chat-storage";
 import { useDatasetContext } from "@/lib/dataset-context";
 import { SQLSyntaxHighlighter } from "@/components/sql-syntax-highlighter";
+import { getApiConfig } from "@/lib/api-config";
 
 // Helper function to format SQL queries by adding line breaks after semicolons
 const formatSQLQuery = (sqlText: string): string => {
@@ -108,6 +109,7 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { refreshAfterSQLOperation } = useDatasetContext();
+  const { endpoints } = getApiConfig();
   const [messages, setMessages] = useState<Message[]>(() => 
     loadFromLocalStorage(CHAT_MESSAGES_KEY, [])
   );
@@ -501,7 +503,7 @@ export default function Chat() {
 
     try {
       // Call the backend API
-      const response = await fetch('http://localhost:8000/api/sql-question', {
+      const response = await fetch(endpoints.sqlQuestion, {
         method: 'POST',
         headers: getApiHeaders(),
         body: JSON.stringify({
@@ -563,7 +565,7 @@ export default function Chat() {
   const handleConfirmExecution = async (confirmationData: any, messageId: string) => {
     setIsConfirming(messageId); // Set loading state for this specific message
     try {
-      const response = await fetch('http://localhost:8000/api/continue-execution', {
+      const response = await fetch(endpoints.continueExecution, {
         method: 'POST',
         headers: getApiHeaders(),
         body: JSON.stringify({
@@ -638,7 +640,7 @@ export default function Chat() {
 
     try {
       // Call the backend API with ask mode to avoid SQL execution
-      const response = await fetch('http://localhost:8000/api/sql-question', {
+      const response = await fetch(endpoints.sqlQuestion, {
         method: 'POST',
         headers: getApiHeaders(),
         body: JSON.stringify({
@@ -687,7 +689,7 @@ export default function Chat() {
   const handleClearChat = async () => {
     try {
       // Clear memory on backend
-      const response = await fetch('http://localhost:8000/api/clear-memory', {
+      const response = await fetch(endpoints.clearMemory, {
         method: 'POST',
         headers: getApiHeaders(),
       });

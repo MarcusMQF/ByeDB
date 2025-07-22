@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Button } from './button';
 import { RiFileCopyLine, RiCheckLine, RiDownloadLine, RiFileTextLine, RiFileExcelLine, RiTableLine } from '@remixicon/react';
 import { SQLSyntaxHighlighter } from './sql-syntax-highlighter';
+import { buildImageUrl } from '@/lib/api-config';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -648,10 +649,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
               tableHeaders: element.headers
             });
           } else if (element.type === 'image') { // New: Handle image type
-            let finalSrc = element.src;
-            if (finalSrc.startsWith('api/')) {
-              finalSrc = `http://localhost:8000/${finalSrc}`;
-            }
+            const finalSrc = buildImageUrl(element.src);
             newParts.push({
               text: element.match,
               start: element.start,
