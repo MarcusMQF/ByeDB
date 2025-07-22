@@ -85,7 +85,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden">
+    <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden md:rounded-t-3xl">
       {/* Enhanced background effects */}
       <div className="absolute inset-0">
         {/* Primary blue glow */}
@@ -288,13 +288,12 @@ export default function Home() {
               
               {/* Video container */}
               <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-3 overflow-hidden">
-                <div className="relative rounded-2xl overflow-hidden bg-black/20">
+                <div className="relative rounded-2xl overflow-hidden bg-black/20" style={{ aspectRatio: '16/9' }}>
                   <video 
-                    className="w-full h-auto rounded-2xl shadow-2xl"
+                    className="w-full h-full object-cover rounded-2xl shadow-2xl"
                     controls
                     preload="metadata"
                     poster="/images/chat.png"
-                    style={{ aspectRatio: '16/9' }}
                   >
                     <source src="/video/demo.mp4" type="video/mp4" />
                     Your browser does not support the video tag.
@@ -674,7 +673,7 @@ Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that tr
               
               {/* Developer credits */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-white/5">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 sm:ml-2">
                   <span className="text-base text-gray-400">Built with ❤️ by</span>
                   <AvatarGroup 
                     items={developers} 

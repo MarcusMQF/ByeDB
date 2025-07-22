@@ -280,7 +280,7 @@ export default function TablePage() {
   };
   
   return (
-    <div className="flex flex-col flex-1 relative">
+    <div className="flex-1 w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background flex flex-col h-full overflow-hidden">
       {/* Page header - matching chat page header */}
       <div className="py-5 px-4 md:px-6 lg:px-8 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06] shrink-0">
         <div className="flex items-center justify-between gap-2">
@@ -339,8 +339,6 @@ export default function TablePage() {
       
       {/* Main content */}
       <div className="flex-1 py-8 px-4 md:px-6 lg:px-8 bg-background relative overflow-auto scrollbar-thin">
-        {/* Shadow on the right edge */}
-        <div className="absolute top-0 right-0 bottom-0 w-[1px] bg-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]"></div>
         
         <div className="max-w-[1400px] mx-auto">
           <div className="relative w-full max-w-md mb-6">
