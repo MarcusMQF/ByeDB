@@ -85,7 +85,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden md:rounded-t-3xl">
+    <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden">
       {/* Enhanced background effects */}
       <div className="absolute inset-0">
         {/* Primary blue glow */}

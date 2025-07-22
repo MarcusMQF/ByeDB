@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Button } from './button';
 import { RiFileCopyLine, RiCheckLine, RiDownloadLine, RiFileTextLine, RiFileExcelLine, RiTableLine } from '@remixicon/react';
+import { SQLSyntaxHighlighter } from './sql-syntax-highlighter';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -372,11 +373,19 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language = 'sql' }) => {
           </span>
         </Button>
       </div>
-      <pre className="p-4 overflow-x-auto text-sm max-w-full">
-        <code className="text-slate-800 dark:text-slate-200 font-mono break-words">
-          {formattedCode}
-        </code>
-      </pre>
+      <div className="p-4">
+        {language === 'sql' ? (
+          <SQLSyntaxHighlighter 
+            code={formattedCode}
+          />
+        ) : (
+          <pre className="overflow-x-auto text-sm max-w-full custom-scrollbar">
+            <code className="text-slate-800 dark:text-slate-200 font-mono break-words">
+              {formattedCode}
+            </code>
+          </pre>
+        )}
+      </div>
     </div>
   );
 };
