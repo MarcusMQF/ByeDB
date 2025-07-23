@@ -36,6 +36,6 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ## API Endpoints
 
-The server will be available at `http://localhost:8000`
-- API documentation: `http://localhost:8000/docs`
-- Alternative docs: `http://localhost:8000/redoc` 
+The server will be available at `https://byedb-ai-cml2.onrender.com`
+- API documentation: `https://byedb-ai-cml2.onrender.com/docs`
+- Alternative docs: `https://byedb-ai-cml2.onrender.com/redoc` 
