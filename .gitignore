@@ -229,3 +229,5 @@ yarn-error.log*
 next-env.d.ts
 
 /backend/charts/
+
+TODO.md

@@ -445,25 +445,7 @@ const SettingsPanelContent = () => {
                   </div>
                 </div>
                 
-                {/* File Size Information - Only for uploaded datasets */}
-                {dataset.source === 'uploaded' && (
-                  <div className="mb-4">
-                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                          File Size
-                        </span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {/* Calculate estimated file size based on data */}
-                          {dataset.data && dataset.data.length > 0 
-                            ? `${Math.max(0.1, (dataset.rows * dataset.columns * 10) / 1024 / 1024).toFixed(1)} MB`
-                            : 'Unknown'
-                          }
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+
                 
                 <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
                   <Badge variant="secondary" className="text-xs font-medium">

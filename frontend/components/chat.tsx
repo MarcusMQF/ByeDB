@@ -27,7 +27,7 @@ import {
   RiDownloadLine
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/tooltip";
 import MarkdownResponse from "@/components/markdown-response";
 import {
@@ -48,6 +48,8 @@ import {
   CHAT_INPUT_KEY
 } from "@/lib/chat-storage";
 import { useDatasetContext } from "@/lib/dataset-context";
+import { SQLSyntaxHighlighter } from "@/components/sql-syntax-highlighter";
+import { getApiConfig } from "@/lib/api-config";
 
 // Helper function to format SQL queries by adding line breaks after semicolons
 const formatSQLQuery = (sqlText: string): string => {
@@ -107,6 +109,7 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { refreshAfterSQLOperation } = useDatasetContext();
+  const { endpoints } = getApiConfig();
   const [messages, setMessages] = useState<Message[]>(() => 
     loadFromLocalStorage(CHAT_MESSAGES_KEY, [])
   );
@@ -468,7 +471,12 @@ export default function Chat() {
   };
 
   useEffect(() => {
-    adjustTextareaHeight();
+    // Use requestAnimationFrame for smooth height adjustment
+    const frameId = requestAnimationFrame(() => {
+      adjustTextareaHeight();
+    });
+
+    return () => cancelAnimationFrame(frameId);
   }, [inputValue]);
 
   const handleSendMessage = async () => {
@@ -495,7 +503,7 @@ export default function Chat() {
 
     try {
       // Call the backend API
-      const response = await fetch('http://localhost:8000/api/sql-question', {
+      const response = await fetch(endpoints.sqlQuestion, {
         method: 'POST',
         headers: getApiHeaders(),
         body: JSON.stringify({
@@ -557,7 +565,7 @@ export default function Chat() {
   const handleConfirmExecution = async (confirmationData: any, messageId: string) => {
     setIsConfirming(messageId); // Set loading state for this specific message
     try {
-      const response = await fetch('http://localhost:8000/api/continue-execution', {
+      const response = await fetch(endpoints.continueExecution, {
         method: 'POST',
         headers: getApiHeaders(),
         body: JSON.stringify({
@@ -632,7 +640,7 @@ export default function Chat() {
 
     try {
       // Call the backend API with ask mode to avoid SQL execution
-      const response = await fetch('http://localhost:8000/api/sql-question', {
+      const response = await fetch(endpoints.sqlQuestion, {
         method: 'POST',
         headers: getApiHeaders(),
         body: JSON.stringify({
@@ -681,7 +689,7 @@ export default function Chat() {
   const handleClearChat = async () => {
     try {
       // Clear memory on backend
-      const response = await fetch('http://localhost:8000/api/clear-memory', {
+      const response = await fetch(endpoints.clearMemory, {
         method: 'POST',
         headers: getApiHeaders(),
       });
@@ -912,9 +920,9 @@ export default function Chat() {
                                         SQL Query {funcIndex + 1}:
                                       </div>
                                     )}
-                                    <pre className="text-sm font-mono whitespace-pre-wrap text-gray-800 dark:text-gray-200 overflow-x-auto break-words max-w-full">
-                                      {formatSQLQuery(func.args.text)}
-                                    </pre>
+                                    <SQLSyntaxHighlighter 
+                                      code={formatSQLQuery(func.args.text)}
+                                    />
                                   </div>
                                 )
                               ))}
@@ -1062,9 +1070,9 @@ export default function Chat() {
                                     
                                     {/* SQL Query Code */}
                                     <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-                                      <pre className="text-sm font-mono whitespace-pre-wrap text-gray-800 dark:text-gray-200 overflow-x-auto break-words max-w-full">
-                                        {formatSQLQuery(func.args.text)}
-                                      </pre>
+                                      <SQLSyntaxHighlighter 
+                                        code={formatSQLQuery(func.args.text)}
+                                      />
                                     </div>
                                     
                                     {/* Query Result/Response */}
@@ -1082,7 +1090,7 @@ export default function Chat() {
                                             />
                                           </div>
                                         </div>
-                                        <div className="p-3 max-h-96 overflow-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-500 [&::-webkit-scrollbar-button]:hidden">
+                                        <div className="p-3 max-h-96 overflow-auto scrollbar-thin">
                                           <pre className="text-xs font-mono whitespace-pre-wrap text-gray-700 dark:text-gray-300 overflow-x-auto break-words max-w-full">
                                             {(() => {
                                               try {
