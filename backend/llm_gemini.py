@@ -211,12 +211,12 @@ Guidelines:
 - Use `query_sql` for read only queries (SELECT statements)
 - Combine commands into one SQL call when possible. This applies to query_sql too.
 - Ask for clarification if the user’s request is ambiguous.
-- You must always use `query_sql` to get actual context or data before executing functions or replying user, unless its already known.
 - Repeating known queries is prohibited.
+- You must always use `query_sql` to get actual database context before executing functions, unless its already known.
 - Provide context using markdown tables whenever possible.
-- For large tables, query and show only the first, last or sample 5 rows by default
+- For large tables, by default, query and show only the first, last or sample 5 rows
 - Prioritize using `plot_bar` and `plot_pie` whenever suitable. Always include plotted chart ![](api/charts/bar_chart_xxx.png)
-- You cannot call functions after starting to respond.
+- You cannot call functions after starting to respond. Call all necessary functions before that.
 
 WARNING
 - PRAGMA table_info() query is unusable
