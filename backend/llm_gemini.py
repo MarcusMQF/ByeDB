@@ -5,7 +5,7 @@ from typing import Dict, Any, List, Optional
 import google.generativeai as genai
 from dotenv import load_dotenv
 from collections import deque
-from generate_chart import cm
+from chart_manager import cm
 
 # Load environment variables from parent directory
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -78,97 +78,113 @@ class SQLExpertLLM:
         # Store the previous context for continue_respond
         self.previous_context: Optional[ExecutionContext] = None
 
+    def _func_get_schema(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        table_name = arguments.get("table")
+        if not table_name:
+            return {"success": False, "error": "Missing 'table' argument for schema retrieval."}
+
+        try:
+            sql = f"SELECT * FROM {table_name} LIMIT 1"
+            result = self.database_client.execute_sql(sql)
+
+            if not result.get("success"):
+                return {"success": False, "error": result.get("error", "Failed to retrieve table schema.")}
+
+            columns = result.get("columns", [])
+            return {
+                "success": True,
+                "result": f"Schema for table '{table_name}'",
+                "schema": [{"column": col} for col in columns]
+            }
+        except Exception as e:
+            return {"success": False, "error": f"Error retrieving schema: {str(e)}"}
+
+    def _func_execute_sql(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        sql = arguments["text"]
+        print(f"[EXECUTE SQL]: {sql}")
+        result = self.database_client.execute_sql(sql)
+
+        if not result.get("success"):
+            return {
+                "success": False,
+                "error": result.get("error", "Unknown error")
+            }
+        try:
+            tables_result = self.database_client.execute_sql("SELECT name FROM sqlite_master WHERE type='table'")
+            if tables_result.get("success") and tables_result.get("data"):
+                return {
+                    "success": True,
+                    "result": f"Successfully executed: {sql}",
+                    "data": result.get("data", [])
+                }
+        except Exception as e:
+            print(f"Warning: Could not fetch updated table state: {e}")
+
+        return {
+            "success": True,
+            "result": f"Successfully executed multiple statements",
+            "data": result.get("data", [])
+        }
+
+    def _func_query_sql(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        sql = arguments["text"]
+        print(f"[QUERY SQL]: {sql}")
+        result = self.database_client.execute_sql(sql)
+
+        if result.get("success"):
+            return {
+                "success": True,
+                "result": f"Query executed: {sql}",
+                "data": result.get("data", [])
+            }
+        else:
+            return {
+                "success": False,
+                "error": result.get("error", "Unknown error")
+            }
+
+    def _func_plot_graph(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        title = arguments["title"]
+        sql = arguments["text"]
+        print(f"[PLOT {name.upper()}]: {title} | SQL: {sql}")
+
+        # Execute the query
+        result = self.database_client.execute_sql(sql)
+        if not result.get("success"):
+            return {
+                "success": False,
+                "error": result.get("error", "SQL execution failed")
+            }
+
+        data = result.get("data", [])
+        if not data or len(data[0]) < 2:
+            return {
+                "success": False,
+                "error": "Query must return at least two columns: labels and values"
+            }
+
+        # Call your chart generator function (update this to match your own)
+        if name == "plot_pie":
+            image_path_or_url = cm.plot_pie_chart(title, data)
+        else:
+            image_path_or_url = cm.plot_bar_chart(title, data)
+
+        return {
+            "success": True,
+            "result": f"Chart plotted: {title}",
+            "image": image_path_or_url,
+            "data": data
+        }
+
     def execute_function(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Execute function calls using the actual database"""
         try:
             if name == "execute_sql":
-                sql = arguments["text"]
-                print(f"[EXECUTE SQL]: {sql}")
-                result = self.database_client.execute_sql(sql)
-
-                if result.get("success"):
-                    # After successful execution, automatically get table info to show updated state
-                    try:
-                        # Get all table names
-                        tables_result = self.database_client.execute_sql("SELECT name FROM sqlite_master WHERE type='table'")
-                        if tables_result.get("success") and tables_result.get("data"):
-                            table_names = [row['name'] for row in tables_result['data']]
-
-                            # Get data from all tables (limit to reasonable amount)
-                            all_table_data = {}
-                            for table_name in table_names:
-                                table_data_result = self.database_client.execute_sql(f"SELECT * FROM {table_name} LIMIT 10")
-                                if table_data_result.get("success"):
-                                    all_table_data[table_name] = table_data_result.get("data", [])
-
-                            return {
-                                "success": True,
-                                "result": f"Successfully executed: {sql}",
-                                "data": result.get("data", []),
-                                "updated_tables": all_table_data
-                            }
-                    except Exception as e:
-                        print(f"Warning: Could not fetch updated table state: {e}")
-
-                    return {
-                        "success": True,
-                        "result": f"Successfully executed multiple statements",
-                        "data": result.get("data", [])
-                    }
-                else:
-                    return {
-                        "success": False,
-                        "error": result.get("error", "Unknown error")
-                    }
-
+                return self._func_execute_sql(name, arguments)
             elif name == "query_sql":
-                sql = arguments["text"]
-                print(f"[QUERY SQL]: {sql}")
-                result = self.database_client.execute_sql(sql)
-
-                if result.get("success"):
-                    return {
-                        "success": True,
-                        "result": f"Query executed: {sql}",
-                        "data": result.get("data", [])
-                    }
-                else:
-                    return {
-                        "success": False,
-                        "error": result.get("error", "Unknown error")
-                    }
+                return self._func_query_sql(name, arguments)
             elif name in ["plot_bar", "plot_pie"]:
-                title = arguments["title"]
-                sql = arguments["text"]
-                print(f"[PLOT {name.upper()}]: {title} | SQL: {sql}")
-
-                # Execute the query
-                result = self.database_client.execute_sql(sql)
-                if not result.get("success"):
-                    return {
-                        "success": False,
-                        "error": result.get("error", "SQL execution failed")
-                    }
-
-                data = result.get("data", [])
-                if not data or len(data[0]) < 2:
-                    return {
-                        "success": False,
-                        "error": "Query must return at least two columns: labels and values"
-                    }
-
-                # Call your chart generator function (update this to match your own)
-                if name == "plot_pie":
-                    image_path_or_url = cm.plot_pie_chart(title, data)
-                else:
-                    image_path_or_url = cm.plot_bar_chart(title, data)
-
-                return {
-                    "success": True,
-                    "result": f"Chart plotted: {title}",
-                    "image": image_path_or_url,
-                    "data": data
-                }
+                return self._func_plot_graph(name, arguments)
             return {"success": False, "error": f"Function {name} not recognized."}
         except Exception as e:
             return {"success": False, "error": f"Error executing {name}: {str(e)}"}
@@ -179,29 +195,30 @@ class SQLExpertLLM:
         """
         if self.mode == "agent":
             prompt = f"""You are an expert SQL assistant and an AI Agent from ByeDB.AI.
+            
+You can interact with the database, plot graphs, and provide insights.
 
 You must respond with function calls when database operations is needed.
 
 Available functions:
-1. execute_sql(text): Execute SQL commands that modify the database (INSERT, UPDATE, DELETE, CREATE TABLE, etc.)
+1. execute_sql(text): Execute SQL commands that modifies the database (INSERT, UPDATE, DELETE, CREATE TABLE, etc.)
 2. query_sql(text): Query the database for information (SELECT statements). Safe and no confirmation needed.
 3. plot_bar(title, text): Plot a bar chart from SQL SELECT result. First column = labels, second column = values.
 4. plot_pie(title, text): Plot a pie chart from SQL SELECT result. First column = labels, second column = values.
 
 Guidelines:
-- Use `execute_sql` for queries that modify the database (INSERT, UPDATE, DELETE, CREATE TABLE, etc.)
-- Use `query_sql` for SELECT statements and data inspection
-- Combine commands into one SQL call when possible. This applies to query_sql too
-- Ask for clarification if a request is vague
-- Query the database if any context is needed
-- Avoid repeating known queries
-- Always analyse queried data before providing insights
-- The user does not have direct database access, provide context using markdown tables whenever possible.
-- Prioritize plot_bar or plot_pie for chart/visualization/analyzing. Always include plotted chart ![](api/charts/bar_chart_xxxx.png)
-- For large tables, note it and show only the first/last/sample 5 rows.
+- Use `execute_sql` for queries that modifies the database
+- Use `query_sql` for read only queries (SELECT statements)
+- Combine commands into one SQL call when possible. This applies to query_sql too.
+- Ask for clarification if the user’s request is ambiguous.
+- You must always use `query_sql` to get actual context or data before executing functions or replying user, unless its already known.
+- Avoid repeating known queries.
+- Provide context using markdown tables whenever possible.
+- For large tables, query and show only the first, last or sample 5 rows by default
+- Prioritize using `plot_bar` and `plot_pie` whenever suitable. Always include plotted chart ![](api/charts/bar_chart_xxx.png)
 
 WARNING
-- PRAGMA table_info() query is banned
+- PRAGMA table_info() query is unusable
 
 When you need to call a function, respond with a JSON object in this format:
 {{
@@ -210,7 +227,6 @@ When you need to call a function, respond with a JSON object in this format:
         "arguments": {{"parameter": "value"}}
     }}
 }}
-
 """
         else:  # ask mode
             prompt = """You are an expert SQL assistant and an AI Agent from ByeDB.AI. Your job is to help write SQL queries and explain database operations.
@@ -280,7 +296,7 @@ When you need to call a function, respond with a JSON object in this format:
             "content": response_text
         }
 
-    def generate_response_in_loop(self, context: ExecutionContext, max_depth: int) -> Dict[str, Any]:
+    def _generate_response_in_loop(self, context: ExecutionContext, max_depth: int) -> Dict[str, Any]:
         """Generate response with context management"""
 
         for i in range(max_depth):
@@ -371,21 +387,37 @@ When you need to call a function, respond with a JSON object in this format:
             "usage": {"note": "Gemini API doesn't provide detailed usage stats"}
         }
 
+    def _dismiss_previous_context(self):
+        if not self.previous_context:
+            return
+        if self.previous_context.has_pending_function():
+            fn_call = self.previous_context.pending_function_call
+            fn_name = fn_call["name"]
+            fn_args = fn_call["arguments"]
+            self.previous_context.add_function_call(
+                fn_name, fn_args, {
+                    "success": False,
+                    "fn_args": fn_args,
+                    "error": "Cancelled by User"
+                }
+            )
+        self.conversation_memory.append(self.previous_context.current_conversation.copy())
+        self.previous_context = None
+
     def generate_sql_response(self, user_question: str) -> Dict[str, Any]:
         """Generate response with memory and database integration, allowing for multiple function calls."""
+        self._dismiss_previous_context()
+        context = ExecutionContext()
+        context.add_user_message(user_question)
         try:
-            # Create new context for this conversation
-            context = ExecutionContext()
-            context.add_user_message(user_question)
-
-            return self.generate_response_in_loop(context, 20)
+            return self._generate_response_in_loop(context, 20)
         except Exception as e:
             return {
                 "success": False,
                 "error": f"Error generating response: {str(e)}"
             }
 
-    def continue_respond(self) -> Dict[str, Any]:
+    def continue_sql_respond(self) -> Dict[str, Any]:
         """
         Continues the previous conversation, optionally executing any pending function.
         """
@@ -409,10 +441,29 @@ When you need to call a function, respond with a JSON object in this format:
                 context.clear_pending_function()
 
             # Proceed with next steps regardless of whether a function was executed
-            return self.generate_response_in_loop(context, 20)
+            return self._generate_response_in_loop(context, 20)
 
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+    def cancel_sql_execution(self) -> Dict[str, Any]:
+        """
+        Cancels the pending function and continues the previous conversation.
+        """
+        if not self.previous_context or not self.previous_context.has_pending_function():
+            return {"success": False, "error": "No pending function to cancel."}
+        fn_call = self.previous_context.pending_function_call
+        fn_name = fn_call["name"]
+        fn_args = fn_call["arguments"]
+        self.previous_context.add_function_call(
+            fn_name, fn_args, {
+                "success": False,
+                "fn_args": fn_args,
+                "error": "Cancelled by User"
+            }
+        )
+        self.previous_context.clear_pending_function()
+        return self.continue_sql_respond()
 
     def clear_memory(self):
         """Clear conversation memory"""
@@ -470,7 +521,7 @@ if __name__ == '__main__':
             if response.get("requires_continue"):
                 print(response["function_called"][-1]["args"])
                 print(response["data"])
-                response = agent.continue_respond()
+                response = agent.continue_sql_respond()
                 continue
             print(f"Response: {response['response']}")
             print(f"Functions to execute: {response['function_called']}")
@@ -478,8 +529,9 @@ if __name__ == '__main__':
             approval = input("Do you want to proceed? (y/n): ").lower().strip()
             if approval in ['y', 'yes']:
                 print("Executing approved function...")
-                response = agent.continue_respond()
+                response = agent.continue_sql_respond()
             else:
+                response = agent.cancel_sql_execution()
                 print("Execution cancelled.")
                 break
         if response["success"]:

@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from typing import List, Dict, Any
 import os
 import time
-from collections import OrderedDict
 
 
 class ChartManager:
@@ -131,7 +130,7 @@ class ChartManager:
     def get_full_path(self, name: str) -> str:
         return os.path.abspath(os.path.join(self.output_dir, os.path.basename(name)))
 
-cm = ChartManager(output_dir="charts", max_files=20)
+cm = ChartManager(output_dir="charts", max_files=100)
 
 if __name__ == "__main__":
     data = [

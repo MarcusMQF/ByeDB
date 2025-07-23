@@ -5,6 +5,7 @@ import csv
 import zipfile
 import tempfile
 import traceback
+
 import pandas as pd
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Header
@@ -17,7 +18,7 @@ from typing import Optional
 from db_sqlite import LocalSQLiteDatabase
 from llm_gemini import SQLExpertLLM
 from lru_usr_context import LRUUserContext
-from generate_chart import cm
+from chart_manager import cm
 
 app = FastAPI(title="ByeDB API", description="Natural Language to SQL API", version="1.0.0")
 
@@ -72,8 +73,9 @@ async def ask_sql_question(request: SQLQuestionRequest, user_id: str = Header(..
 
         if request.mode:
             sql_expert.mode = request.mode
+        print(f"Question: {request.question}")
         result = sql_expert.generate_sql_response(request.question)
-        print(result)
+        print(json.dumps(result, indent=2))
         return SQLQuestionResponse(
             success=result["success"],
             meta=result,
@@ -87,10 +89,13 @@ async def ask_sql_question(request: SQLQuestionRequest, user_id: str = Header(..
 @app.post("/api/continue-execution", response_model=SQLQuestionResponse)
 async def continue_execution(request: ContinueRequest, user_id: str = Header(...)):
     try:
-        if not request.approve:
-            return SQLQuestionResponse(success=False, meta={}, error="Execution not approved.")
         sql_expert = get_user_agent(user_id)
-        result = sql_expert.continue_respond()
+
+        if request.approve:
+            result = sql_expert.continue_sql_respond()
+        else:
+            result = sql_expert.cancel_sql_execution()
+        print(json.dumps(result, indent=2))
         return SQLQuestionResponse(
             success=result["success"],
             meta=result,
