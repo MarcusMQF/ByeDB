@@ -409,9 +409,6 @@ const SettingsPanelContent = () => {
                         <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={dataset.name}>
                           {dataset.name}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Last modified: {dataset.lastModified}
-                        </p>
                       </div>
                     </div>
                     
