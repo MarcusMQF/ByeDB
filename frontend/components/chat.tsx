@@ -807,7 +807,7 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex-1 w-full min-w-0 shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background flex flex-col h-full overflow-hidden">
+    <div className="flex-1 w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background flex flex-col h-full overflow-hidden">
       {/* Confirmation Dialog for Clear Chat */}
       <ConfirmationDialog
         title="Are you absolutely sure?"
@@ -873,8 +873,8 @@ export default function Chat() {
 
       {/* Messages - Scrollable area */}
       <ScrollArea className="flex-1 overflow-hidden">
-        <div className="px-2 sm:px-4 md:px-6 lg:px-8 pb-4 h-full">
-          <div className="max-w-3xl mx-auto mt-6 space-y-4 pb-6 min-w-0 w-full">{/* Added responsive padding and width */}
+        <div className="px-4 md:px-6 lg:px-8 pb-4 h-full">
+          <div className="max-w-3xl mx-auto mt-6 space-y-4 pb-6 min-w-0">{/* Added min-w-0 for proper flex shrinking */}
             {messages.length === 0 ? (
               <div className="text-center my-8">
                 <div className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-full border border-blue-200/60 dark:border-blue-800/40 shadow-sm text-xs font-medium py-1.5 px-3 text-blue-700 dark:text-blue-300">
@@ -1179,8 +1179,8 @@ export default function Chat() {
       </ScrollArea>
       
       {/* Fixed Input Area */}
-      <div className="shrink-0 py-4 sm:py-6 md:py-12 px-2 sm:px-4 md:px-6 lg:px-8 bg-background">
-        <div className="max-w-3xl mx-auto w-full min-w-0">
+      <div className="shrink-0 py-6 md:py-12 px-4 md:px-6 lg:px-8 bg-background">
+        <div className="max-w-3xl mx-auto">
           <div className="relative rounded-[20px] border border-transparent bg-muted transition-colors focus-within:bg-muted/50 focus-within:border-input">
             <textarea
               ref={textareaRef}
