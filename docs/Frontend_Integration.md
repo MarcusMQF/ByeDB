@@ -122,7 +122,7 @@ graph LR
 ### Common Issues:
 
 1. **"Connection error" in browser**:
-   - Make sure backend is running on `http://localhost:8000`
+   - Make sure backend is running on `https://byedb-ai-cml2.onrender.com`
    - Check that CORS is configured (should be automatic)
 
 2. **"GITHUB_TOKEN not set" error**:
@@ -148,7 +148,7 @@ graph LR
 
 2. **Test API endpoint**:
    ```bash
-   curl -X POST http://localhost:8000/api/sql-question \
+   curl -X POST https://byedb-ai-cml2.onrender.com/api/sql-question \
      -H "Content-Type: application/json" \
      -d '{"question": "How do I create a users table?"}'
    ```
