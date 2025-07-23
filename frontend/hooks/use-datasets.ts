@@ -47,6 +47,7 @@ export const useDatasets = (): UseDatasets => {
       if (uploadedTableNames.has(tableName)) {
         source = 'uploaded';
       }
+      console.log(`Table "${tableName}": source="${source}", uploadedTableNames has it: ${uploadedTableNames.has(tableName)}, available names: [${Array.from(uploadedTableNames).join(', ')}]`);
       
       return {
         id: tableName,
@@ -90,7 +91,7 @@ export const useDatasets = (): UseDatasets => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [uploadedTableNames]);
 
   // Upload file to backend
   const uploadFile = useCallback(async (file: File, truncate: boolean = true) => {
@@ -135,9 +136,16 @@ export const useDatasets = (): UseDatasets => {
         throw new Error(result.error || result.message || 'Upload failed');
       }
 
-      // Track the uploaded table name (file name without extension)
-      const tableName = file.name.replace(/\.[^/.]+$/, "").toLowerCase();
-      setUploadedTableNames(prev => new Set([...prev, tableName]));
+      // Track the uploaded table names from backend response
+      if (result.loaded_tables && Array.isArray(result.loaded_tables)) {
+        console.log('Tracking uploaded tables:', result.loaded_tables);
+        setUploadedTableNames(prev => {
+          const newSet = new Set(prev);
+          result.loaded_tables.forEach((tableName: string) => newSet.add(tableName));
+          console.log('Updated uploadedTableNames:', Array.from(newSet));
+          return newSet;
+        });
+      }
 
       // After successful upload, refresh datasets
       await refreshDatasets();
