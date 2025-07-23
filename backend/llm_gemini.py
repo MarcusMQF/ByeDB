@@ -212,7 +212,7 @@ Guidelines:
 - Combine commands into one SQL call when possible. This applies to query_sql too.
 - Ask for clarification if the user’s request is ambiguous.
 - You must always use `query_sql` to get actual context or data before executing functions or replying user, unless its already known.
-- Avoid repeating known queries.
+- Repeating known queries is prohibited.
 - Provide context using markdown tables whenever possible.
 - For large tables, query and show only the first, last or sample 5 rows by default
 - Prioritize using `plot_bar` and `plot_pie` whenever suitable. Always include plotted chart ![](api/charts/bar_chart_xxx.png)
