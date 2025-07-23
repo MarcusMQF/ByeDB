@@ -214,3 +214,52 @@
 .scrollbar-thin::-webkit-scrollbar {
   display: none; /* WebKit browsers (Chrome, Safari, Edge) */
 }
+
+/* Custom scrollbar styles for code blocks - nice and minimal */
+.custom-scrollbar {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent; /* Firefox - thumb and track */
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  height: 8px; /* Horizontal scrollbar height */
+  width: 8px; /* Vertical scrollbar width */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; /* Transparent background */
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4); /* Light gray thumb */
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.6); /* Darker on hover */
+}
+
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: transparent; /* Transparent corner */
+}
+
+.custom-scrollbar::-webkit-scrollbar-button {
+  display: none; /* Remove arrow buttons */
+}
+
+/* Dark mode adjustments */
+.dark .custom-scrollbar {
+  scrollbar-color: rgba(107, 114, 128, 0.5) transparent; /* Firefox dark mode */
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.4); /* Dark mode thumb */
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.6); /* Dark mode hover */
+}

@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { Button } from './button';
 import { RiFileCopyLine, RiCheckLine, RiDownloadLine, RiFileTextLine, RiFileExcelLine, RiTableLine } from '@remixicon/react';
+import { SQLSyntaxHighlighter } from './sql-syntax-highlighter';
+import { buildImageUrl } from '@/lib/api-config';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,13 +28,13 @@ interface TableProps {
 
 const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
   const [copied, setCopied] = useState(false);
-
+  
   // Process inline formatting for table cells
   const processInlineFormatting = (text: string) => {
     // Step 1: Protect code blocks with placeholders
     const codeBlocks: string[] = [];
     const inlineCodeRegex = /`([^`]+)`/g;
-    let textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
+    const textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
       const index = codeBlocks.length;
       codeBlocks.push(code);
       return `__CODE_PLACEHOLDER_${index}__`;
@@ -72,8 +74,8 @@ const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
   };
 
   const processItalicAndCode = (text: string, key: string, codeBlocks: string[]) => {
-    // Step 3: Process italic text (single asterisks, but not double)
-    const italicRegex = /(?<!\*)\*([^*]+)\*(?!\*)/g;
+    // Step 3: Process italic text (single asterisks, but not double, and not at start of line for bullets)
+    const italicRegex = /(?<!\*|^[\s]*)\*([^*\n]+)\*(?!\*)/g;
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
     let partIndex = 0;
@@ -372,11 +374,19 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language = 'sql' }) => {
           </span>
         </Button>
       </div>
-      <pre className="p-4 overflow-x-auto text-sm max-w-full">
-        <code className="text-slate-800 dark:text-slate-200 font-mono break-words">
-          {formattedCode}
-        </code>
-      </pre>
+      <div className="p-4">
+        {language === 'sql' ? (
+          <SQLSyntaxHighlighter 
+            code={formattedCode}
+          />
+        ) : (
+          <pre className="overflow-x-auto text-sm max-w-full custom-scrollbar">
+            <code className="text-slate-800 dark:text-slate-200 font-mono break-words">
+              {formattedCode}
+            </code>
+          </pre>
+        )}
+      </div>
     </div>
   );
 };
@@ -392,8 +402,8 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
     const boldRegex = /\*\*([^*]+)\*\*/g;
     const headerRegex = /^(#{1,6})\s+(.+)$/gm;
     const hrRegex = /^---$/gm;
-    const bulletRegex = /^-\s+(.+)$/gm;
-    const subBulletRegex = /^[\s]{2,}-\s+(.+)$/gm;
+    const bulletRegex = /^[-*]\s+(.+)$/gm; // Updated to match both - and * for bullets
+    const subBulletRegex = /^[\s]{2,}[-*]\s+(.+)$/gm; // Updated to match both - and * for sub-bullets
     const numberedRegex = /^(\d+)\.\s+(.+)$/gm;
     const tableRegex = /(?:^\|.*\|$(?:\n^\|.*\|$)*)/gm;
     const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g; // New: Regex for images ![](alt_text)(url)
@@ -639,10 +649,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
               tableHeaders: element.headers
             });
           } else if (element.type === 'image') { // New: Handle image type
-            let finalSrc = element.src;
-            if (finalSrc.startsWith('api/')) {
-              finalSrc = `http://localhost:8000/${finalSrc}`;
-            }
+            const finalSrc = buildImageUrl(element.src);
             newParts.push({
               text: element.match,
               start: element.start,
@@ -717,7 +724,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
           // Step 1: Protect code blocks with placeholders
           const codeBlocks: string[] = [];
           const inlineCodeRegex = /`([^`]+)`/g;
-          let textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
+          const textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
             const index = codeBlocks.length;
             codeBlocks.push(code);
             return `__CODE_PLACEHOLDER_${index}__`;
@@ -756,8 +763,8 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
         };
         
         const processBulletItalicAndCode = (text: string, key: string, codeBlocks: string[]) => {
-          // Step 3: Process italic text (single asterisks, but not double)
-          const italicRegex = /(?<!\*)\*([^*]+)\*(?!\*)/g;
+          // Step 3: Process italic text (single asterisks, but not double, and not at start of line for bullets)
+          const italicRegex = /(?<!\*|^[\s]*)\*([^*\n]+)\*(?!\*)/g;
           const parts: React.ReactNode[] = [];
           let lastIndex = 0;
           let partIndex = 0;
@@ -802,7 +809,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
             // Add text before code
             if (match.index! > lastIndex) {
               const beforeText = text.slice(lastIndex, match.index);
-              if (beforeText.trim()) {
+              if (beforeText.length > 0) {
                 parts.push(beforeText);
               }
             }
@@ -826,7 +833,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
           // Add remaining text
           if (lastIndex < text.length) {
             const remainingText = text.slice(lastIndex);
-            if (remainingText.trim()) {
+            if (remainingText.length > 0) {
               parts.push(remainingText);
             }
           }
@@ -877,8 +884,129 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
           </div>
         );
       } else if (part.type === 'subBullet' && part.subBulletText !== undefined) {
-        // Simple formatting for sub-bullets
-        const subBulletContent = part.subBulletText;
+        // Process sub-bullet text for inline formatting (bold, inline code)
+        const processSubBulletText = (text: string) => {
+          // Step 1: Protect code blocks with placeholders
+          const codeBlocks: string[] = [];
+          const inlineCodeRegex = /`([^`]+)`/g;
+          let textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
+            const index = codeBlocks.length;
+            codeBlocks.push(code);
+            return `__CODE_PLACEHOLDER_${index}__`;
+          });
+
+          // Step 2: Process bold text
+          const parts: React.ReactNode[] = [];
+          let lastIndex = 0;
+          let partIndex = 0;
+          
+          const boldMatches = Array.from(textWithCodePlaceholders.matchAll(boldRegex));
+          for (const match of boldMatches) {
+            // Add text before bold
+            if (match.index! > lastIndex) {
+              const beforeText = textWithCodePlaceholders.slice(lastIndex, match.index);
+              parts.push(processSubBulletItalicAndCode(beforeText, `subbullet-before-bold-${partIndex++}`, codeBlocks));
+            }
+            
+            // Add bold text (process italic inside bold)
+            parts.push(
+              <strong key={`subbullet-bold-${partIndex++}`} className="font-semibold">
+                {processSubBulletItalicAndCode(match[1], `subbullet-inside-bold-${partIndex}`, codeBlocks)}
+              </strong>
+            );
+            
+            lastIndex = match.index! + match[0].length;
+          }
+          
+          // Add remaining text
+          if (lastIndex < textWithCodePlaceholders.length) {
+            const remainingText = textWithCodePlaceholders.slice(lastIndex);
+            parts.push(processSubBulletItalicAndCode(remainingText, `subbullet-remaining-${partIndex++}`, codeBlocks));
+          }
+          
+          return parts.length > 0 ? parts : [processSubBulletItalicAndCode(textWithCodePlaceholders, `subbullet-full-${partIndex++}`, codeBlocks)];
+        };
+        
+        const processSubBulletItalicAndCode = (text: string, key: string, codeBlocks: string[]) => {
+          // Step 3: Process italic text (single asterisks, but not double, and not at start of line for bullets)
+          const italicRegex = /(?<!\*|^[\s]*)\*([^*\n]+)\*(?!\*)/g;
+          const parts: React.ReactNode[] = [];
+          let lastIndex = 0;
+          let partIndex = 0;
+          
+          const italicMatches = Array.from(text.matchAll(italicRegex));
+          for (const match of italicMatches) {
+            // Add text before italic
+            if (match.index! > lastIndex) {
+              const beforeText = text.slice(lastIndex, match.index);
+              parts.push(restoreSubBulletCodeBlocks(beforeText, `${key}-before-italic-${partIndex++}`, codeBlocks));
+            }
+            
+            // Add italic text (subtle italic style)
+            parts.push(
+              <em key={`${key}-italic-${partIndex++}`} className="italic font-normal" style={{ fontStyle: 'italic', fontWeight: 'inherit' }}>
+                {restoreSubBulletCodeBlocks(match[1], `${key}-inside-italic-${partIndex}`, codeBlocks)}
+              </em>
+            );
+            
+            lastIndex = match.index! + match[0].length;
+          }
+          
+          // Add remaining text
+          if (lastIndex < text.length) {
+            const remainingText = text.slice(lastIndex);
+            parts.push(restoreSubBulletCodeBlocks(remainingText, `${key}-remaining-${partIndex++}`, codeBlocks));
+          }
+          
+          return parts.length > 0 ? parts : [restoreSubBulletCodeBlocks(text, `${key}-full-${partIndex++}`, codeBlocks)];
+        };
+        
+        const restoreSubBulletCodeBlocks = (text: string, key: string, codeBlocks: string[]) => {
+          // Step 4: Restore code blocks from placeholders
+          const parts: React.ReactNode[] = [];
+          let lastIndex = 0;
+          let partIndex = 0;
+          
+          const placeholderRegex = /__CODE_PLACEHOLDER_(\d+)__/g;
+          const placeholderMatches = Array.from(text.matchAll(placeholderRegex));
+          
+          for (const match of placeholderMatches) {
+            // Add text before code
+            if (match.index! > lastIndex) {
+              const beforeText = text.slice(lastIndex, match.index);
+              if (beforeText.length > 0) {
+                parts.push(beforeText);
+              }
+            }
+            
+            // Add code block
+            const codeIndex = parseInt(match[1]);
+            if (codeIndex < codeBlocks.length) {
+              parts.push(
+                <code 
+                  key={`${key}-code-${partIndex++}`}
+                  className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-sm font-mono"
+                >
+                  {codeBlocks[codeIndex]}
+                </code>
+              );
+            }
+            
+            lastIndex = match.index! + match[0].length;
+          }
+          
+          // Add remaining text
+          if (lastIndex < text.length) {
+            const remainingText = text.slice(lastIndex);
+            if (remainingText.length > 0) {
+              parts.push(remainingText);
+            }
+          }
+          
+          return parts.length > 0 ? parts : [text];
+        };
+        
+        const subBulletContent = processSubBulletText(part.subBulletText);
         elements.push(
           <div key={`subBullet-${elementIndex++}`} className="relative pl-6 mb-0 ml-8">
             <span className="absolute left-0 top-0 text-slate-600 dark:text-slate-400 font-bold leading-relaxed">◦</span>
@@ -932,8 +1060,8 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
         };
         
         const processNumberedItalicAndCode = (text: string, key: string, codeBlocks: string[]) => {
-          // Step 3: Process italic text (single asterisks, but not double)
-          const italicRegex = /(?<!\*)\*([^*]+)\*(?!\*)/g;
+          // Step 3: Process italic text (single asterisks, but not double, and not at start of line for bullets)
+          const italicRegex = /(?<!\*|^[\s]*)\*([^*\n]+)\*(?!\*)/g;
           const parts: React.ReactNode[] = [];
           let lastIndex = 0;
           let partIndex = 0;
@@ -978,7 +1106,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
             // Add text before code
             if (match.index! > lastIndex) {
               const beforeText = text.slice(lastIndex, match.index);
-              if (beforeText.trim()) {
+              if (beforeText.length > 0) {
                 parts.push(beforeText);
               }
             }
@@ -1002,7 +1130,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
           // Add remaining text
           if (lastIndex < text.length) {
             const remainingText = text.slice(lastIndex);
-            if (remainingText.trim()) {
+            if (remainingText.length > 0) {
               parts.push(remainingText);
             }
           }
@@ -1127,7 +1255,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
             // Add text before code
             if (match.index! > lastIndex) {
               const beforeText = text.slice(lastIndex, match.index);
-              if (beforeText.trim()) {
+              if (beforeText.length > 0) {
                 parts.push(beforeText);
               }
             }
@@ -1151,7 +1279,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
           // Add remaining text
           if (lastIndex < text.length) {
             const remainingText = text.slice(lastIndex);
-            if (remainingText.trim()) {
+            if (remainingText.length > 0) {
               parts.push(remainingText);
             }
           }

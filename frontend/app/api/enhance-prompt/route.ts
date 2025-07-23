@@ -31,6 +31,10 @@ export async function POST(request: NextRequest) {
     }
 
     const enhancementPrompt = `Refine this user input for clarity and structure. Fix grammar, organize information logically, and make it more detailed while preserving the original meaning. Keep it concise.
+    Make sure:
+    - Only restructure and enhance the user prompt
+    - Do not add any new information or make it too long
+    - Never answer the user prompt, as your job is to enhance it to make it more cleaner and easier to understand
 
 User Input: "${prompt}"
 
