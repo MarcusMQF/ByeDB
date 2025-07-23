@@ -12,7 +12,6 @@ import {
 import { useState } from "react";
 import { RiSearchLine, RiRefreshLine, RiDownloadLine, RiExpandUpDownLine, RiTableLine, RiShareLine, RiShareCircleLine } from "@remixicon/react";
 import { Input } from "@/components/input";
-import Link from "next/link";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -27,7 +26,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
-import { useDatasets } from "@/hooks/use-datasets";
 import { useDatasetContext } from "@/lib/dataset-context";
 import { Badge } from "@/components/badge";
 import { useEffect } from "react";
@@ -43,7 +41,6 @@ export default function TablePage() {
   } = useDatasetContext();
   
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set());
   
   // Refresh datasets when component mounts or when user navigates to this page
@@ -56,9 +53,6 @@ export default function TablePage() {
     dataset.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Get the selected dataset for detailed view
-  const selectedDataset = datasets.find(d => d.id === selectedTable);
-  
   // Toggle table expansion
   const toggleTableExpansion = (tableId: string) => {
     const newExpanded = new Set(expandedTables);
@@ -236,7 +230,7 @@ export default function TablePage() {
     const displayData = isExpanded ? dataset.data : dataset.data.slice(0, 5);
 
     return (
-      <div className="mt-4 border rounded-lg overflow-hidden bg-white">
+      <div className="mt-4 border rounded-lg bg-white overflow-hidden max-w-full">
         <div className="bg-gray-50 px-4 py-2 border-b">
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-gray-900">
@@ -247,29 +241,31 @@ export default function TablePage() {
             </Badge>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-50">
+        <div className="overflow-x-auto max-w-full">
+          <table className="text-sm" style={{minWidth: '100%', width: 'max-content'}}>
+            <thead>
+              <tr className="bg-gray-50 border-b">
                 {headers.map((header) => (
-                  <TableHead key={header} className="px-4 py-2 text-xs font-medium text-gray-700 bg-gray-50">
+                  <th key={header} className="px-4 py-3 text-left text-xs font-medium text-gray-700 whitespace-nowrap min-w-[120px]">
                     {header}
-                  </TableHead>
+                  </th>
                 ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+              </tr>
+            </thead>
+            <tbody>
                 {displayData.map((row: Record<string, unknown>, index: number) => (
-                <TableRow key={index} className="hover:bg-gray-50">
+                <tr key={index} className="border-b hover:bg-gray-50">
                   {headers.map((header: string) => (
-                  <TableCell key={header} className="px-4 py-2 text-sm border-r last:border-r-0">
-                    {row[header] !== null && row[header] !== undefined ? String(row[header]) : '-'}
-                  </TableCell>
+                  <td key={header} className="px-4 py-3 text-sm border-r last:border-r-0 min-w-[120px]">
+                    <div className="whitespace-nowrap">
+                      {row[header] !== null && row[header] !== undefined ? String(row[header]) : '-'}
+                    </div>
+                  </td>
                   ))}
-                </TableRow>
+                </tr>
                 ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
         {!isExpanded && dataset.data.length > 5 && (
           <div className="bg-gray-50 px-4 py-2 text-center text-sm text-gray-600 border-t">
@@ -286,7 +282,7 @@ export default function TablePage() {
   };
   
   return (
-    <div className="flex flex-col flex-1 relative">
+    <div className="flex-1 w-0 shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background flex flex-col h-full overflow-hidden">
       {/* Page header - matching chat page header */}
       <div className="py-5 px-4 md:px-6 lg:px-8 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06] shrink-0">
         <div className="flex items-center justify-between gap-2">
@@ -345,10 +341,8 @@ export default function TablePage() {
       
       {/* Main content */}
       <div className="flex-1 py-8 px-4 md:px-6 lg:px-8 bg-background relative overflow-auto scrollbar-thin">
-        {/* Shadow on the right edge */}
-        <div className="absolute top-0 right-0 bottom-0 w-[1px] bg-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]"></div>
         
-        <div className="max-w-[1400px] mx-auto">
+        <div className="max-w-full mx-auto min-w-0">
           <div className="relative w-full max-w-md mb-6">
             <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 size-4" />
             <Input 
@@ -384,7 +378,7 @@ export default function TablePage() {
               </div>
             ) : filteredDatasets.length > 0 ? (
               filteredDatasets.map((dataset) => (
-                <div key={dataset.id} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden transition-all duration-200">
+                <div key={dataset.id} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden transition-all duration-200 min-w-0 max-w-full">
                   {/* Dataset Header */}
                   <div 
                     className="p-4 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
@@ -419,7 +413,7 @@ export default function TablePage() {
                   
                   {/* Single Table - Preview or Full based on expansion state */}
                   <div className="border-t">
-                    <div className="p-4">
+                    <div className="p-4 min-w-0 max-w-full overflow-hidden">
                       {expandedTables.has(dataset.id) && (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                           <div className="flex items-center gap-2 text-blue-800">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getUserId, getApiHeaders, getApiHeadersForFormData } from '@/lib/user-session';
+import { getApiConfig } from '@/lib/api-config';
 
 export interface Dataset {
   id: string;
@@ -26,9 +27,8 @@ export interface UseDatasets {
   getDatasetSummary: () => { totalRows: number; totalColumns: number; totalDatasets: number };
 }
 
-const API_BASE_URL = 'https://byedb-ai-cml2.onrender.com';
-
 export const useDatasets = (): UseDatasets => {
+  const { endpoints } = getApiConfig();
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +47,7 @@ export const useDatasets = (): UseDatasets => {
       if (uploadedTableNames.has(tableName)) {
         source = 'uploaded';
       }
+      console.log(`Table "${tableName}": source="${source}", uploadedTableNames has it: ${uploadedTableNames.has(tableName)}, available names: [${Array.from(uploadedTableNames).join(', ')}]`);
       
       return {
         id: tableName,
@@ -67,7 +68,7 @@ export const useDatasets = (): UseDatasets => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/export-db`, {
+      const response = await fetch(endpoints.exportDb, {
         headers: getApiHeaders(),
       });
       
@@ -90,7 +91,7 @@ export const useDatasets = (): UseDatasets => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [uploadedTableNames]);
 
   // Upload file to backend
   const uploadFile = useCallback(async (file: File, truncate: boolean = true) => {
@@ -105,7 +106,7 @@ export const useDatasets = (): UseDatasets => {
       console.log('Uploading file:', file.name, 'Size:', file.size);
       console.log('Using user ID:', getUserId());
 
-      const response = await fetch(`${API_BASE_URL}/api/upload-db`, {
+      const response = await fetch(endpoints.uploadDb, {
         method: 'POST',
         headers: getApiHeadersForFormData(),
         body: formData,
@@ -135,9 +136,16 @@ export const useDatasets = (): UseDatasets => {
         throw new Error(result.error || result.message || 'Upload failed');
       }
 
-      // Track the uploaded table name (file name without extension)
-      const tableName = file.name.replace(/\.[^/.]+$/, "").toLowerCase();
-      setUploadedTableNames(prev => new Set([...prev, tableName]));
+      // Track the uploaded table names from backend response
+      if (result.loaded_tables && Array.isArray(result.loaded_tables)) {
+        console.log('Tracking uploaded tables:', result.loaded_tables);
+        setUploadedTableNames(prev => {
+          const newSet = new Set(prev);
+          result.loaded_tables.forEach((tableName: string) => newSet.add(tableName));
+          console.log('Updated uploadedTableNames:', Array.from(newSet));
+          return newSet;
+        });
+      }
 
       // After successful upload, refresh datasets
       await refreshDatasets();
@@ -158,7 +166,7 @@ export const useDatasets = (): UseDatasets => {
     
     try {
       // Call backend to clear database
-      const dbResponse = await fetch(`${API_BASE_URL}/api/clear-database`, {
+      const dbResponse = await fetch(endpoints.clearDatabase, {
         method: 'POST',
         headers: getApiHeaders(),
       });
@@ -173,7 +181,7 @@ export const useDatasets = (): UseDatasets => {
       }
 
       // Call backend to clear memory
-      const memoryResponse = await fetch(`${API_BASE_URL}/api/clear-memory`, {
+      const memoryResponse = await fetch(endpoints.clearMemory, {
         method: 'POST',
         headers: getApiHeaders(),
       });
@@ -206,7 +214,7 @@ export const useDatasets = (): UseDatasets => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/clear-memory`, {
+      const response = await fetch(endpoints.clearMemory, {
         method: 'POST',
         headers: getApiHeaders(),
       });
@@ -233,7 +241,7 @@ export const useDatasets = (): UseDatasets => {
   // Export database
   const exportDatabase = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/export-db`, {
+      const response = await fetch(endpoints.exportDb, {
         headers: getApiHeaders(),
       });
       

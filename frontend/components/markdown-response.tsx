@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { Button } from './button';
 import { RiFileCopyLine, RiCheckLine, RiDownloadLine, RiFileTextLine, RiFileExcelLine, RiTableLine } from '@remixicon/react';
+import { SQLSyntaxHighlighter } from './sql-syntax-highlighter';
+import { buildImageUrl } from '@/lib/api-config';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,13 +28,13 @@ interface TableProps {
 
 const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
   const [copied, setCopied] = useState(false);
-
+  
   // Process inline formatting for table cells
   const processInlineFormatting = (text: string) => {
     // Step 1: Protect code blocks with placeholders
     const codeBlocks: string[] = [];
     const inlineCodeRegex = /`([^`]+)`/g;
-    let textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
+    const textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
       const index = codeBlocks.length;
       codeBlocks.push(code);
       return `__CODE_PLACEHOLDER_${index}__`;
@@ -372,11 +374,19 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language = 'sql' }) => {
           </span>
         </Button>
       </div>
-      <pre className="p-4 overflow-x-auto text-sm max-w-full">
-        <code className="text-slate-800 dark:text-slate-200 font-mono break-words">
-          {formattedCode}
-        </code>
-      </pre>
+      <div className="p-4">
+        {language === 'sql' ? (
+          <SQLSyntaxHighlighter 
+            code={formattedCode}
+          />
+        ) : (
+          <pre className="overflow-x-auto text-sm max-w-full custom-scrollbar">
+            <code className="text-slate-800 dark:text-slate-200 font-mono break-words">
+              {formattedCode}
+            </code>
+          </pre>
+        )}
+      </div>
     </div>
   );
 };
@@ -639,10 +649,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
               tableHeaders: element.headers
             });
           } else if (element.type === 'image') { // New: Handle image type
-            let finalSrc = element.src;
-            if (finalSrc.startsWith('api/')) {
-              finalSrc = `https://byedb-ai-cml2.onrender.com/${finalSrc}`;
-            }
+            const finalSrc = buildImageUrl(element.src);
             newParts.push({
               text: element.match,
               start: element.start,
@@ -717,7 +724,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
           // Step 1: Protect code blocks with placeholders
           const codeBlocks: string[] = [];
           const inlineCodeRegex = /`([^`]+)`/g;
-          let textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
+          const textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
             const index = codeBlocks.length;
             codeBlocks.push(code);
             return `__CODE_PLACEHOLDER_${index}__`;
