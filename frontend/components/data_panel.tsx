@@ -486,7 +486,7 @@ const SettingsPanel = () => {
       <Sheet open={openMobile} onOpenChange={setOpenMobile}>
         <SheetContent 
           side="right"
-          className="w-[90vw] max-w-[400px] sm:w-[380px] px-3 sm:px-4 md:px-6 py-0 bg-[hsl(240_5%_92.16%)] [&>button]:hidden"
+          className="w-[85vw] max-w-[350px] sm:w-[320px] px-3 sm:px-4 md:px-6 py-0 bg-[hsl(240_5%_92.16%)] [&>button]:hidden"
         >
           <SheetTitle className="hidden">Settings</SheetTitle>
           <div className="flex h-full w-full flex-col">
@@ -499,7 +499,7 @@ const SettingsPanel = () => {
 
   return (
     <ScrollArea>
-      <div className="w-[280px] lg:w-[320px] xl:w-[350px] 2xl:w-[380px] px-3 md:px-4 lg:px-6">
+      <div className="w-[250px] lg:w-[280px] xl:w-[300px] 2xl:w-[320px] px-3 md:px-4 lg:px-6">
         <SettingsPanelContent />
       </div>
     </ScrollArea>

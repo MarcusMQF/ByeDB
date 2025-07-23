@@ -28,6 +28,10 @@ interface TableProps {
 
 const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
   const [copied, setCopied] = useState(false);
+
+  // Determine if we need horizontal scrolling based on column count
+  const columnCount = headers ? headers.length : (data.length > 0 ? data[0].length : 0);
+  const needsHorizontalScroll = columnCount >= 8;
   
   // Process inline formatting for table cells
   const processInlineFormatting = (text: string) => {
@@ -74,8 +78,8 @@ const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
   };
 
   const processItalicAndCode = (text: string, key: string, codeBlocks: string[]) => {
-    // Step 3: Process italic text (single asterisks, but not double, and not at start of line for bullets)
-    const italicRegex = /(?<!\*|^[\s]*)\*([^*\n]+)\*(?!\*)/g;
+    // Step 3: Process italic text
+    const italicRegex = /\*([^*]+)\*/g;
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
     let partIndex = 0;
@@ -88,9 +92,9 @@ const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
         parts.push(restoreCodeBlocks(beforeText, `${key}-before-italic-${partIndex++}`, codeBlocks));
       }
       
-      // Add italic text (subtle italic style)
+      // Add italic text
       parts.push(
-        <em key={`${key}-italic-${partIndex++}`} className="italic font-normal" style={{ fontStyle: 'italic', fontWeight: 'inherit' }}>
+        <em key={`table-italic-${key}-${partIndex++}`} className="italic">
           {restoreCodeBlocks(match[1], `${key}-inside-italic-${partIndex}`, codeBlocks)}
         </em>
       );
@@ -253,7 +257,7 @@ const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
   };
 
   return (
-    <div className="relative my-2 rounded-lg border bg-white dark:bg-slate-900 dark:border-slate-700 shadow-sm max-w-full">
+    <div className="relative my-2 rounded-lg border bg-white dark:bg-slate-900 dark:border-slate-700 shadow-sm w-full">
       <div className="flex items-center justify-between px-4 py-2 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
         <div className="flex items-center gap-2">
           <RiTableLine size={16} className="text-slate-600 dark:text-slate-400" />
@@ -288,32 +292,41 @@ const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="overflow-x-auto max-w-full">
-        <table className="w-full table-fixed min-w-full">
+      
+      <div 
+        className={`w-full ${needsHorizontalScroll ? 'overflow-x-auto custom-scrollbar' : 'overflow-x-visible'}`}
+      >
+        <table className={`table-auto border-collapse ${needsHorizontalScroll ? 'min-w-full' : 'w-full'}`}>
           {headers && headers.length > 0 && (
             <thead className="bg-slate-50 dark:bg-slate-800/50">
               <tr>
                 {headers.map((header, index) => (
-                  <th
-                    key={index}
-                    className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b dark:border-slate-700 break-words max-w-xs"
-                  >
-                    {processInlineFormatting(header)}
-                  </th>
+                                      <th
+                      key={index}
+                      className={`px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b dark:border-slate-700 ${needsHorizontalScroll ? 'whitespace-nowrap' : 'break-words'}`}
+                      style={needsHorizontalScroll ? { minWidth: '120px' } : { width: `${100 / columnCount}%` }}
+                    >
+                      <div className={`font-semibold ${needsHorizontalScroll ? '' : 'text-center'}`} title={header}>
+                        {processInlineFormatting(header)}
+                      </div>
+                    </th>
                 ))}
               </tr>
             </thead>
           )}
-          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+          <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-900">
             {data.map((row, rowIndex) => (
-              <tr key={rowIndex} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+              <tr key={rowIndex} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                 {row.map((cell, cellIndex) => (
-                  <td
-                    key={cellIndex}
-                    className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100 break-words max-w-xs"
-                  >
-                    {processInlineFormatting(cell)}
-                  </td>
+                                      <td
+                      key={cellIndex}
+                      className={`px-4 py-2 text-sm text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-700 last:border-r-0 ${needsHorizontalScroll ? '' : 'break-words'}`}
+                      style={needsHorizontalScroll ? { minWidth: '120px' } : { width: `${100 / columnCount}%` }}
+                    >
+                      <div className={needsHorizontalScroll ? 'break-words' : 'break-words text-center'} title={cell}>
+                        {processInlineFormatting(cell)}
+                      </div>
+                    </td>
                 ))}
               </tr>
             ))}
@@ -418,6 +431,8 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
     const tables: { start: number; end: number; match: string; data: string[][]; headers?: string[] }[] = [];
     const images: { start: number; end: number; match: string; alt: string; src: string }[] = []; // New: Array to store image matches
     let match;
+
+
     
     // Find code blocks
     while ((match = codeBlockRegex.exec(text)) !== null) {
@@ -482,33 +497,50 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
     }
     
     // Find tables using a more robust regex that captures complete table blocks
-    const tableBlockRegex = /(?:^[ \t]*\|.*\|[ \t]*$(?:\r?\n|$))+/gm;
+    const tableBlockRegex = /(?:^[ \t]*\|.*\|[ \t]*(?:\r?\n|$))+/gm;
     
     while ((match = tableBlockRegex.exec(text)) !== null) {
       const tableText = match[0].trim();
-      const rows = tableText.split(/\r?\n/).filter(row => row.trim());
+      const rows = tableText.split(/\r?\n/).filter(row => row.trim() && row.includes('|'));
       
-      if (rows.length >= 2) {
+      if (rows.length >= 1) { // Allow tables with just headers or just data
         // Parse table data
-        const parsedRows = rows.map(row => 
-          row.split('|')
-            .slice(1, -1) // Remove empty first and last elements
-            .map(cell => cell.trim())
-        ).filter(row => row.length > 0); // Filter out empty rows
+        const parsedRows = rows.map(row => {
+          // Handle rows that start and end with |
+          const cells = row.split('|');
+          // Remove empty first and last elements if they exist
+          if (cells.length > 0 && cells[0].trim() === '') cells.shift();
+          if (cells.length > 0 && cells[cells.length - 1].trim() === '') cells.pop();
+          return cells.map(cell => cell.trim());
+        }).filter(row => row.length > 0); // Filter out empty rows
         
-        // Check if second row is a separator (contains only dashes, spaces, and colons)
-        const hasSeparator = parsedRows.length > 1 && parsedRows[1].every(cell => 
-          /^[-:\s]*$/.test(cell) && cell.length > 0
-        );
+        // Check if any row is a separator (contains only dashes, spaces, and colons)
+        let separatorIndex = -1;
+        for (let i = 0; i < parsedRows.length; i++) {
+          if (parsedRows[i].every(cell => /^[-:\s]*$/.test(cell) && cell.length > 0)) {
+            separatorIndex = i;
+            break;
+          }
+        }
         
         let headers: string[] | undefined;
         let data: string[][];
         
-        if (hasSeparator) {
-          headers = parsedRows[0];
-          data = parsedRows.slice(2); // Skip header and separator
+        if (separatorIndex >= 0) {
+          // If there's a separator, everything before it is headers, everything after is data
+          if (separatorIndex > 0) {
+            headers = parsedRows[0];
+          }
+          data = parsedRows.slice(separatorIndex + 1);
         } else {
-          data = parsedRows;
+          // No separator found - treat first row as headers if it looks like headers
+          // or treat all rows as data
+          if (parsedRows.length > 1) {
+            headers = parsedRows[0];
+            data = parsedRows.slice(1);
+          } else {
+            data = parsedRows;
+          }
         }
         
         if (data.length > 0) {
@@ -1333,7 +1365,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
   };
 
   return (
-    <div className="space-y-0.5 w-full max-w-full min-w-0 overflow-hidden">
+    <div className="space-y-0.5 w-full min-w-0">
       {parseMarkdown(content)}
     </div>
   );

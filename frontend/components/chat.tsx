@@ -119,6 +119,7 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isConfirming, setIsConfirming] = useState<string | null>(null); // Track which message is being confirmed
+  const [isRequestingExplanation, setIsRequestingExplanation] = useState(false); // Track explanation request loading
   const [chatMode, setChatMode] = useState<ChatMode>(() => 
     loadFromLocalStorage(CHAT_MODE_KEY, 'agent')
   );
@@ -636,7 +637,7 @@ export default function Chat() {
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setIsLoading(true);
+    setIsRequestingExplanation(true);
 
     try {
       // Call the backend API with ask mode to avoid SQL execution
@@ -675,7 +676,7 @@ export default function Chat() {
 
       setMessages(prev => [...prev, errorResponse]);
     } finally {
-      setIsLoading(false);
+      setIsRequestingExplanation(false);
     }
   };
 
@@ -1009,7 +1010,7 @@ export default function Chat() {
                               <div className="mt-4">
                                 <Button
                                   onClick={handleRequestExplanation}
-                                  disabled={isLoading}
+                                  disabled={isRequestingExplanation}
                                   className={`
                                     relative overflow-hidden
                                     bg-gradient-to-r from-gray-900 to-black 
@@ -1025,7 +1026,7 @@ export default function Chat() {
                                   size="sm"
                                 >
                                   <div className="flex items-center gap-2">
-                                    {isLoading ? (
+                                    {isRequestingExplanation ? (
                                       <>
                                         <RiLoader4Line className="size-4 animate-spin" />
                                         <span>Getting explanation...</span>
@@ -1114,7 +1115,7 @@ export default function Chat() {
                             </div>
                           )}
                           
-                          <div className="max-w-full overflow-hidden">
+                          <div className="w-full min-w-0">
                             <MarkdownResponse content={message.content} />
                           </div>
                           
@@ -1122,7 +1123,7 @@ export default function Chat() {
                           {chatMode === 'agent' && message.confirmationData?.function_called && message.confirmationData.function_called.length > 0 && message.confirmationData?.executed && (
                             <Button
                               onClick={handleRequestExplanation}
-                              disabled={isLoading}
+                              disabled={isRequestingExplanation}
                               className={`
                                 relative overflow-hidden
                                 bg-black
@@ -1138,7 +1139,7 @@ export default function Chat() {
                               size="sm"
                             >
                               <div className="flex items-center gap-2">
-                                {isLoading ? (
+                                {isRequestingExplanation ? (
                                   <>
                                     <RiLoader4Line className="size-4 animate-spin" />
                                     <span>Getting explanation...</span>

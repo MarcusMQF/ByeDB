@@ -241,7 +241,7 @@ export default function TablePage() {
             </Badge>
           </div>
         </div>
-        <div className="overflow-x-auto max-w-full">
+        <div className="overflow-x-auto max-w-full custom-scrollbar">
           <table className="text-sm" style={{minWidth: '100%', width: 'max-content'}}>
             <thead>
               <tr className="bg-gray-50 border-b">

@@ -33,10 +33,13 @@ const UPLOADED_TABLES_KEY = 'byedb_uploaded_tables';
 // Helper functions for localStorage
 const loadUploadedTablesFromStorage = (): Set<string> => {
   try {
-    const stored = localStorage.getItem(UPLOADED_TABLES_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return new Set(Array.isArray(parsed) ? parsed : []);
+    // Check if we're on the client side
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = localStorage.getItem(UPLOADED_TABLES_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return new Set(Array.isArray(parsed) ? parsed : []);
+      }
     }
   } catch (error) {
     console.error('Error loading uploaded tables from localStorage:', error);
@@ -46,7 +49,10 @@ const loadUploadedTablesFromStorage = (): Set<string> => {
 
 const saveUploadedTablesToStorage = (uploadedTables: Set<string>) => {
   try {
-    localStorage.setItem(UPLOADED_TABLES_KEY, JSON.stringify(Array.from(uploadedTables)));
+    // Check if we're on the client side
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(UPLOADED_TABLES_KEY, JSON.stringify(Array.from(uploadedTables)));
+    }
   } catch (error) {
     console.error('Error saving uploaded tables to localStorage:', error);
   }
@@ -54,7 +60,10 @@ const saveUploadedTablesToStorage = (uploadedTables: Set<string>) => {
 
 const clearUploadedTablesFromStorage = () => {
   try {
-    localStorage.removeItem(UPLOADED_TABLES_KEY);
+    // Check if we're on the client side
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem(UPLOADED_TABLES_KEY);
+    }
   } catch (error) {
     console.error('Error clearing uploaded tables from localStorage:', error);
   }
