@@ -63,10 +63,22 @@ export function ConfirmationDialog({
         <AlertDialogAction asChild>
           <Button
             variant="default"
-            className="rounded-md bg-black hover:bg-gray-800 text-white"
+            className={`
+              relative overflow-hidden rounded-md
+              bg-gradient-to-r from-gray-900 to-black 
+              hover:from-gray-800 hover:to-gray-900
+              text-white font-medium
+              border border-gray-700
+              shadow-lg hover:shadow-xl
+              transition-all duration-300 ease-out
+              focus:outline-none
+              group
+            `}
             onClick={handleConfirm}
           >
-            {confirmText}
+            <span className="relative z-10">{confirmText}</span>
+            {/* Shine effect overlay */}
+            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out" />
           </Button>
         </AlertDialogAction>
       </AlertDialogFooter>

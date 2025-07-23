@@ -231,9 +231,9 @@ export default function TablePage() {
 
     return (
       <div className="mt-4 border rounded-lg bg-white overflow-hidden max-w-full">
-        <div className="bg-gray-50 px-4 py-2 border-b">
+        <div className="bg-gray-50 px-2 sm:px-4 py-2 border-b">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-gray-900">
+            <h4 className="font-medium text-gray-900 text-sm sm:text-base">
               {isExpanded ? 'Complete Table Data' : 'Table Content Preview'}
             </h4>
             <Badge variant="secondary" className="text-xs">
@@ -242,11 +242,11 @@ export default function TablePage() {
           </div>
         </div>
         <div className="overflow-x-auto max-w-full">
-          <table className="text-sm" style={{minWidth: '100%', width: 'max-content'}}>
+          <table className="text-xs sm:text-sm" style={{minWidth: '100%', width: 'max-content'}}>
             <thead>
               <tr className="bg-gray-50 border-b">
                 {headers.map((header) => (
-                  <th key={header} className="px-4 py-3 text-left text-xs font-medium text-gray-700 whitespace-nowrap min-w-[120px]">
+                  <th key={header} className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-700 whitespace-nowrap min-w-[80px] sm:min-w-[120px]">
                     {header}
                   </th>
                 ))}
@@ -256,7 +256,7 @@ export default function TablePage() {
                 {displayData.map((row: Record<string, unknown>, index: number) => (
                 <tr key={index} className="border-b hover:bg-gray-50">
                   {headers.map((header: string) => (
-                  <td key={header} className="px-4 py-3 text-sm border-r last:border-r-0 min-w-[120px]">
+                  <td key={header} className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm border-r last:border-r-0 min-w-[80px] sm:min-w-[120px]">
                     <div className="whitespace-nowrap">
                       {row[header] !== null && row[header] !== undefined ? String(row[header]) : '-'}
                     </div>
@@ -282,9 +282,9 @@ export default function TablePage() {
   };
   
   return (
-    <div className="flex-1 w-0 shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background flex flex-col h-full overflow-hidden">
+    <div className="flex-1 w-full min-w-0 shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background flex flex-col h-full overflow-hidden">
       {/* Page header - matching chat page header */}
-      <div className="py-5 px-4 md:px-6 lg:px-8 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06] shrink-0">
+              <div className="py-3 sm:py-5 px-2 sm:px-4 md:px-6 lg:px-8 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06] shrink-0">
         <div className="flex items-center justify-between gap-2">
           <Breadcrumb>
             <BreadcrumbList className="sm:gap-1.5">
@@ -340,9 +340,9 @@ export default function TablePage() {
       </div>
       
       {/* Main content */}
-      <div className="flex-1 py-8 px-4 md:px-6 lg:px-8 bg-background relative overflow-auto scrollbar-thin">
+      <div className="flex-1 py-4 sm:py-8 px-2 sm:px-4 md:px-6 lg:px-8 bg-background relative overflow-auto scrollbar-thin">
         
-        <div className="max-w-full mx-auto min-w-0">
+        <div className="max-w-full mx-auto min-w-0 w-full">
           <div className="relative w-full max-w-md mb-6">
             <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 size-4" />
             <Input 
@@ -381,7 +381,7 @@ export default function TablePage() {
                 <div key={dataset.id} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden transition-all duration-200 min-w-0 max-w-full">
                   {/* Dataset Header */}
                   <div 
-                    className="p-4 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
+                    className="p-2 sm:p-4 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
                     onClick={() => toggleTableExpansion(dataset.id)}
                   >
                     <div className="flex items-center justify-between">
@@ -395,11 +395,11 @@ export default function TablePage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                                              <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-xs">
                           {dataset.rows.toLocaleString()} records
                         </Badge>
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <div className="hidden sm:flex items-center gap-1 text-xs text-gray-500">
                           {expandedTables.has(dataset.id) ? 'Click to collapse' : 'Click to view all rows'}
                         </div>
                         <RiExpandUpDownLine 
@@ -413,7 +413,7 @@ export default function TablePage() {
                   
                   {/* Single Table - Preview or Full based on expansion state */}
                   <div className="border-t">
-                    <div className="p-4 min-w-0 max-w-full overflow-hidden">
+                    <div className="p-2 sm:p-4 min-w-0 max-w-full overflow-hidden">
                       {expandedTables.has(dataset.id) && (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                           <div className="flex items-center gap-2 text-blue-800">

@@ -356,24 +356,35 @@ const SettingsPanelContent = () => {
                   className={`
                     h-6 w-6 p-0 rounded-full
                     text-muted-foreground hover:text-foreground
-                    hover:bg-gray-100 dark:hover:bg-gray-800
-                    transition-all duration-200 ease-out
-                    hover:scale-110 hover:shadow-sm
-                    active:scale-95
+                    hover:bg-gray-100/80 dark:hover:bg-gray-800/80
+                    transition-all duration-300 ease-out
+                    hover:shadow-lg hover:shadow-blue-500/20
                     disabled:opacity-70 disabled:cursor-not-allowed
-                    disabled:hover:scale-100 disabled:hover:shadow-none
+                    disabled:hover:shadow-none
                     group relative overflow-hidden
+                    border border-transparent hover:border-blue-200/50 dark:hover:border-blue-700/50
+                    backdrop-blur-sm
                   `}
                   title="Refresh datasets"
                 >
                   <RiRefreshLine 
-                    className={`w-3.5 h-3.5 transition-transform duration-300 ${
-                      isDatasetsLoading ? 'animate-spin' : 'group-hover:rotate-180'
+                    className={`w-3.5 h-3.5 transition-all duration-500 ease-out ${
+                      isDatasetsLoading 
+                        ? 'animate-spin text-blue-500' 
+                        : 'group-hover:rotate-180 group-hover:text-blue-600 dark:group-hover:text-blue-400'
                     }`} 
                   />
                   
-                  {/* Subtle hover glow effect */}
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  {/* Enhanced gradient glow effect */}
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/0 via-blue-500/20 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-all duration-500 blur-sm"></div>
+                  
+                  {/* Animated border ring */}
+                  <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300">
+                    <div className="absolute inset-0 rounded-full border border-blue-300/30 dark:border-blue-600/30 animate-pulse"></div>
+                  </div>
+                  
+                  {/* Subtle shine effect */}
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-700 group-hover:animate-pulse"></div>
                 </Button>
               </div>
             </div>
@@ -383,7 +394,7 @@ const SettingsPanelContent = () => {
                 const datasetLastUpdated = getDatasetLastUpdated(dataset.id);
                 const isRecentlyUpdated = isDatasetRecentlyUpdated(dataset.id);
                 return (
-                <div key={dataset.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+                <div key={dataset.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="flex-shrink-0 flex items-center justify-center w-8 h-8">
@@ -395,11 +406,11 @@ const SettingsPanelContent = () => {
                           className="object-contain"
                         />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                                              <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                           {dataset.name}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
                           Last modified: {dataset.lastModified}
                         </p>
                       </div>
@@ -430,15 +441,15 @@ const SettingsPanelContent = () => {
                     )}
                   </div>
                   
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="text-center p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
+                  <div className="text-center p-2 sm:p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">
                       {dataset.rows.toLocaleString()}
                     </p>
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Rows</p>
                   </div>
-                  <div className="text-center p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  <div className="text-center p-2 sm:p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">
                       {dataset.columns}
                     </p>
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Columns</p>
@@ -474,7 +485,7 @@ const SettingsPanel = () => {
   if (isMobile) {
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile}>
-        <SheetContent className="w-80 px-4 md:px-6 py-0 bg-[hsl(240_5%_92.16%)] [&>button]:hidden">
+        <SheetContent className="w-80 px-3 md:px-4 lg:px-6 py-0 bg-[hsl(240_5%_92.16%)] [&>button]:hidden">
           <SheetTitle className="hidden">Settings</SheetTitle>
           <div className="flex h-full w-full flex-col">
             <SettingsPanelContent />
@@ -486,7 +497,7 @@ const SettingsPanel = () => {
 
   return (
     <ScrollArea>
-      <div className="w-[350px] px-4 md:px-6">
+      <div className="w-[280px] lg:w-[350px] px-3 md:px-4 lg:px-6">
         <SettingsPanelContent />
       </div>
     </ScrollArea>
