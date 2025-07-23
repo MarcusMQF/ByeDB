@@ -119,6 +119,7 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isConfirming, setIsConfirming] = useState<string | null>(null); // Track which message is being confirmed
+  const [isRequestingExplanation, setIsRequestingExplanation] = useState(false); // Track explanation request loading
   const [chatMode, setChatMode] = useState<ChatMode>(() => 
     loadFromLocalStorage(CHAT_MODE_KEY, 'agent')
   );
@@ -636,7 +637,7 @@ export default function Chat() {
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setIsLoading(true);
+    setIsRequestingExplanation(true);
 
     try {
       // Call the backend API with ask mode to avoid SQL execution
@@ -675,7 +676,7 @@ export default function Chat() {
 
       setMessages(prev => [...prev, errorResponse]);
     } finally {
-      setIsLoading(false);
+      setIsRequestingExplanation(false);
     }
   };
 
@@ -807,7 +808,7 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex-1 w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background flex flex-col h-full overflow-hidden">
+    <div className="flex-1 w-full min-w-0 shadow-md md:rounded-s-[inherit] xl:rounded-e-3xl bg-background flex flex-col h-full overflow-hidden">
       {/* Confirmation Dialog for Clear Chat */}
       <ConfirmationDialog
         title="Are you absolutely sure?"
@@ -820,28 +821,29 @@ export default function Chat() {
       />
       
       {/* Header */}
-      <div className="py-5 px-4 md:px-6 lg:px-8 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06] shrink-0">
-        <div className="flex items-center justify-between gap-2">
+      <div className="py-3 sm:py-4 lg:py-5 px-3 sm:px-4 md:px-6 lg:px-8 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06] shrink-0">
+        <div className="flex items-center justify-between gap-1 sm:gap-2">
           <Breadcrumb>
             <BreadcrumbList className="sm:gap-1.5">
-              <BreadcrumbItem>
+              <BreadcrumbItem className="hidden sm:block">
                 <BreadcrumbLink href="#">Playground</BreadcrumbLink>
               </BreadcrumbItem>
-              <BreadcrumbSeparator />
+              <BreadcrumbSeparator className="hidden sm:block" />
               <BreadcrumbItem>
                 <BreadcrumbPage>Chat</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowClearDialog(true)}
-              className="text-xs"
+              className="text-xs px-2 sm:px-3"
               disabled={messages.length === 0}
             >
-              Clear Chat
+              <span className="hidden sm:inline">Clear Chat</span>
+              <span className="sm:hidden">Clear</span>
             </Button>
             <TooltipProvider>
               <Tooltip>
@@ -873,8 +875,8 @@ export default function Chat() {
 
       {/* Messages - Scrollable area */}
       <ScrollArea className="flex-1 overflow-hidden">
-        <div className="px-4 md:px-6 lg:px-8 pb-4 h-full">
-          <div className="max-w-3xl mx-auto mt-6 space-y-4 pb-6 min-w-0">{/* Added min-w-0 for proper flex shrinking */}
+        <div className="px-3 sm:px-4 md:px-6 lg:px-8 pb-4 h-full">
+          <div className="max-w-4xl mx-auto mt-4 sm:mt-6 space-y-4 pb-6 min-w-0">{/* Responsive max-width and margins */}
             {messages.length === 0 ? (
               <div className="text-center my-8">
                 <div className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-full border border-blue-200/60 dark:border-blue-800/40 shadow-sm text-xs font-medium py-1.5 px-3 text-blue-700 dark:text-blue-300">
@@ -1008,7 +1010,7 @@ export default function Chat() {
                               <div className="mt-4">
                                 <Button
                                   onClick={handleRequestExplanation}
-                                  disabled={isLoading}
+                                  disabled={isRequestingExplanation}
                                   className={`
                                     relative overflow-hidden
                                     bg-gradient-to-r from-gray-900 to-black 
@@ -1024,7 +1026,7 @@ export default function Chat() {
                                   size="sm"
                                 >
                                   <div className="flex items-center gap-2">
-                                    {isLoading ? (
+                                    {isRequestingExplanation ? (
                                       <>
                                         <RiLoader4Line className="size-4 animate-spin" />
                                         <span>Getting explanation...</span>
@@ -1113,7 +1115,7 @@ export default function Chat() {
                             </div>
                           )}
                           
-                          <div className="max-w-full overflow-hidden">
+                          <div className="w-full min-w-0">
                             <MarkdownResponse content={message.content} />
                           </div>
                           
@@ -1121,7 +1123,7 @@ export default function Chat() {
                           {chatMode === 'agent' && message.confirmationData?.function_called && message.confirmationData.function_called.length > 0 && message.confirmationData?.executed && (
                             <Button
                               onClick={handleRequestExplanation}
-                              disabled={isLoading}
+                              disabled={isRequestingExplanation}
                               className={`
                                 relative overflow-hidden
                                 bg-black
@@ -1137,7 +1139,7 @@ export default function Chat() {
                               size="sm"
                             >
                               <div className="flex items-center gap-2">
-                                {isLoading ? (
+                                {isRequestingExplanation ? (
                                   <>
                                     <RiLoader4Line className="size-4 animate-spin" />
                                     <span>Getting explanation...</span>
@@ -1179,8 +1181,8 @@ export default function Chat() {
       </ScrollArea>
       
       {/* Fixed Input Area */}
-      <div className="shrink-0 py-6 md:py-12 px-4 md:px-6 lg:px-8 bg-background">
-        <div className="max-w-3xl mx-auto">
+      <div className="shrink-0 py-4 sm:py-6 md:py-8 lg:py-12 px-3 sm:px-4 md:px-6 lg:px-8 bg-background">
+        <div className="max-w-4xl mx-auto">
           <div className="relative rounded-[20px] border border-transparent bg-muted transition-colors focus-within:bg-muted/50 focus-within:border-input">
             <textarea
               ref={textareaRef}
@@ -1197,7 +1199,7 @@ export default function Chat() {
               }}
             />
             {/* Textarea buttons */}
-            <div className="flex items-center justify-between gap-2 px-4 pb-3">
+            <div className="flex items-center justify-between gap-1 sm:gap-2 px-3 sm:px-4 pb-3">
               {/* Left buttons - Mode selector */}
               <div className="flex items-center gap-2">
                 <DropdownMenu>
@@ -1212,7 +1214,7 @@ export default function Chat() {
                       ) : (
                         <RiQuestionAnswerLine className="text-primary size-4 mr-1.5" />
                       )}
-                      <span className="text-sm font-medium">
+                      <span className="text-sm font-medium hidden sm:inline">
                         {chatMode === 'agent' ? 'Agent' : 'Ask'}
                       </span>
                       <RiArrowUpSLine className="text-muted-foreground size-4" />
@@ -1254,7 +1256,7 @@ export default function Chat() {
                 </DropdownMenu>
               </div>
               {/* Right buttons */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 <TooltipProvider delayDuration={0}>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1286,11 +1288,16 @@ export default function Chat() {
                   </Tooltip>
                 </TooltipProvider>
                 <Button 
-                  className="rounded-full h-8" 
+                  className="rounded-full h-8 px-3 sm:px-4" 
                   onClick={handleSendMessage}
                   disabled={!inputValue.trim() || isLoading}
                 >
-                  {isLoading ? "Sending..." : `${chatMode === 'agent' ? 'Ask ByeDB' : 'Ask ByeDB'}`}
+                  <span className="hidden sm:inline">
+                    {isLoading ? "Sending..." : `${chatMode === 'agent' ? 'Ask ByeDB' : 'Ask ByeDB'}`}
+                  </span>
+                  <span className="sm:hidden">
+                    {isLoading ? "..." : 'Send'}
+                  </span>
                 </Button>
               </div>
             </div>

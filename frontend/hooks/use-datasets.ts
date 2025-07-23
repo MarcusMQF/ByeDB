@@ -27,12 +27,54 @@ export interface UseDatasets {
   getDatasetSummary: () => { totalRows: number; totalColumns: number; totalDatasets: number };
 }
 
+// Key for localStorage
+const UPLOADED_TABLES_KEY = 'byedb_uploaded_tables';
+
+// Helper functions for localStorage
+const loadUploadedTablesFromStorage = (): Set<string> => {
+  try {
+    // Check if we're on the client side
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = localStorage.getItem(UPLOADED_TABLES_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return new Set(Array.isArray(parsed) ? parsed : []);
+      }
+    }
+  } catch (error) {
+    console.error('Error loading uploaded tables from localStorage:', error);
+  }
+  return new Set();
+};
+
+const saveUploadedTablesToStorage = (uploadedTables: Set<string>) => {
+  try {
+    // Check if we're on the client side
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(UPLOADED_TABLES_KEY, JSON.stringify(Array.from(uploadedTables)));
+    }
+  } catch (error) {
+    console.error('Error saving uploaded tables to localStorage:', error);
+  }
+};
+
+const clearUploadedTablesFromStorage = () => {
+  try {
+    // Check if we're on the client side
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem(UPLOADED_TABLES_KEY);
+    }
+  } catch (error) {
+    console.error('Error clearing uploaded tables from localStorage:', error);
+  }
+};
+
 export const useDatasets = (): UseDatasets => {
   const { endpoints } = getApiConfig();
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploadedTableNames, setUploadedTableNames] = useState<Set<string>>(new Set());
+  const [uploadedTableNames, setUploadedTableNames] = useState<Set<string>>(() => loadUploadedTablesFromStorage());
 
   // Convert backend export data to dataset format
   const convertExportDataToDatasets = (exportData: Record<string, any[]>, uploadedTableNames: Set<string> = new Set()): Dataset[] => {
@@ -47,7 +89,7 @@ export const useDatasets = (): UseDatasets => {
       if (uploadedTableNames.has(tableName)) {
         source = 'uploaded';
       }
-      console.log(`Table "${tableName}": source="${source}", uploadedTableNames has it: ${uploadedTableNames.has(tableName)}, available names: [${Array.from(uploadedTableNames).join(', ')}]`);
+
       
       return {
         id: tableName,
@@ -138,11 +180,11 @@ export const useDatasets = (): UseDatasets => {
 
       // Track the uploaded table names from backend response
       if (result.loaded_tables && Array.isArray(result.loaded_tables)) {
-        console.log('Tracking uploaded tables:', result.loaded_tables);
         setUploadedTableNames(prev => {
           const newSet = new Set(prev);
           result.loaded_tables.forEach((tableName: string) => newSet.add(tableName));
-          console.log('Updated uploadedTableNames:', Array.from(newSet));
+          // Persist to localStorage
+          saveUploadedTablesToStorage(newSet);
           return newSet;
         });
       }
@@ -197,7 +239,10 @@ export const useDatasets = (): UseDatasets => {
       
       // Clear frontend state
       setDatasets([]);
-      setUploadedTableNames(new Set());
+      const emptySet = new Set<string>();
+      setUploadedTableNames(emptySet);
+      // Clear from localStorage
+      clearUploadedTablesFromStorage();
       console.log('Database and memory cleared successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to clear datasets';
@@ -273,6 +318,11 @@ export const useDatasets = (): UseDatasets => {
       console.error('Error exporting database:', err);
     }
   }, []);
+
+  // Persist uploaded table names to localStorage whenever they change
+  useEffect(() => {
+    saveUploadedTablesToStorage(uploadedTableNames);
+  }, [uploadedTableNames]);
 
   // Load datasets on mount
   useEffect(() => {

@@ -56,7 +56,7 @@ function useSettingsPanel() {
 }
 
 const SettingsPanelProvider = ({ children }: { children: React.ReactNode }) => {
-  const isMobile = useIsMobile(1024);
+  const isMobile = useIsMobile(1280); // Use xl breakpoint for better responsive behavior
   const [openMobile, setOpenMobile] = React.useState(false);
 
   // Helper to toggle the sidebar.
@@ -354,26 +354,36 @@ const SettingsPanelContent = () => {
                   onClick={refreshDatasets}
                   disabled={isDatasetsLoading}
                   className={`
-                    h-6 w-6 p-0 rounded-full
-                    text-muted-foreground hover:text-foreground
-                    hover:bg-gray-100 dark:hover:bg-gray-800
-                    transition-all duration-200 ease-out
-                    hover:scale-110 hover:shadow-sm
-                    active:scale-95
-                    disabled:opacity-70 disabled:cursor-not-allowed
-                    disabled:hover:scale-100 disabled:hover:shadow-none
-                    group relative overflow-hidden
+                    relative h-6 w-6 p-0 rounded-full overflow-hidden
+                    text-muted-foreground/70 hover:text-foreground
+                    border border-transparent hover:border-muted-foreground/20
+                    backdrop-blur-sm
+                    transition-all duration-300 ease-out
+                    hover:shadow-lg hover:shadow-blue-500/10
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    disabled:hover:shadow-none disabled:hover:border-transparent
+                    group
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/20
                   `}
                   title="Refresh datasets"
                 >
+                  {/* Background gradient on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-blue-500/5 to-cyan-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  
+                  {/* Icon with enhanced rotation */}
                   <RiRefreshLine 
-                    className={`w-3.5 h-3.5 transition-transform duration-300 ${
-                      isDatasetsLoading ? 'animate-spin' : 'group-hover:rotate-180'
+                    className={`relative z-10 w-3.5 h-3.5 transition-all duration-500 ease-out ${
+                      isDatasetsLoading 
+                        ? 'animate-spin text-blue-500' 
+                        : 'group-hover:rotate-180 group-hover:text-blue-600'
                     }`} 
                   />
                   
-                  {/* Subtle hover glow effect */}
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  {/* Ripple effect on click */}
+                  <div className="absolute inset-0 rounded-full bg-blue-500/20 scale-0 group-active:scale-100 opacity-0 group-active:opacity-100 transition-all duration-200" />
+                  
+                  {/* Subtle inner glow */}
+                  <div className="absolute inset-0.5 rounded-full bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </Button>
               </div>
             </div>
@@ -384,7 +394,7 @@ const SettingsPanelContent = () => {
                 const isRecentlyUpdated = isDatasetRecentlyUpdated(dataset.id);
                 return (
                 <div key={dataset.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="flex-shrink-0 flex items-center justify-center w-8 h-8">
                         <Image 
@@ -396,11 +406,8 @@ const SettingsPanelContent = () => {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={dataset.name}>
                           {dataset.name}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Last modified: {dataset.lastModified}
                         </p>
                       </div>
                     </div>
@@ -474,7 +481,10 @@ const SettingsPanel = () => {
   if (isMobile) {
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile}>
-        <SheetContent className="w-80 px-4 md:px-6 py-0 bg-[hsl(240_5%_92.16%)] [&>button]:hidden">
+        <SheetContent 
+          side="right"
+          className="w-[85vw] max-w-[350px] sm:w-[320px] px-3 sm:px-4 md:px-6 py-0 bg-[hsl(240_5%_92.16%)] [&>button]:hidden"
+        >
           <SheetTitle className="hidden">Settings</SheetTitle>
           <div className="flex h-full w-full flex-col">
             <SettingsPanelContent />
@@ -486,7 +496,7 @@ const SettingsPanel = () => {
 
   return (
     <ScrollArea>
-      <div className="w-[350px] px-4 md:px-6">
+      <div className="w-[250px] lg:w-[280px] xl:w-[300px] 2xl:w-[320px] px-3 md:px-4 lg:px-6">
         <SettingsPanelContent />
       </div>
     </ScrollArea>
@@ -508,18 +518,18 @@ const SettingsPanelTrigger = ({
   return (
     <Button
       variant="ghost"
-      className="px-2"
+      size="sm"
+      className="px-2 h-8"
       onClick={(event) => {
         onClick?.(event);
         togglePanel();
       }}
     >
       <RiSettingsLine
-        className="text-muted-foreground sm:text-muted-foreground/70 size-5"
-        size={20}
+        className="text-muted-foreground/70 size-4"
         aria-hidden="true"
       />
-      <span className="max-sm:sr-only">Settings</span>
+      <span className="sr-only">Dataset Panel</span>
     </Button>
   );
 };

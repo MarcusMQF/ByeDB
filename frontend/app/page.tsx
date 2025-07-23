@@ -63,7 +63,7 @@ export default function Home() {
   const developers = [
     {
       id: 1,
-      name: "Marcus",
+      name: "Marcus Mah",
       designation: "Frontend Developer",
       image: "/images/marcus.png",
       linkedin: "https://www.linkedin.com/in/mah-qing-fung/",
@@ -74,13 +74,6 @@ export default function Home() {
       designation: "Backend Developer",
       image: "/images/shanchien.png",
       linkedin: "https://www.linkedin.com/in/tan-shan-chien-232517337/",
-    },
-    {
-      id: 3,
-      name: "Hong Zhang",
-      designation: "Backend Developer",
-      image: "/images/kim.png",
-      linkedin: "https://www.linkedin.com/in/kim-hong-zhang-4b4168327/",
     },
   ];
 
@@ -164,7 +157,7 @@ export default function Home() {
                 className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white border-blue-500 shadow-lg shadow-blue-500/25"
                 onClick={() => window.location.href = '/dashboard'}
               >
-                Get Started
+                Try Demo
               </InteractiveHoverButton>
             </nav>
           </div>
@@ -427,12 +420,9 @@ Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that tr
                         <h3 className="text-xl lg:text-2xl font-bold text-white">Multiagent AI Orchestration</h3>
                       </div>
                       <p className="text-gray-400 leading-relaxed mb-4 text-base text-justify">
-                        With 99.7% accuracy in natural language interpretation, it leverages sophisticated chain-of-thought prompting, contextual embeddings, and few-shot learning to understand complex user intents and translate them into actionable operations. The system operates in two seamless modes: ASK Mode, where users submit queries in plain English, and Agent Mode, where autonomous AI agents execute tasks with minimal human intervention. Whether you're generating SQL, analyzing data, or automating workflows, ByeDB ensures enterprise-grade reliability while eliminating the need for manual coding.
+                        The system operates in two seamless modes: ASK Mode, where users submit queries in plain English, and Agent Mode, where autonomous AI agents execute tasks with minimal human intervention. Whether you're generating SQL, analyzing data, or automating workflows, ByeDB ensures enterprise-grade reliability while eliminating the need for manual coding.
                       </p>
-                      <div className="flex items-center text-blue-400 text-sm font-medium group-hover:text-blue-300 transition-colors">
-                        <span>Try AI Agent</span>
-                        <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                      </div>
+
                     </div>
                   </div>
                 </div>
@@ -467,10 +457,7 @@ Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that tr
                   <p className="text-gray-400 leading-relaxed mb-4 text-sm">
                     Mandatory verification protocols for write operations and destructive queries with real-time risk assessment.
                   </p>
-                  <div className="flex items-center text-emerald-400 text-sm font-medium group-hover:text-emerald-300 transition-colors">
-                    <span>Security Features</span>
-                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </div>
+
                 </div>
               </div>
 
@@ -503,10 +490,7 @@ Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that tr
                   <p className="text-gray-400 leading-relaxed mb-4 text-sm">
                     Real-time AI decision explanation with step-by-step reasoning breakdown and interactive SQL education.
                   </p>
-                  <div className="flex items-center text-purple-400 text-sm font-medium group-hover:text-purple-300 transition-colors">
-                    <span>Learn More</span>
-                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </div>
+
                 </div>
               </div>
 
@@ -539,10 +523,7 @@ Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that tr
                   <p className="text-gray-400 leading-relaxed mb-3 text-sm">
                     Advanced prompt engineering with semantic optimization for superior AI performance.
                   </p>
-                  <div className="flex items-center text-orange-400 text-xs font-medium group-hover:text-orange-300 transition-colors">
-                    <span>Enhance</span>
-                    <ArrowRight className="h-3 w-3 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </div>
+
                 </div>
               </div>
 
@@ -575,10 +556,7 @@ Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that tr
                   <p className="text-gray-400 leading-relaxed mb-3 text-sm">
                     Interactive visualization engine with dynamic charts, graphs, and analytics dashboards.
                   </p>
-                  <div className="flex items-center text-cyan-400 text-sm font-medium group-hover:text-cyan-300 transition-colors">
-                    <span>Create Charts</span>
-                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </div>
+
                 </div>
               </div>
 
@@ -611,10 +589,7 @@ Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that tr
                   <p className="text-gray-400 leading-relaxed mb-3 text-sm">
                     Multiple format support with metadata preservation and audit trails.
                   </p>
-                  <div className="flex items-center text-rose-400 text-xs font-medium group-hover:text-rose-300 transition-colors">
-                    <span>Export</span>
-                    <ArrowRight className="h-3 w-3 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </div>
+
                 </div>
               </div>
             </div>
@@ -650,7 +625,7 @@ Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that tr
                     <div className="absolute inset-0 h-8 w-8 bg-blue-400/30 blur-md rounded-full"></div>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-xl font-bold bg-gradient-to-r from-white via-blue-100 to-gray-300 bg-clip-text text-transparent">ByeDB</span>
+                    <span className="text-xl font-bold bg-gradient-to-r from-white via-blue-100 to-gray-300 bg-clip-text text-transparent">ByeDB.AI</span>
                     <span className="text-sm text-gray-400">Natural Language to SQL Made Simple</span>
                   </div>
                 </div>
@@ -684,7 +659,7 @@ Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that tr
                 
                 {/* Copyright */}
                 <div className="flex flex-col sm:flex-row items-center gap-2 text-sm text-gray-500">
-                  <span>© 2025 ByeDB.</span>
+                  <span>© 2025 ByeDB.AI</span>
                   <span className="hidden sm:inline">•</span>
                   <span>All rights reserved.</span>
                 </div>

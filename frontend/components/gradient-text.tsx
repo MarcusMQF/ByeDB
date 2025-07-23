@@ -1,4 +1,3 @@
-import "./GradientText.css";
 import React, { ReactNode } from "react";
 
 interface GradientTextProps {
@@ -22,11 +21,17 @@ export default function GradientText({
   };
 
   return (
-    <div className={`animated-gradient-text ${className}`}>
+    <div className={`relative inline-block ${className}`}>
       {showBorder && (
-        <div className="gradient-overlay" style={gradientStyle}></div>
+        <div 
+          className="absolute inset-0 bg-clip-text text-transparent animate-pulse" 
+          style={gradientStyle}
+        ></div>
       )}
-      <div className="text-content" style={gradientStyle}>
+      <div 
+        className="bg-clip-text text-transparent bg-gradient-to-r animate-pulse font-bold"
+        style={gradientStyle}
+      >
         {children}
       </div>
     </div>

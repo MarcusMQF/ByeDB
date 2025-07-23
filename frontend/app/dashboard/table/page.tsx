@@ -236,12 +236,12 @@ export default function TablePage() {
             <h4 className="font-medium text-gray-900">
               {isExpanded ? 'Complete Table Data' : 'Table Content Preview'}
             </h4>
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs select-none">
               {isExpanded ? `${dataset.data.length} rows` : `${Math.min(5, dataset.data.length)} of ${dataset.data.length} rows`}
             </Badge>
           </div>
         </div>
-        <div className="overflow-x-auto max-w-full">
+        <div className="overflow-x-auto max-w-full custom-scrollbar">
           <table className="text-sm" style={{minWidth: '100%', width: 'max-content'}}>
             <thead>
               <tr className="bg-gray-50 border-b">
@@ -268,12 +268,12 @@ export default function TablePage() {
           </table>
         </div>
         {!isExpanded && dataset.data.length > 5 && (
-          <div className="bg-gray-50 px-4 py-2 text-center text-sm text-gray-600 border-t">
+          <div className="bg-gray-50 px-4 py-2 text-center text-sm text-gray-600 border-t select-none">
             Showing 5 of {dataset.data.length} rows
           </div>
         )}
         {isExpanded && (
-          <div className="bg-gray-50 px-4 py-2 text-center text-sm text-gray-600 border-t">
+          <div className="bg-gray-50 px-4 py-2 text-center text-sm text-gray-600 border-t select-none">
             Showing all {dataset.data.length} rows
           </div>
         )}
@@ -390,16 +390,16 @@ export default function TablePage() {
                         <div>
                           <h3 className="font-medium text-gray-900">{dataset.name}</h3>
                           <div className="flex items-center gap-4 mt-1">
-                            <span className="text-sm text-gray-500">{dataset.rows.toLocaleString()} rows</span>
+                            <span className="text-sm text-gray-500 select-none">{dataset.rows.toLocaleString()} rows</span>
                             <span className="text-sm text-gray-500">Last modified: {dataset.lastModified}</span>
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs select-none">
                           {dataset.rows.toLocaleString()} records
                         </Badge>
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <div className="flex items-center gap-1 text-xs text-gray-500 select-none">
                           {expandedTables.has(dataset.id) ? 'Click to collapse' : 'Click to view all rows'}
                         </div>
                         <RiExpandUpDownLine 
@@ -419,7 +419,7 @@ export default function TablePage() {
                           <div className="flex items-center gap-2 text-blue-800">
                             <RiTableLine className="w-4 h-4" />
                             <span className="text-sm font-medium">Full Dataset View</span>
-                            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 select-none">
                               {dataset.data?.length || 0} total rows
                             </Badge>
                           </div>
