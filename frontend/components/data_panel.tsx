@@ -56,7 +56,7 @@ function useSettingsPanel() {
 }
 
 const SettingsPanelProvider = ({ children }: { children: React.ReactNode }) => {
-  const isMobile = useIsMobile(1024);
+  const isMobile = useIsMobile(1280); // Use xl breakpoint for better responsive behavior
   const [openMobile, setOpenMobile] = React.useState(false);
 
   // Helper to toggle the sidebar.
@@ -484,7 +484,10 @@ const SettingsPanel = () => {
   if (isMobile) {
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile}>
-        <SheetContent className="w-80 px-4 md:px-6 py-0 bg-[hsl(240_5%_92.16%)] [&>button]:hidden">
+        <SheetContent 
+          side="right"
+          className="w-[90vw] max-w-[400px] sm:w-[380px] px-3 sm:px-4 md:px-6 py-0 bg-[hsl(240_5%_92.16%)] [&>button]:hidden"
+        >
           <SheetTitle className="hidden">Settings</SheetTitle>
           <div className="flex h-full w-full flex-col">
             <SettingsPanelContent />
@@ -496,7 +499,7 @@ const SettingsPanel = () => {
 
   return (
     <ScrollArea>
-      <div className="w-[350px] px-4 md:px-6">
+      <div className="w-[280px] lg:w-[320px] xl:w-[350px] 2xl:w-[380px] px-3 md:px-4 lg:px-6">
         <SettingsPanelContent />
       </div>
     </ScrollArea>
@@ -518,18 +521,18 @@ const SettingsPanelTrigger = ({
   return (
     <Button
       variant="ghost"
-      className="px-2"
+      size="sm"
+      className="px-2 h-8"
       onClick={(event) => {
         onClick?.(event);
         togglePanel();
       }}
     >
       <RiSettingsLine
-        className="text-muted-foreground sm:text-muted-foreground/70 size-5"
-        size={20}
+        className="text-muted-foreground/70 size-4"
         aria-hidden="true"
       />
-      <span className="max-sm:sr-only">Settings</span>
+      <span className="sr-only">Dataset Panel</span>
     </Button>
   );
 };
