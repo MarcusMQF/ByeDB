@@ -263,3 +263,48 @@
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(107, 114, 128, 0.6); /* Dark mode hover */
 }
+
+/* Enhanced table styling for intelligent column widths */
+.intelligent-table {
+  font-variant-numeric: tabular-nums;
+}
+
+.intelligent-table th {
+  position: relative;
+}
+
+/* Removed header column separators */
+
+.intelligent-table tbody tr {
+  /* Removed hover transition and effects */
+}
+
+/* Zebra striping for better readability */
+.intelligent-table tbody tr:nth-child(even) {
+  background-color: rgba(248, 250, 252, 0.5);
+}
+
+.dark .intelligent-table tbody tr:nth-child(even) {
+  background-color: rgba(15, 23, 42, 0.3);
+}
+
+/* Removed column resize indicator hover effect */
+
+/* Floating animations for hero cards */
+@keyframes float-up {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes float-down {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(10px);
+  }
+}

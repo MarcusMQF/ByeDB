@@ -33,6 +33,109 @@ const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
   const columnCount = headers ? headers.length : (data.length > 0 ? data[0].length : 0);
   const needsHorizontalScroll = columnCount >= 8;
   
+  // Calculate intelligent column widths based on content length
+  const calculateColumnWidths = () => {
+    if (needsHorizontalScroll) {
+      // For many columns, use fixed min-width
+      return Array(columnCount).fill('120px');
+    }
+    
+    if (columnCount === 0) return [];
+    
+    // Calculate average content length for each column
+    const columnStats = Array(columnCount).fill(0).map(() => ({
+      totalLength: 0,
+      maxLength: 0,
+      avgLength: 0,
+      samples: 0
+    }));
+    
+    // Analyze headers if they exist
+    if (headers) {
+      headers.forEach((header, index) => {
+        const length = header.length;
+        columnStats[index].totalLength += length;
+        columnStats[index].maxLength = Math.max(columnStats[index].maxLength, length);
+        columnStats[index].samples += 1;
+      });
+    }
+    
+    // Analyze data content
+    data.forEach(row => {
+      row.forEach((cell, index) => {
+        if (index < columnStats.length) {
+          const length = cell.length;
+          columnStats[index].totalLength += length;
+          columnStats[index].maxLength = Math.max(columnStats[index].maxLength, length);
+          columnStats[index].samples += 1;
+        }
+      });
+    });
+    
+    // Calculate average lengths
+    columnStats.forEach(stat => {
+      stat.avgLength = stat.samples > 0 ? stat.totalLength / stat.samples : 0;
+    });
+    
+    // Calculate base weights using a combination of average and max length
+    const baseWeights = columnStats.map(stat => {
+      // Use weighted combination of average and max, with more emphasis on average
+      const weight = (stat.avgLength * 0.7) + (stat.maxLength * 0.3);
+      return Math.max(weight, 3); // Minimum weight to ensure visibility
+    });
+    
+    const totalWeight = baseWeights.reduce((sum, weight) => sum + weight, 0);
+    
+    // Convert to percentages with constraints
+    const minWidthPercent = 8; // Minimum 8% width for any column
+    const maxWidthPercent = 50; // Maximum 50% width for any column
+    
+    let percentages = baseWeights.map(weight => (weight / totalWeight) * 100);
+    
+    // Apply constraints
+    let redistributeTotal = 0;
+    let redistributeCount = 0;
+    
+    // First pass: handle columns that are too small
+    percentages = percentages.map(percent => {
+      if (percent < minWidthPercent) {
+        redistributeTotal += (minWidthPercent - percent);
+        return minWidthPercent;
+      }
+      return percent;
+    });
+    
+    // Second pass: handle columns that are too large and redistribute
+    const adjustableColumns: number[] = [];
+    percentages = percentages.map((percent, index) => {
+      if (percent > maxWidthPercent) {
+        redistributeTotal += (percent - maxWidthPercent);
+        return maxWidthPercent;
+      } else if (percent > minWidthPercent && percent < maxWidthPercent) {
+        adjustableColumns.push(index);
+      }
+      return percent;
+    });
+    
+    // Redistribute excess width to adjustable columns
+    if (redistributeTotal > 0 && adjustableColumns.length > 0) {
+      const redistributePerColumn = redistributeTotal / adjustableColumns.length;
+      adjustableColumns.forEach(index => {
+        const newPercent = percentages[index] + redistributePerColumn;
+        percentages[index] = Math.min(newPercent, maxWidthPercent);
+      });
+    }
+    
+    // Ensure total is 100%
+    const currentTotal = percentages.reduce((sum, percent) => sum + percent, 0);
+    const adjustmentFactor = 100 / currentTotal;
+    percentages = percentages.map(percent => percent * adjustmentFactor);
+    
+    return percentages.map(percent => `${percent.toFixed(1)}%`);
+  };
+  
+  const columnWidths = calculateColumnWidths();
+  
   // Process inline formatting for table cells
   const processInlineFormatting = (text: string) => {
     // Step 1: Protect code blocks with placeholders
@@ -257,37 +360,41 @@ const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
   };
 
   return (
-    <div className="relative my-2 rounded-lg border bg-white dark:bg-slate-900 dark:border-slate-700 shadow-sm w-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-        <div className="flex items-center gap-2">
-          <RiTableLine size={16} className="text-slate-600 dark:text-slate-400" />
-          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-            Table ({data.length} rows)
-          </span>
+    <div className="relative my-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 w-full overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-800/30">
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 rounded-lg bg-slate-200 dark:bg-slate-700">
+            <RiTableLine size={16} className="text-slate-600 dark:text-slate-300" />
+          </div>
+          <div>
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              Data Table
+            </span>
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              {data.length} rows • {columnCount} columns
+            </div>
+          </div>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="h-8 px-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              className="h-8 px-3 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100 shadow-sm"
             >
-              <RiDownloadLine size={16} />
-              <span className="ml-1 text-xs">Export</span>
+              <RiDownloadLine size={14} />
+              <span className="ml-1.5 text-xs font-medium">Export</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={exportAsMarkdown} className="gap-2">
-              <RiFileTextLine size={14} />
-              Export as Markdown
+          <DropdownMenuContent align="end" className="w-32">
+            <DropdownMenuItem onClick={exportAsMarkdown} className="py-1.5">
+              <div className="font-medium">Markdown</div>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={exportAsCSV} className="gap-2">
-              <RiFileTextLine size={14} />
-              Export as CSV
+            <DropdownMenuItem onClick={exportAsCSV} className="py-1.5">
+              <div className="font-medium">CSV</div>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={exportAsXLSX} className="gap-2">
-              <RiFileExcelLine size={14} />
-              Export as XLSX
+            <DropdownMenuItem onClick={exportAsXLSX} className="py-1.5">
+              <div className="font-medium">Excel</div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -296,37 +403,37 @@ const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
       <div 
         className={`w-full ${needsHorizontalScroll ? 'overflow-x-auto custom-scrollbar' : 'overflow-x-visible'}`}
       >
-        <table className={`table-auto border-collapse ${needsHorizontalScroll ? 'min-w-full' : 'w-full'}`}>
+        <table className={`intelligent-table border-collapse ${needsHorizontalScroll ? 'min-w-full' : 'w-full'}`}>
           {headers && headers.length > 0 && (
             <thead className="bg-slate-50 dark:bg-slate-800/50">
               <tr>
                 {headers.map((header, index) => (
-                                      <th
-                      key={index}
-                      className={`px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b dark:border-slate-700 ${needsHorizontalScroll ? 'whitespace-nowrap' : 'break-words'}`}
-                      style={needsHorizontalScroll ? { minWidth: '120px' } : { width: `${100 / columnCount}%` }}
-                    >
-                      <div className={`font-semibold ${needsHorizontalScroll ? '' : 'text-center'}`} title={header}>
-                        {processInlineFormatting(header)}
-                      </div>
-                    </th>
+                  <th
+                    key={index}
+                    className={`px-3 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider border-b border-slate-200 dark:border-slate-600 ${needsHorizontalScroll ? 'whitespace-nowrap' : 'break-words'}`}
+                    style={needsHorizontalScroll ? { minWidth: '120px' } : { width: columnWidths[index] }}
+                  >
+                    <div className={`font-semibold ${needsHorizontalScroll ? '' : 'text-left'}`} title={header}>
+                      {processInlineFormatting(header)}
+                    </div>
+                  </th>
                 ))}
               </tr>
             </thead>
           )}
           <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-900">
             {data.map((row, rowIndex) => (
-              <tr key={rowIndex} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+              <tr key={rowIndex} className="group">
                 {row.map((cell, cellIndex) => (
-                                      <td
-                      key={cellIndex}
-                      className={`px-4 py-2 text-sm text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-700 last:border-r-0 ${needsHorizontalScroll ? '' : 'break-words'}`}
-                      style={needsHorizontalScroll ? { minWidth: '120px' } : { width: `${100 / columnCount}%` }}
-                    >
-                      <div className={needsHorizontalScroll ? 'break-words' : 'break-words text-center'} title={cell}>
-                        {processInlineFormatting(cell)}
-                      </div>
-                    </td>
+                  <td
+                    key={cellIndex}
+                    className={`px-3 py-3 text-sm text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-700 last:border-r-0 ${needsHorizontalScroll ? '' : 'break-words'}`}
+                    style={needsHorizontalScroll ? { minWidth: '120px' } : { width: columnWidths[cellIndex] }}
+                  >
+                    <div className={`${needsHorizontalScroll ? 'break-words' : 'break-words text-left'} leading-relaxed`} title={cell}>
+                      {processInlineFormatting(cell)}
+                    </div>
+                  </td>
                 ))}
               </tr>
             ))}
