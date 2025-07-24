@@ -1,13 +1,12 @@
 import os
 import json
-from collections.abc import Callable
 from typing import Dict, Any, List, Optional
-import google.generativeai as genai
 from dotenv import load_dotenv
 from collections import deque
 from chart_manager import cm
+from llm_centralised import llmCentral
 
-# Load environment variables from parent directory
+
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 
@@ -63,19 +62,14 @@ class ExecutionContext:
         return self.pending_function_call is not None
 
 
-class SQLExpertLLM:
+class SQLAgent:
     def __init__(self, database_client):
         self.database_client = database_client
 
-        # Configure Gemini API
-        genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
-
-        # Memory to store last 5 conversations
         self.conversation_memory = deque(maxlen=5)
         self.mode: str = "agent"  # used for system prompt
 
-        # Store the previous context for continue_respond
+        # used to continue execution
         self.previous_context: Optional[ExecutionContext] = None
 
     def _func_get_schema(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
@@ -212,12 +206,13 @@ Guidelines:
 - Combine commands into one SQL call when possible. This applies to query_sql too.
 - Ask for clarification if the user’s request is ambiguous.
 - Repeating known queries is prohibited.
-- You must always use `query_sql` to get actual data and context before executing functions, unless its already known.
-- Be active, if something didn't work, try exploring alternatives
+- You must always use `query_sql` to get actual schema before executing functions, unless its already known.
+- Be active, if something didn't work, try exploring alternatives.
 - Provide context using markdown tables whenever possible.
 - For large tables, by default, query and show only the first, last or sample 5 rows
-- Prioritize using `plot_bar` and `plot_pie` whenever suitable. Always include plotted chart ![](api/charts/bar_chart_xxx.png)
-- You cannot call functions after starting to respond. Call all necessary functions before that.
+- Prioritize calling `plot_bar` and `plot_pie` whenever suitable.
+  Always include the plotted chart returned from the function ![](api/charts/bar_chart_xxx.png)
+- You cannot call functions after starting to respond. Call all necessary functions before responding.
 
 WARNING
 - PRAGMA table_info() query is banned
@@ -259,7 +254,7 @@ When you need to call a function, respond with a JSON object in this format:
         prompt += "\nResponse:"
         return prompt
 
-    def parse_gemini_response(self, response_text: str) -> Dict[str, Any]:
+    def _parse_llm_response(self, response_text: str) -> Dict[str, Any]:
         """Parse Gemini response to extract function calls or direct responses"""
         response_text = response_text.strip()
 
@@ -306,20 +301,17 @@ When you need to call a function, respond with a JSON object in this format:
             print(f"Loop {i + 1}: Generating response...")
 
             try:
-                response = self.model.generate_content(prompt)
+                response = llmCentral.generate_response(prompt)
             except Exception as e:
-                # TODO:
-                #  change model and cycle api keys when this happens
                 return {
                     "success": False,
-                    "response": f"Model not available: {str(e)}",
+                    "response": str(e),
+                    "error": str(e),
                     "function_called": context.function_called.copy(),
                     "usage": {"note": "Gemini API doesn't provide detailed usage stats"}
                 }
             try:
-                response_text = response.text
-
-                parsed_response = self.parse_gemini_response(response_text)
+                parsed_response = self._parse_llm_response(response.text)
                 if parsed_response["type"] == "function_call":
                     fn_call = parsed_response["function_call"]
                     fn_name = fn_call["name"]
@@ -334,7 +326,8 @@ When you need to call a function, respond with a JSON object in this format:
                             "success": True,
                             "response": "Confirmation Required",
                             "function_called": [{"call": fn_name, "args": fn_args}],
-                            "requires_approval": True
+                            "requires_approval": True,
+                            "usage": response.usage
                         }
 
                     # # query_sql: execute immediately and return result
@@ -363,7 +356,7 @@ When you need to call a function, respond with a JSON object in this format:
                     "success": True,
                     "response": final_response,
                     "function_called": context.function_called.copy(),
-                    "usage": {"note": "Gemini API doesn't provide detailed usage stats"}
+                    "usage": response.usage
                 }
 
             except Exception as e:
@@ -481,7 +474,7 @@ When you need to call a function, respond with a JSON object in this format:
 
 
 # Usage example
-if __name__ == '__main__':
+def main():
     # Import your SupabaseClient
     from db_sqlite import LocalSQLiteDatabase  # Replace with actual import
 
@@ -489,7 +482,7 @@ if __name__ == '__main__':
     db_client = LocalSQLiteDatabase()
 
     # Initialize agent
-    agent = SQLExpertLLM(db_client)
+    agent = SQLAgent(db_client)
 
     print(
         "SQL Expert Agent with Memory (type 'quit' to exit, 'memory' to see conversation history, 'clear' to clear memory)")
@@ -541,3 +534,7 @@ if __name__ == '__main__':
             print(json.dumps(response, indent=2))
         else:
             print(f"Error: {response}")
+
+
+if __name__ == '__main__':
+    main()
