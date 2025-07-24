@@ -109,7 +109,7 @@ export default function Home() {
             ? 'border-b border-white/10 bg-[#0a0a0f]/90 backdrop-blur-xl shadow-lg shadow-black/20' 
             : 'border-b border-transparent bg-transparent backdrop-blur-none'
         }`}>
-          <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
             <div 
               className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
               onClick={scrollToTop}
@@ -122,37 +122,63 @@ export default function Home() {
                 />
                 <div className="absolute inset-0 h-8 w-8 bg-blue-400/30 blur-md rounded-full"></div>
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent drop-shadow-lg">ByeDB</h1>
+              <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent drop-shadow-lg">ByeDB</h1>
             </div>
-            <nav className="flex items-center gap-6">
-              <Button 
-                variant="ghost" 
-                className={`transition-all duration-200 ${
-                  isScrolled 
-                    ? 'text-gray-300 hover:text-white hover:bg-white/5' 
-                    : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
-                }`}
-                onClick={() => scrollToSection('features-section')}
-              >
-                Features
-              </Button>
-              <Button 
-                variant="ghost" 
-                className={`transition-all duration-200 ${
-                  isScrolled 
-                    ? 'text-gray-300 hover:text-white hover:bg-white/5' 
-                    : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
-                }`}
-                onClick={() => window.open('https://github.com/MarcusMQF/ByeDB', '_blank')}
-              >
-                Docs
-              </Button>
+            <nav className="flex items-center gap-3 sm:gap-6">
+              {/* Desktop Navigation */}
+              <div className="hidden sm:flex items-center gap-6">
+                <Button 
+                  variant="ghost" 
+                  className={`transition-all duration-200 ${
+                    isScrolled 
+                      ? 'text-gray-300 hover:text-white hover:bg-white/5' 
+                      : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
+                  }`}
+                  onClick={() => scrollToSection('features-section')}
+                >
+                  Features
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className={`transition-all duration-200 ${
+                    isScrolled 
+                      ? 'text-gray-300 hover:text-white hover:bg-white/5' 
+                      : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
+                  }`}
+                  onClick={() => window.open('https://github.com/MarcusMQF/ByeDB', '_blank')}
+                >
+                  Docs
+                </Button>
+              </div>
+              
+              {/* Mobile: Only Try Demo Button */}
               <InteractiveHoverButton 
-                className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white border-blue-500 shadow-lg shadow-blue-500/25"
+                className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white border-blue-500 shadow-lg shadow-blue-500/25 text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3"
                 onClick={() => window.location.href = '/dashboard'}
               >
-                Try Demo
+                <span className="hidden sm:inline">Try Demo</span>
+                <span className="sm:hidden">Demo</span>
               </InteractiveHoverButton>
+              
+              {/* Mobile Menu Button for Features/Docs */}
+              <div className="sm:hidden">
+                <Button 
+                  variant="ghost" 
+                  className={`transition-all duration-200 p-2 ${
+                    isScrolled 
+                      ? 'text-gray-300 hover:text-white hover:bg-white/5' 
+                      : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
+                  }`}
+                  onClick={() => {
+                    // Simple mobile menu - scroll to features
+                    scrollToSection('features-section');
+                  }}
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </Button>
+              </div>
             </nav>
           </div>
         </header>
