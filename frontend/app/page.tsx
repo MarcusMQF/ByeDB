@@ -162,11 +162,11 @@ export default function Home() {
           <div className="max-w-5xl mx-auto relative">
             {/* Floating Mini Cards */}
             {/* Left side card */}
-            <div className="absolute left-0 top-1/5 -translate-y-1/2 -translate-x-30 -translate-y-8 hidden xl:block">
+            <div className="absolute left-2 top-[15%] -translate-y-1/2 sm:left-0 sm:top-1/5 sm:-translate-x-20 lg:-translate-x-20 xl:left-0 xl:-translate-x-30">
               <div 
                 id="left-card"
                 data-animate
-                className={`transition-all duration-1000 delay-500 -rotate-8 animate-bounce ${
+                className={`transition-all duration-1000 delay-500 -rotate-2 sm:-rotate-8 animate-bounce scale-75 sm:scale-100 ${
                   isVisible('left-card') 
                     ? 'opacity-100 translate-x-0' 
                     : 'opacity-0 -translate-x-8'
@@ -188,11 +188,11 @@ export default function Home() {
             </div>
 
             {/* Right side card */}
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-20 hidden xl:block">
+            <div className="absolute right-2 top-[65%] -translate-y-1/2 sm:right-0 sm:top-1/2 sm:translate-x-16 lg:translate-x-16 xl:right-0 xl:translate-x-20">
               <div 
                 id="right-card"
                 data-animate
-                className={`transition-all duration-1000 delay-600 rotate-10 ${
+                className={`transition-all duration-1000 delay-600 rotate-2 sm:rotate-10 scale-75 sm:scale-100 ${
                   isVisible('right-card') 
                     ? 'opacity-100 translate-x-0' 
                     : 'opacity-0 translate-x-8'
