@@ -822,7 +822,7 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex-1 w-full min-w-0 shadow-md md:rounded-s-[inherit] xl:rounded-e-3xl bg-background flex flex-col h-full overflow-hidden">
+    <div className="flex-1 w-full min-w-0 shadow-md bg-background flex flex-col h-full overflow-hidden">
       {/* Confirmation Dialog for Clear Chat */}
       <ConfirmationDialog
         title="Are you absolutely sure?"

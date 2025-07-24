@@ -441,7 +441,7 @@ export default function TablePage() {
   };
   
   return (
-    <div className="flex-1 w-0 shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background flex flex-col h-full overflow-hidden">
+    <div className="flex-1 w-0 shadow-md bg-background flex flex-col h-full overflow-hidden">
       {/* Page header - matching chat page header */}
       <div className="py-5 px-4 md:px-6 lg:px-8 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06] shrink-0">
         <div className="flex items-center justify-between gap-2">
