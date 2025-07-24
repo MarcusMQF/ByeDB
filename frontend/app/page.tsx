@@ -60,6 +60,13 @@ export default function Home() {
     }
   };
 
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
   const developers = [
     {
       id: 1,
@@ -103,10 +110,13 @@ export default function Home() {
             : 'border-b border-transparent bg-transparent backdrop-blur-none'
         }`}>
           <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div 
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
+              onClick={scrollToTop}
+            >
               <div className="relative">
                 <img 
-                  src="/icon.png" 
+                  src="/crop.png" 
                   alt="ByeDB Icon" 
                   className="h-10 w-10 drop-shadow-lg"
                 />
@@ -618,7 +628,7 @@ Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that tr
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <img 
-                      src="/icon.png" 
+                      src="/crop.png" 
                       alt="ByeDB Icon" 
                       className="h-10 w-10 drop-shadow-lg"
                     />
