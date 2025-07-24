@@ -1,13 +1,12 @@
 from collections import OrderedDict
-import os
 from db_sqlite import LocalSQLiteDatabase
-from llm_gemini import SQLExpertLLM
+from llm_sql_agent import SQLAgent
 
 
 class UserSession:
     def __init__(self):
         self.database = LocalSQLiteDatabase(db_path=":memory:")
-        self.agent = SQLExpertLLM(self.database)
+        self.agent = SQLAgent(self.database)
 
 class LRUUserContext:
     def __init__(self, capacity=50):
@@ -28,7 +27,7 @@ class LRUUserContext:
     def get_user_database(self, user_id: str) -> LocalSQLiteDatabase:
         return self.get_session(user_id).database
 
-    def get_user_agent(self, user_id: str) -> SQLExpertLLM:
+    def get_user_agent(self, user_id: str) -> SQLAgent:
         return self.get_session(user_id).agent
 
     def delete_user(self, user_id: str):

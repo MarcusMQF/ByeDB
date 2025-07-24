@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from db_sqlite import LocalSQLiteDatabase
-from llm_gemini import SQLExpertLLM
+from llm_sql_agent import SQLAgent
 from lru_usr_context import LRUUserContext
 from chart_manager import cm
 
@@ -36,7 +36,7 @@ user_context = LRUUserContext(capacity=50)
 def get_user_database(user_id: str) -> LocalSQLiteDatabase:
     return user_context.get_user_database(user_id)
 
-def get_user_agent(user_id: str) -> SQLExpertLLM:
+def get_user_agent(user_id: str) -> SQLAgent:
     return user_context.get_user_agent(user_id)
 
 # Models
