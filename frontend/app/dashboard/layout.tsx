@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "ByeDB Dashboard",
+  icons: {
+    icon: [
+      { url: "/crop.png", type: "image/png" }
+    ],
+    apple: "/crop.png",
+  },
 };
 
 import { AppSidebar } from "@/components/app-sidebar";
