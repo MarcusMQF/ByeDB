@@ -483,6 +483,20 @@ export default function Chat() {
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
 
+    // Disable all previous confirmation buttons when sending a new message
+    setMessages(prev => prev.map(msg => {
+      if (msg.requiresConfirmation && !msg.confirmationData?.executed) {
+        return {
+          ...msg,
+          confirmationData: {
+            ...msg.confirmationData,
+            disabled: true
+          }
+        };
+      }
+      return msg;
+    }));
+
     const userMessage: Message = {
       id: Date.now().toString(),
       content: inputValue.trim(),
@@ -959,6 +973,23 @@ export default function Chat() {
                                 <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
                               </div>
                               
+                            </div>
+                          ) : message.confirmationData?.disabled ? (
+                            <div className="relative inline-flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 dark:from-gray-800/40 dark:via-gray-700/30 dark:to-gray-800/40 border border-gray-300/60 dark:border-gray-600/40 shadow-sm overflow-hidden">
+                              {/* Disabled icon */}
+                              <div className="relative flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-gray-400 to-gray-500 shadow-sm">
+                                <RiCloseLine className="w-4 h-4 text-white" />
+                              </div>
+                              
+                              {/* Disabled text */}
+                              <div className="flex flex-col">
+                                <span className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide">
+                                  Confirmation Expired
+                                </span>
+                                <span className="text-xs text-gray-500/70 dark:text-gray-500/70 font-medium">
+                                  Execution not confirmed by user
+                                </span>
+                              </div>
                             </div>
                           ) : (
                             <Button

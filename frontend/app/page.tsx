@@ -60,6 +60,13 @@ export default function Home() {
     }
   };
 
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
   const developers = [
     {
       id: 1,
@@ -103,10 +110,13 @@ export default function Home() {
             : 'border-b border-transparent bg-transparent backdrop-blur-none'
         }`}>
           <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div 
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
+              onClick={scrollToTop}
+            >
               <div className="relative">
                 <img 
-                  src="/icon.png" 
+                  src="/crop.png" 
                   alt="ByeDB Icon" 
                   className="h-10 w-10 drop-shadow-lg"
                 />
@@ -133,26 +143,10 @@ export default function Home() {
                     ? 'text-gray-300 hover:text-white hover:bg-white/5' 
                     : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
                 }`}
-                onClick={() => scrollToSection('demo-section')}
+                onClick={() => window.open('https://github.com/MarcusMQF/ByeDB', '_blank')}
               >
-                Demo
+                Docs
               </Button>
-              <Button 
-                variant="ghost" 
-                className={`transition-all duration-200 ${
-                  isScrolled 
-                    ? 'text-gray-300 hover:text-white hover:bg-white/5' 
-                    : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
-                }`}
-                onClick={() => scrollToSection('footer-content')}
-              >
-                Our Team
-              </Button>
-              <Button variant="ghost" className={`transition-all duration-200 ${
-                isScrolled 
-                  ? 'text-gray-300 hover:text-white hover:bg-white/5' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
-              }`}>Docs</Button>
               <InteractiveHoverButton 
                 className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white border-blue-500 shadow-lg shadow-blue-500/25"
                 onClick={() => window.location.href = '/dashboard'}
@@ -164,8 +158,61 @@ export default function Home() {
         </header>
 
                 {/* Hero Section */}
-        <section className="container mx-auto px-6 py-32 pt-40 text-center">
-          <div className="max-w-5xl mx-auto">
+        <section className="container mx-auto px-6 py-32 pt-40 text-center relative">
+          <div className="max-w-5xl mx-auto relative">
+            {/* Floating Mini Cards */}
+            {/* Left side card */}
+            <div className="absolute left-0 top-1/5 -translate-y-1/2 -translate-x-30 -translate-y-8 hidden xl:block">
+              <div 
+                id="left-card"
+                data-animate
+                className={`transition-all duration-1000 delay-500 -rotate-8 animate-bounce ${
+                  isVisible('left-card') 
+                    ? 'opacity-100 translate-x-0' 
+                    : 'opacity-0 -translate-x-8'
+                }`}
+                style={{
+                  animation: 'float-up 3s ease-in-out infinite'
+                }}
+              >
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/30 to-blue-500/20 rounded-full blur-lg group-hover:blur-xl transition-all duration-300"></div>
+                  <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-full px-4 py-3 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+                    <div className="flex items-center gap-3">
+                      <TrendingUp className="h-5 w-5 text-purple-400" />
+                      <span className="text-sm font-medium text-white">Data Analytics</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right side card */}
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-20 hidden xl:block">
+              <div 
+                id="right-card"
+                data-animate
+                className={`transition-all duration-1000 delay-600 rotate-10 ${
+                  isVisible('right-card') 
+                    ? 'opacity-100 translate-x-0' 
+                    : 'opacity-0 translate-x-8'
+                }`}
+                style={{
+                  animation: 'float-down 3s ease-in-out infinite'
+                }}
+              >
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/30 to-orange-500/20 rounded-full blur-lg group-hover:blur-xl transition-all duration-300"></div>
+                  <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-full px-4 py-3 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+                    <div className="flex items-center gap-3">
+                      <Brain className="h-5 w-5 text-yellow-400" />
+                      <span className="text-sm font-medium text-white">AI Agent</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Badge */}
             <div 
               id="hero-badge"
@@ -242,129 +289,92 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Demo Video Section */}
-        <section id="demo-section" className="py-32 relative">
+
+
+        {/* Business Application Section */}
+        <section className="py-24 relative bg-gradient-to-b from-transparent via-gray-900/50 to-transparent">
           <div className="container mx-auto px-6">
+            {/* Header */}
             <div 
-              id="demo-header"
+              id="business-header"
               data-animate
-              className={`text-center mb-20 transition-all duration-1000 ${
-                isVisible('demo-header') 
+              className={`text-center mb-16 transition-all duration-1000 ${
+                isVisible('business-header') 
                   ? 'opacity-100 translate-y-0' 
                   : 'opacity-0 translate-y-8'
               }`}
             >
-              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-full px-4 py-2 mb-6">
-                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-                <span className="text-sm text-emerald-300 font-medium">Live Demo</span>
-              </div>
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                See ByeDB in Action
-              </h2>
+                             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-full px-4 py-2 mb-6">
+                 <span className="text-sm text-blue-300 font-medium">Take Full Control of Your Data</span>
+               </div>
+               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+                 Business <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">Application</span>
+               </h2>
               <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
-                Watch how ByeDB transforms natural language into powerful SQL queries and stunning visualizations in real-time.
+                Our users love how ByeDB simplifies their processes and streamlines operations
               </p>
             </div>
 
-            <div 
-              id="demo-video"
-              data-animate
-              className={`relative max-w-6xl mx-auto transition-all duration-1000 delay-200 ${
-                isVisible('demo-video') 
-                  ? 'opacity-100 translate-y-0 scale-100' 
-                  : 'opacity-0 translate-y-12 scale-95'
-              }`}
-            >
-              {/* Background glow effects */}
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 rounded-3xl blur-3xl"></div>
-              <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 rounded-[2rem] blur-2xl"></div>
-              
-              {/* Video container */}
-              <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-3 overflow-hidden">
-                <div className="relative rounded-2xl overflow-hidden bg-black/20" style={{ aspectRatio: '16/9' }}>
-                  <video 
-                    className="w-full h-full object-cover rounded-2xl shadow-2xl"
-                    controls
-                    preload="metadata"
-                    poster="/images/chat.png"
-                  >
-                    <source src="/video/demo.mp4" type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
-                  
-                  {/* Video overlay gradients */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/5 via-transparent to-transparent rounded-2xl pointer-events-none"></div>
-                  
-                  {/* Play button overlay (shows when video is paused) */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                    <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
-                      <div className="w-0 h-0 border-l-[12px] border-l-white border-y-[8px] border-y-transparent ml-1"></div>
-                    </div>
-                  </div>
+            {/* Cards Grid */}
+                         <div 
+               id="business-cards"
+               data-animate
+               className={`grid md:grid-cols-3 gap-8 max-w-7xl mx-auto transition-all duration-1000 delay-200 ${
+                 isVisible('business-cards') 
+                   ? 'opacity-100 translate-y-0' 
+                   : 'opacity-0 translate-y-12'
+               }`}
+             >
+                             {/* Card 1: Data Analytics */}
+               <div className="group relative">
+                 <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent rounded-2xl"></div>
+                 <div className="relative bg-gray-900/80 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-10 hover:border-blue-500/30 transition-all duration-300 h-full">
+                   <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full mb-8"></div>
+                   <div className="mb-6">
+                     <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center mb-4">
+                       <TrendingUp className="h-6 w-6 text-blue-400" />
+                     </div>
+                   </div>
+                                     <h3 className="text-2xl font-bold text-white mb-4">Self-Correcting AI</h3>
+                   <p className="text-gray-400 leading-relaxed">
+                     GPT can generate code, but what if it doesn't work? ByeDB's function calls go back to the model itself, allowing it to learn and self-correct automatically. No more asking it to try again.
+                   </p>
                 </div>
               </div>
 
-              {/* Feature highlights below video */}
-              <div 
-                id="demo-highlights"
-                data-animate
-                className={`grid md:grid-cols-3 gap-6 mt-12 transition-all duration-1000 delay-400 ${
-                  isVisible('demo-highlights') 
-                    ? 'opacity-100 translate-y-0' 
-                    : 'opacity-0 translate-y-8'
-                }`}
-              >
-                <div className="text-center">
-                  <div className="relative w-12 h-12 mx-auto mb-4">
-                    <div className="absolute inset-0 bg-emerald-500/30 rounded-xl blur-sm"></div>
-                    <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center w-full h-full shadow-lg shadow-emerald-500/25">
-                      <MessageSquare className="h-6 w-6 text-emerald-400" />
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Natural Language Input</h3>
-                  <p className="text-gray-400 text-sm">See how simple questions become complex SQL queries</p>
-                </div>
-                
-                <div className="text-center">
-                  <div className="relative w-12 h-12 mx-auto mb-4">
-                    <div className="absolute inset-0 bg-teal-500/30 rounded-xl blur-sm"></div>
-                    <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center w-full h-full shadow-lg shadow-teal-500/25">
-                      <BarChart3 className="h-6 w-6 text-teal-400" />
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Instant Visualizations</h3>
-                  <p className="text-gray-400 text-sm">Watch data transform into beautiful charts automatically</p>
-                </div>
-                
-                <div className="text-center">
-                  <div className="relative w-12 h-12 mx-auto mb-4">
-                    <div className="absolute inset-0 bg-cyan-500/30 rounded-xl blur-sm"></div>
-                    <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl flex items-center justify-center w-full h-full shadow-lg shadow-cyan-500/25">
-                      <Zap className="h-6 w-6 text-cyan-400" />
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Lightning Fast</h3>
-                  <p className="text-gray-400 text-sm">Experience real-time processing and instant results</p>
+                             {/* Card 2: Real-time Analytics */}
+               <div className="group relative">
+                 <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent rounded-2xl"></div>
+                 <div className="relative bg-gray-900/80 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-10 hover:border-blue-500/30 transition-all duration-300 h-full">
+                   <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full mb-8"></div>
+                   <div className="mb-6">
+                     <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center mb-4">
+                       <Shield className="h-6 w-6 text-blue-400" />
+                     </div>
+                   </div>
+                                     <h3 className="text-2xl font-bold text-white mb-4">Safe Execution Confirmation</h3>
+                   <p className="text-gray-400 leading-relaxed">
+                     Don't know SQL but need a database for your hackathon? ByeDB creates it for you. With execution confirmation, you review the query and click a button—simple as that. No fear of the model screwing up.
+                   </p>
                 </div>
               </div>
-            </div>
 
-            {/* Call to action */}
-            <div 
-              id="demo-cta"
-              data-animate
-              className={`text-center mt-16 transition-all duration-1000 delay-600 ${
-                isVisible('demo-cta') 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
-            >
-              <Button size="lg" className="h-14 px-10 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium rounded-full shadow-lg shadow-emerald-500/25" asChild>
-                <a href="/dashboard" className="flex items-center gap-2">
-                  Try It Yourself
-                  <ArrowRight className="h-5 w-5" />
-                </a>
-              </Button>
+                             {/* Card 3: Performance Optimization */}
+               <div className="group relative">
+                 <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent rounded-2xl"></div>
+                 <div className="relative bg-gray-900/80 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-10 hover:border-blue-500/30 transition-all duration-300 h-full">
+                   <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full mb-8"></div>
+                   <div className="mb-6">
+                     <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center mb-4">
+                       <Users className="h-6 w-6 text-blue-400" />
+                     </div>
+                   </div>
+                                     <h3 className="text-2xl font-bold text-white mb-4">Your Technical Assistant</h3>
+                   <p className="text-gray-400 leading-relaxed">
+                     Non-technical and your coworker is on leave? Can't trust unknown GPT queries? ByeDB acts like a real technical person—straightforward, helpful, and equipped with visualization tools to draw insights for you.
+                   </p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -618,7 +628,7 @@ Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that tr
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <img 
-                      src="/icon.png" 
+                      src="/crop.png" 
                       alt="ByeDB Icon" 
                       className="h-10 w-10 drop-shadow-lg"
                     />

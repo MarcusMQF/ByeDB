@@ -9,8 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/table";
-import { useState } from "react";
-import { RiSearchLine, RiRefreshLine, RiDownloadLine, RiExpandUpDownLine, RiTableLine, RiShareLine, RiShareCircleLine } from "@remixicon/react";
+import { useState, useCallback, useMemo } from "react";
+import { RiSearchLine, RiRefreshLine, RiDownloadLine, RiExpandUpDownLine, RiTableLine, RiShareLine, RiShareCircleLine, RiLoader4Line } from "@remixicon/react";
 import { Input } from "@/components/input";
 import {
   Breadcrumb,
@@ -30,6 +30,17 @@ import { useDatasetContext } from "@/lib/dataset-context";
 import { Badge } from "@/components/badge";
 import { useEffect } from "react";
 
+// Progressive loading configuration
+const INITIAL_BATCH_SIZE = 100;
+const LOAD_MORE_BATCH_SIZE = 200;
+const LOAD_MORE_THRESHOLD = 10; // Load more when user is within 10 rows of the bottom
+
+interface ProgressiveTableState {
+  isLoading: boolean;
+  displayedRows: number;
+  hasMore: boolean;
+}
+
 export default function TablePage() {
   // Use the datasets context instead of hook directly
   const { 
@@ -43,6 +54,9 @@ export default function TablePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set());
   
+  // Progressive loading state for each table
+  const [progressiveStates, setProgressiveStates] = useState<Record<string, ProgressiveTableState>>({});
+  
   // Refresh datasets when component mounts or when user navigates to this page
   useEffect(() => {
     refreshDatasets();
@@ -53,21 +67,85 @@ export default function TablePage() {
     dataset.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Initialize progressive state for a table
+  const initializeProgressiveState = useCallback((tableId: string, totalRows: number) => {
+    setProgressiveStates(prev => ({
+      ...prev,
+      [tableId]: {
+        isLoading: false,
+        displayedRows: Math.min(INITIAL_BATCH_SIZE, totalRows),
+        hasMore: totalRows > INITIAL_BATCH_SIZE
+      }
+    }));
+  }, []);
+
+  // Load more rows for a specific table
+  const loadMoreRows = useCallback((tableId: string, totalRows: number) => {
+    setProgressiveStates(prev => {
+      const currentState = prev[tableId];
+      if (!currentState || currentState.isLoading || !currentState.hasMore) {
+        return prev;
+      }
+
+      const newDisplayedRows = Math.min(
+        currentState.displayedRows + LOAD_MORE_BATCH_SIZE,
+        totalRows
+      );
+
+      return {
+        ...prev,
+        [tableId]: {
+          ...currentState,
+          isLoading: true,
+          displayedRows: newDisplayedRows,
+          hasMore: newDisplayedRows < totalRows
+        }
+      };
+    });
+
+    // Simulate async loading with setTimeout to prevent UI blocking
+    setTimeout(() => {
+      setProgressiveStates(prev => ({
+        ...prev,
+        [tableId]: {
+          ...prev[tableId],
+          isLoading: false
+        }
+      }));
+    }, 100);
+  }, []);
+
   // Toggle table expansion
   const toggleTableExpansion = (tableId: string) => {
     const newExpanded = new Set(expandedTables);
+    const dataset = datasets.find(d => d.id === tableId);
+    
     if (newExpanded.has(tableId)) {
       newExpanded.delete(tableId);
+      // Clear progressive state when collapsing
+      setProgressiveStates(prev => {
+        const newState = { ...prev };
+        delete newState[tableId];
+        return newState;
+      });
     } else {
       newExpanded.add(tableId);
+      // Initialize progressive loading when expanding
+      if (dataset && dataset.data) {
+        initializeProgressiveState(tableId, dataset.data.length);
+      }
     }
     setExpandedTables(newExpanded);
   };
+
+
   
   // Handle refresh
   const handleRefresh = async () => {
     try {
       await refreshDatasets();
+      // Clear progressive states on refresh
+      setProgressiveStates({});
     } catch (error) {
       console.error('Failed to refresh datasets:', error);
     }
@@ -216,7 +294,7 @@ export default function TablePage() {
     link.click();
   };
 
-  // Render table content (preview or full view)
+  // Render table content (preview or progressive loading for full view)
   const renderTableContent = (dataset: any, isExpanded: boolean) => {
     if (!dataset.data || !Array.isArray(dataset.data) || dataset.data.length === 0) {
       return (
@@ -227,24 +305,84 @@ export default function TablePage() {
     }
 
     const headers = Object.keys(dataset.data[0]);
-    const displayData = isExpanded ? dataset.data : dataset.data.slice(0, 5);
+    const totalRows = dataset.data.length;
+    
+    if (!isExpanded) {
+      // Preview mode - show first 5 rows
+      const displayData = dataset.data.slice(0, 5);
+      
+      return (
+        <div className="mt-4 border rounded-lg bg-white overflow-hidden max-w-full">
+          <div className="bg-gray-50 px-4 py-2 border-b">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-gray-900">Table Content Preview</h4>
+              <Badge variant="secondary" className="text-xs select-none">
+                {Math.min(5, totalRows)} of {totalRows} rows
+              </Badge>
+            </div>
+          </div>
+          <div className="overflow-x-auto max-w-full custom-scrollbar">
+            <table className="text-sm" style={{minWidth: '100%', width: 'max-content'}}>
+              <thead>
+                <tr className="bg-gray-50 border-b">
+                  {headers.map((header) => (
+                    <th key={header} className="px-4 py-3 text-left text-xs font-medium text-gray-700 whitespace-nowrap min-w-[120px]">
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {displayData.map((row: Record<string, unknown>, index: number) => (
+                  <tr key={index} className="border-b hover:bg-gray-50">
+                    {headers.map((header: string) => (
+                      <td key={header} className="px-4 py-3 text-sm border-r last:border-r-0 min-w-[120px]">
+                        <div className="whitespace-nowrap">
+                          {row[header] !== null && row[header] !== undefined ? String(row[header]) : '-'}
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="bg-gray-50 px-4 py-2 text-center text-sm text-gray-600 border-t select-none">
+            Showing 5 of {totalRows} rows
+          </div>
+        </div>
+      );
+    }
+
+    // Expanded mode - progressive loading
+    const progressiveState = progressiveStates[dataset.id];
+    const displayedRowCount = progressiveState?.displayedRows || INITIAL_BATCH_SIZE;
+    const displayData = dataset.data.slice(0, displayedRowCount);
+    const hasMore = progressiveState?.hasMore ?? (totalRows > INITIAL_BATCH_SIZE);
+    const isLoadingMore = progressiveState?.isLoading ?? false;
 
     return (
       <div className="mt-4 border rounded-lg bg-white overflow-hidden max-w-full">
         <div className="bg-gray-50 px-4 py-2 border-b">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-gray-900">
-              {isExpanded ? 'Complete Table Data' : 'Table Content Preview'}
-            </h4>
-            <Badge variant="secondary" className="text-xs select-none">
-              {isExpanded ? `${dataset.data.length} rows` : `${Math.min(5, dataset.data.length)} of ${dataset.data.length} rows`}
-            </Badge>
+            <h4 className="font-medium text-gray-900">Complete Table Data</h4>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs select-none">
+                {displayedRowCount} of {totalRows} rows loaded
+              </Badge>
+              {isLoadingMore && (
+                <div className="flex items-center gap-1 text-xs text-blue-600">
+                  <RiLoader4Line className="w-3 h-3 animate-spin" />
+                  Loading...
+                </div>
+              )}
+            </div>
           </div>
         </div>
-        <div className="overflow-x-auto max-w-full custom-scrollbar">
-          <table className="text-sm" style={{minWidth: '100%', width: 'max-content'}}>
-            <thead>
-              <tr className="bg-gray-50 border-b">
+                          <div className="overflow-x-auto max-w-full custom-scrollbar">
+           <table className="text-sm" style={{minWidth: '100%', width: 'max-content'}}>
+             <thead className="bg-gray-50">
+              <tr className="border-b">
                 {headers.map((header) => (
                   <th key={header} className="px-4 py-3 text-left text-xs font-medium text-gray-700 whitespace-nowrap min-w-[120px]">
                     {header}
@@ -253,30 +391,51 @@ export default function TablePage() {
               </tr>
             </thead>
             <tbody>
-                {displayData.map((row: Record<string, unknown>, index: number) => (
+              {displayData.map((row: Record<string, unknown>, index: number) => (
                 <tr key={index} className="border-b hover:bg-gray-50">
                   {headers.map((header: string) => (
-                  <td key={header} className="px-4 py-3 text-sm border-r last:border-r-0 min-w-[120px]">
-                    <div className="whitespace-nowrap">
-                      {row[header] !== null && row[header] !== undefined ? String(row[header]) : '-'}
-                    </div>
-                  </td>
+                    <td key={header} className="px-4 py-3 text-sm border-r last:border-r-0 min-w-[120px]">
+                      <div className="whitespace-nowrap">
+                        {row[header] !== null && row[header] !== undefined ? String(row[header]) : '-'}
+                      </div>
+                    </td>
                   ))}
                 </tr>
-                ))}
+              ))}
             </tbody>
           </table>
+          
+          {/* Loading indicator at bottom */}
+          {isLoadingMore && (
+            <div className="flex items-center justify-center py-4 bg-gray-50 border-t">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <RiLoader4Line className="w-4 h-4 animate-spin" />
+                Loading more rows...
+              </div>
+            </div>
+          )}
+          
+          {/* Load more button for manual loading */}
+          {hasMore && !isLoadingMore && (
+            <div className="flex items-center justify-center py-4 bg-gray-50 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadMoreRows(dataset.id, totalRows)}
+                className="text-xs"
+              >
+                Load More Rows ({Math.min(LOAD_MORE_BATCH_SIZE, totalRows - displayedRowCount)} more)
+              </Button>
+            </div>
+          )}
+          
+          {/* End indicator */}
+          {!hasMore && !isLoadingMore && displayedRowCount === totalRows && (
+            <div className="bg-gray-50 px-4 py-2 text-center text-sm text-gray-600 border-t select-none">
+              Showing all {totalRows} rows
+            </div>
+          )}
         </div>
-        {!isExpanded && dataset.data.length > 5 && (
-          <div className="bg-gray-50 px-4 py-2 text-center text-sm text-gray-600 border-t select-none">
-            Showing 5 of {dataset.data.length} rows
-          </div>
-        )}
-        {isExpanded && (
-          <div className="bg-gray-50 px-4 py-2 text-center text-sm text-gray-600 border-t select-none">
-            Showing all {dataset.data.length} rows
-          </div>
-        )}
       </div>
     );
   };
@@ -377,59 +536,75 @@ export default function TablePage() {
                 </div>
               </div>
             ) : filteredDatasets.length > 0 ? (
-              filteredDatasets.map((dataset) => (
-                <div key={dataset.id} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden transition-all duration-200 min-w-0 max-w-full">
-                  {/* Dataset Header */}
-                  <div 
-                    className="p-4 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
-                    onClick={() => toggleTableExpansion(dataset.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <RiTableLine className="w-5 h-5 text-gray-600" />
-                        <div>
-                          <h3 className="font-medium text-gray-900">{dataset.name}</h3>
-                          <div className="flex items-center gap-4 mt-1">
-                            <span className="text-sm text-gray-500 select-none">{dataset.rows.toLocaleString()} rows</span>
-                            <span className="text-sm text-gray-500">Last modified: {dataset.lastModified}</span>
+              filteredDatasets.map((dataset) => {
+                const progressiveState = progressiveStates[dataset.id];
+                const isExpanded = expandedTables.has(dataset.id);
+                const displayInfo = isExpanded && progressiveState 
+                  ? `${progressiveState.displayedRows} of ${dataset.rows.toLocaleString()} loaded`
+                  : `${dataset.rows.toLocaleString()} records`;
+
+                return (
+                  <div key={dataset.id} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden transition-all duration-200 min-w-0 max-w-full">
+                    {/* Dataset Header */}
+                    <div 
+                      className="p-4 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
+                      onClick={() => toggleTableExpansion(dataset.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <RiTableLine className="w-5 h-5 text-gray-600" />
+                          <div>
+                            <h3 className="font-medium text-gray-900">{dataset.name}</h3>
+                            <div className="flex items-center gap-4 mt-1">
+                              <span className="text-sm text-gray-500 select-none">{dataset.rows.toLocaleString()} rows</span>
+                              <span className="text-sm text-gray-500">Last modified: {dataset.lastModified}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs select-none">
-                          {dataset.rows.toLocaleString()} records
-                        </Badge>
-                        <div className="flex items-center gap-1 text-xs text-gray-500 select-none">
-                          {expandedTables.has(dataset.id) ? 'Click to collapse' : 'Click to view all rows'}
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs select-none">
+                            {displayInfo}
+                          </Badge>
+                          {isExpanded && progressiveState?.isLoading && (
+                            <RiLoader4Line className="w-4 h-4 animate-spin text-blue-600" />
+                          )}
+                          <div className="flex items-center gap-1 text-xs text-gray-500 select-none">
+                            {isExpanded ? 'Click to collapse' : 'Click to view all rows'}
+                          </div>
+                          <RiExpandUpDownLine 
+                            className={`w-4 h-4 text-gray-600 transition-transform ${
+                              isExpanded ? 'rotate-180' : ''
+                            }`} 
+                          />
                         </div>
-                        <RiExpandUpDownLine 
-                          className={`w-4 h-4 text-gray-600 transition-transform ${
-                            expandedTables.has(dataset.id) ? 'rotate-180' : ''
-                          }`} 
-                        />
+                      </div>
+                    </div>
+                    
+                    {/* Single Table - Preview or Progressive Loading based on expansion state */}
+                    <div className="border-t">
+                      <div className="p-4 min-w-0 max-w-full overflow-hidden">
+                        {isExpanded && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                            <div className="flex items-center gap-2 text-blue-800">
+                              <RiTableLine className="w-4 h-4" />
+                              <span className="text-sm font-medium">Full Dataset View</span>
+                              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 select-none">
+                                {progressiveState?.displayedRows || INITIAL_BATCH_SIZE} of {dataset.data?.length || 0} rows loaded
+                              </Badge>
+                                                             {dataset.data && dataset.data.length > 1000 && (
+                                 <span className="text-xs text-blue-600">
+                                   • Click "Load More" to view additional rows
+                                 </span>
+                               )}
+                            </div>
+                          </div>
+                        )}
+                        {renderTableContent(dataset, isExpanded)}
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Single Table - Preview or Full based on expansion state */}
-                  <div className="border-t">
-                    <div className="p-4 min-w-0 max-w-full overflow-hidden">
-                      {expandedTables.has(dataset.id) && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                          <div className="flex items-center gap-2 text-blue-800">
-                            <RiTableLine className="w-4 h-4" />
-                            <span className="text-sm font-medium">Full Dataset View</span>
-                            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 select-none">
-                              {dataset.data?.length || 0} total rows
-                            </Badge>
-                          </div>
-                        </div>
-                      )}
-                      {renderTableContent(dataset, expandedTables.has(dataset.id))}
-                    </div>
-                  </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="text-center py-12">
                 <div className="text-gray-500">
