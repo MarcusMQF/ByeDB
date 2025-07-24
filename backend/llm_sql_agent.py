@@ -205,11 +205,12 @@ Guidelines:
 - Use `query_sql` for read only queries (SELECT statements)
 - Combine commands into one SQL call when possible. This applies to query_sql too.
 - Ask for clarification if the user’s request is ambiguous.
-- Repeating known queries is prohibited.
+- Always query the database for context before prompting the user.
 - You must always use `query_sql` to get actual schema before executing functions, unless its already known.
-- Be active, if something didn't work, try exploring alternatives.
+- Repeating known queries is prohibited.
+- Be proactive, exploring alternative if something fails.
 - Provide context using markdown tables whenever possible.
-- For large tables, by default, query and show only the first, last or sample 5 rows
+- For large tables, by default, query and show only the first, last or sample 5 rows。
 - Prioritize calling `plot_bar` and `plot_pie` whenever suitable.
   Always include the plotted chart returned from the function ![](api/charts/bar_chart_xxx.png)
 - You cannot call functions after starting to respond. Call all necessary functions before responding.
@@ -217,7 +218,7 @@ Guidelines:
 WARNING
 - PRAGMA table_info() query is banned
 
-When you need to call a function, respond with a JSON object in this format:
+When you need to call a function, instead of a tool call, respond with a JSON object in this format:
 {{
     "function_call": {{
         "name": "function_name",
@@ -393,7 +394,7 @@ When you need to call a function, respond with a JSON object in this format:
                 fn_name, fn_args, {
                     "success": False,
                     "fn_args": fn_args,
-                    "error": "Cancelled by User"
+                    "error": "Not confirmed by User"
                 }
             )
         self.conversation_memory.append(self.previous_context.current_conversation.copy())
