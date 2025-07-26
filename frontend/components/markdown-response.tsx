@@ -360,7 +360,7 @@ const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
   };
 
   return (
-    <div className="relative my-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 w-full overflow-hidden">
+    <div className="relative my-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 w-full overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-800/30">
         <div className="flex items-center gap-3">
           <div className="p-1.5 rounded-lg bg-slate-200 dark:bg-slate-700">
@@ -830,9 +830,9 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
         // Professional typography hierarchy
         const getHeaderClass = (level: number) => {
           switch (level) {
-            case 1: return "text-3xl font-bold mb-1 mt-0 text-slate-900 dark:text-slate-100"; // # - Largest
-            case 2: return "text-2xl font-bold mb-1 mt-0 text-slate-800 dark:text-slate-200"; // ## - Second largest
-            case 3: return "text-xl font-semibold mb-1 mt-0 text-slate-700 dark:text-slate-300"; // ### - Third largest
+            case 1: return "text-3xl font-bold mb-0.5 mt-0 text-slate-900 dark:text-slate-100"; // # - Largest
+            case 2: return "text-2xl font-bold mb-0.5 mt-0 text-slate-800 dark:text-slate-200"; // ## - Second largest
+            case 3: return "text-xl font-semibold mb-0.5 mt-0 text-slate-700 dark:text-slate-300"; // ### - Third largest
             case 4: return "text-lg font-semibold mb-0.5 mt-0 text-slate-600 dark:text-slate-400"; // #### - Fourth largest
             case 5: return "text-base font-medium mb-0.5 mt-0 text-slate-600 dark:text-slate-400"; // ##### - Normal size
             case 6: return "text-sm font-medium mb-0.5 mt-0 text-slate-500 dark:text-slate-500"; // ###### - Smallest
@@ -1015,7 +1015,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
         
         const bulletContent = processBulletText(part.bulletText);
         elements.push(
-          <div key={`bullet-${elementIndex++}`} className="relative pl-6 mb-0 ml-4">
+          <div key={`bullet-${elementIndex++}`} className="relative pl-6 mb-0 mt-1 ml-4">
             <span className="absolute left-0 top-0 text-slate-600 dark:text-slate-400 font-bold leading-snug">•</span>
             <div className="leading-snug">
               {bulletContent}
@@ -1147,7 +1147,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
         
         const subBulletContent = processSubBulletText(part.subBulletText);
         elements.push(
-          <div key={`subBullet-${elementIndex++}`} className="relative pl-6 mb-0 ml-8">
+          <div key={`subBullet-${elementIndex++}`} className="relative pl-6 mb-0 mt-0.5 ml-8">
             <span className="absolute left-0 top-0 text-slate-600 dark:text-slate-400 font-bold leading-relaxed">◦</span>
             <div className="leading-relaxed">
               {subBulletContent}
@@ -1279,7 +1279,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
         
         const numberedContent = processNumberedText(part.numberedText);
         elements.push(
-          <div key={`numbered-${elementIndex++}`} className="relative pl-6 mb-0 ml-4">
+          <div key={`numbered-${elementIndex++}`} className="relative pl-6 mb-0 mt-1 ml-4">
             <span className="absolute left-0 top-0 text-slate-600 dark:text-slate-400 font-bold leading-snug">{part.number}.</span>
             <div className="leading-snug">
               {numberedContent}

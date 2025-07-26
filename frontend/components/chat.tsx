@@ -24,7 +24,9 @@ import {
   RiBookOpenLine,
   RiFileCopyLine,
   RiQuestionLine,
-  RiDownloadLine
+  RiDownloadLine,
+  RiArrowRightSLine,
+  RiArrowDownSLine
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
 import { useRef, useEffect, useState, useMemo } from "react";
@@ -125,6 +127,22 @@ export default function Chat() {
   );
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [copiedItems, setCopiedItems] = useState<Set<string>>(new Set()); // Track copied items by unique ID
+  
+  // State for collapsible query results - tracks which results are expanded
+  const [expandedResults, setExpandedResults] = useState<Set<string>>(new Set());
+
+  // Toggle function for query result expansion
+  const toggleResultExpansion = (resultId: string) => {
+    setExpandedResults(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(resultId)) {
+        newSet.delete(resultId);
+      } else {
+        newSet.add(resultId);
+      }
+      return newSet;
+    });
+  };
 
   // PDF Export function - converts chat to properly formatted PDF
   const exportChatToPDF = () => {
@@ -1108,35 +1126,76 @@ export default function Chat() {
                                       />
                                     </div>
                                     
-                                    {/* Query Result/Response */}
+                                    {/* Query Result/Response - Collapsible */}
                                     {func.content && (
                                       <div className="bg-gray-25 dark:bg-gray-950">
-                                        <div className="bg-gray-75 dark:bg-gray-825 px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+                                        <div 
+                                          className="bg-gray-75 dark:bg-gray-825 px-3 py-2 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 select-none"
+                                          onClick={() => toggleResultExpansion(`${message.id}-${funcIndex}`)}
+                                        >
                                           <div className="flex items-center justify-between">
-                                            <span className="text-xs font-mono text-gray-600 dark:text-gray-400">Query Result</span>
-                                            <CopyButton
-                                              text={func.content}
-                                              id={`result-${message.id}-${funcIndex}`}
-                                              label="Copy Result"
-                                              isCopied={copiedItems.has(`result-${message.id}-${funcIndex}`)}
-                                              onCopy={handleCopy}
-                                            />
+                                            <div className="flex items-center gap-2">
+                                              <div className={`transition-transform duration-200 ${expandedResults.has(`${message.id}-${funcIndex}`) ? 'rotate-90' : 'rotate-0'}`}>
+                                                <RiArrowRightSLine size={16} className="text-gray-500 dark:text-gray-400" />
+                                              </div>
+                                              <span className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                                                Query Result
+                                              </span>
+                                              <span className="text-xs text-gray-500 dark:text-gray-500 italic">
+                                                {expandedResults.has(`${message.id}-${funcIndex}`) ? 'Click to collapse' : 'Click to expand'}
+                                              </span>
+                                            </div>
+                                                                                         <div onClick={(e) => e.stopPropagation()}>
+                                               <CopyButton
+                                                 text={(() => {
+                                                   try {
+                                                     const parsed = JSON.parse(func.content);
+                                                     // Only copy the 'data' field if it exists, otherwise copy the full content
+                                                     const dataToShow = parsed.data !== undefined ? parsed.data : parsed;
+                                                     return JSON.stringify(dataToShow, null, 2);
+                                                   } catch (e) {
+                                                     // If parsing fails, copy the raw content
+                                                     return func.content;
+                                                   }
+                                                 })()}
+                                                 id={`result-${message.id}-${funcIndex}`}
+                                                 label="Copy Result"
+                                                 isCopied={copiedItems.has(`result-${message.id}-${funcIndex}`)}
+                                                 onCopy={handleCopy}
+                                               />
+                                             </div>
                                           </div>
                                         </div>
-                                        <div className="p-3 max-h-96 overflow-auto scrollbar-thin">
-                                          <pre className="text-xs font-mono whitespace-pre-wrap text-gray-700 dark:text-gray-300 overflow-x-auto break-words max-w-full">
-                                            {(() => {
-                                              try {
-                                                const parsed = JSON.parse(func.content);
-                                                // Only display the 'data' field if it exists, otherwise show the full content
-                                                const dataToShow = parsed.data !== undefined ? parsed.data : parsed;
-                                                return JSON.stringify(dataToShow, null, 2);
-                                              } catch (e) {
-                                                // If parsing fails, show the raw content
-                                                return func.content;
-                                              }
-                                            })()}
-                                          </pre>
+                                        <div 
+                                          className={`transition-all duration-300 ease-in-out ${
+                                            expandedResults.has(`${message.id}-${funcIndex}`) 
+                                              ? 'max-h-screen opacity-100' 
+                                              : 'max-h-0 opacity-0'
+                                          } overflow-hidden`}
+                                        >
+                                          <div 
+                                            className={`transition-all duration-300 ease-in-out ${
+                                              expandedResults.has(`${message.id}-${funcIndex}`)
+                                                ? 'transform translate-y-0'
+                                                : 'transform -translate-y-2'
+                                            }`}
+                                          >
+                                            <div className="p-3 max-h-96 overflow-auto scrollbar-thin">
+                                              <pre className="text-xs font-mono whitespace-pre-wrap text-gray-700 dark:text-gray-300 overflow-x-auto break-words max-w-full">
+                                                {(() => {
+                                                  try {
+                                                    const parsed = JSON.parse(func.content);
+                                                    // Only display the 'data' field if it exists, otherwise show the full content
+                                                    const dataToShow = parsed.data !== undefined ? parsed.data : parsed;
+                                                    return JSON.stringify(dataToShow, null, 2);
+                                                  } catch (e) {
+                                                    // If parsing fails, show the raw content
+                                                    return func.content;
+                                                  }
+                                                })()}
+                                              </pre>
+                                            </div>
+                                          </div>
                                         </div>
                                       </div>
                                     )}
