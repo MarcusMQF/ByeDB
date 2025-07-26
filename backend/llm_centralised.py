@@ -1,6 +1,6 @@
 import os
+import asyncio
 
-from httplib2.auth import token
 from openai import OpenAI
 from openai import RateLimitError as OpenAIRateLimit, AuthenticationError as OpenAIAuth, APIError
 import google.generativeai as genai
@@ -33,14 +33,18 @@ class LLMBase:
     def get_weight(self) -> float:
         return 1.0
 
-    def generate_response(self, prompt: str) -> LLMResponse:
-        raise Exception("Unimplemented generate_response function")
+    def _generate_response(self, prompt: str) -> LLMResponse:
+        raise NotImplementedError("Unimplemented generate_response")
+
+    async def generate_response(self, prompt: str) -> LLMResponse:
+        return await asyncio.to_thread(self._generate_response, prompt)
 
     def compute_load(self, prompt_length: int, response_length: int) -> float:
         return (prompt_length + response_length) * self.get_weight()
 
     def __str__(self):
         return f"{self.__class__.__name__}{{api=...{self.api_key[-10:]}}}"
+
 
 class LLMOpenAI(LLMBase):
     def __init__(self, api_key):
@@ -53,12 +57,10 @@ class LLMOpenAI(LLMBase):
     def get_weight(self) -> float:
         return 10.0  # GPT is expensive
 
-    def generate_response(self, prompt: str) -> LLMResponse:
+    def _generate_response(self, prompt: str) -> LLMResponse:
         response = self.client.chat.completions.create(
             model="gpt-4o",
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+            messages=[{"role": "user", "content": prompt}]
         )
         return LLMResponse(
             response.choices[0].message.content.strip(),
@@ -67,7 +69,6 @@ class LLMOpenAI(LLMBase):
                 response.usage.total_tokens
             )
         )
-
 
 class LLMGemini(LLMBase):
     def __init__(self, api_key):
@@ -78,14 +79,15 @@ class LLMGemini(LLMBase):
     def get_weight(self) -> float:
         return 1.0
 
-    def generate_response(self, prompt: str) -> LLMResponse:
+    def _generate_response(self, prompt: str) -> LLMResponse:
         response = self.model.generate_content(prompt)
         return LLMResponse(
             response.text,
-            LLMUsage(response.usage_metadata.prompt_token_count,
-                     response.usage_metadata.total_token_count)
+            LLMUsage(
+                response.usage_metadata.prompt_token_count,
+                response.usage_metadata.total_token_count
+            )
         )
-
 
 class LLMCentralised(LLMBase):
     def __init__(self):
@@ -100,26 +102,26 @@ class LLMCentralised(LLMBase):
             if key.strip():
                 self.models.append(LLMOpenAI(key.strip()))
 
-    def generate_response(self, prompt: str) -> LLMResponse:
-        attempts = 0
+    async def generate_response(self, prompt: str) -> LLMResponse:
+        attempts = 1
         tried = set()
-        error_str = ""
+        error_str = "No available models"
 
-        while attempts < 3 and len(tried) < len(self.models):
+        while attempts <= 3 and len(tried) < len(self.models):
             available_models = sorted(
                 [(i, m, m.total_token_used * m.get_weight()) for i, m in enumerate(self.models) if i not in tried],
                 key=lambda x: x[2]
             )
 
             if not available_models:
-                raise Exception("No available models")
+                raise Exception(error_str)
 
             idx, model, _ = available_models[0]
             tried.add(idx)
 
             print(f"[LLMCentral] Using model {idx}: {model}")
             try:
-                output = model.generate_response(prompt)
+                output = await model.generate_response(prompt)
                 total_tokens = output.usage["token_total"]
                 model.total_token_used += total_tokens
                 self.total_token_used += total_tokens
@@ -133,6 +135,7 @@ class LLMCentralised(LLMBase):
             except Exception as e:
                 error_str = str(e)
             print(f"[Model {idx}] {error_str}")
+            attempts += 1
 
         raise RuntimeError(error_str)
 
@@ -146,8 +149,12 @@ class LLMCentralised(LLMBase):
 
 llmCentral = LLMCentralised()
 
+# If running from CLI:
 if __name__ == '__main__':
-    print(llmCentral)
-    for i in range(llmCentral.total_models):
-        _response = llmCentral.generate_response("Respond with 'ok'")
-        print(_response.text, _response.usage, sep="\n")
+    async def main():
+        print(llmCentral)
+        for i in range(llmCentral.total_models):
+            response = await llmCentral.generate_response("Respond with 'ok'")
+            print(response.text, response.usage, sep="\n")
+
+    asyncio.run(main())

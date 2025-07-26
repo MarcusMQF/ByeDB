@@ -33,11 +33,11 @@ app.mount("/api/charts", StaticFiles(directory=cm.output_dir), name="charts")
 # Global user context
 user_context = LRUUserContext(capacity=50)
 
-def get_user_database(user_id: str) -> LocalSQLiteDatabase:
-    return user_context.get_user_database(user_id)
+async def get_user_database(user_id: str) -> LocalSQLiteDatabase:
+    return await user_context.get_user_database(user_id)
 
-def get_user_agent(user_id: str) -> SQLAgent:
-    return user_context.get_user_agent(user_id)
+async def get_user_agent(user_id: str) -> SQLAgent:
+    return await user_context.get_user_agent(user_id)
 
 # Models
 class SQLQuestionRequest(BaseModel):
@@ -67,14 +67,14 @@ async def health_check():
 @app.post("/api/sql-question", response_model=SQLQuestionResponse)
 async def ask_sql_question(request: SQLQuestionRequest, user_id: str = Header(...)):
     try:
-        sql_expert = get_user_agent(user_id)
+        sql_expert = await get_user_agent(user_id)
         if not request.question.strip():
             raise HTTPException(status_code=400, detail="Question cannot be empty")
 
         if request.mode:
             sql_expert.mode = request.mode
         print(f"Question: {request.question}")
-        result = sql_expert.generate_sql_response(request.question)
+        result = await sql_expert.generate_sql_response(request.question)
         print(json.dumps(result, indent=2))
         return SQLQuestionResponse(
             success=result["success"],
@@ -89,12 +89,12 @@ async def ask_sql_question(request: SQLQuestionRequest, user_id: str = Header(..
 @app.post("/api/continue-execution", response_model=SQLQuestionResponse)
 async def continue_execution(request: ContinueRequest, user_id: str = Header(...)):
     try:
-        sql_expert = get_user_agent(user_id)
+        sql_expert = await get_user_agent(user_id)
 
         if request.approve:
-            result = sql_expert.continue_sql_respond()
+            result = await sql_expert.continue_sql_respond()
         else:
-            result = sql_expert.cancel_sql_execution()
+            result = await sql_expert.cancel_sql_execution()
         print(json.dumps(result, indent=2))
         return SQLQuestionResponse(
             success=result["success"],
@@ -109,18 +109,18 @@ async def continue_execution(request: ContinueRequest, user_id: str = Header(...
 @app.post("/api/upload-db")
 async def upload_database(file: UploadFile = File(...), truncate: bool = Form(True), user_id: str = Header(...)):
     try:
-        db = get_user_database(user_id)
+        db = await get_user_database(user_id)
         filename = file.filename.lower()
         contents = await file.read()
 
         if filename.endswith(".json"):
             data = json.loads(contents.decode("utf-8"))
-            load_result = db.load_all_data(data, truncate=truncate)
+            load_result = await db.load_all_data(data)
 
         elif filename.endswith(".csv"):
             df = pd.read_csv(io.BytesIO(contents))
             table_name = os.path.splitext(file.filename)[0]
-            result = db.load_dataframe(df, table_name=table_name, truncate=truncate)
+            result = await db.load_dataframe(df, table_name=table_name)
             load_result = {
                 "success": result["success"],
                 "loaded_tables": [result["table"]] if result["success"] else [],
@@ -129,20 +129,24 @@ async def upload_database(file: UploadFile = File(...), truncate: bool = Form(Tr
 
         elif filename.endswith((".xlsx", ".xls")):
             excel_data = pd.read_excel(io.BytesIO(contents), sheet_name=None)
-            results = [db.load_dataframe(df, table_name=sheet, truncate=truncate)
+            results = [await db.load_dataframe(df, table_name=sheet)
                        for sheet, df in excel_data.items()]
             load_result = {
                 "success": all(r["success"] for r in results),
                 "loaded_tables": [r["table"] for r in results if r["success"]],
-                "errors": [r for r in results if not r["success"]],
+                "errors": [r.get("error") for r in results if not r["success"]],
             }
 
         elif filename.endswith(".db"):
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as tmp_file:
-                tmp_file.write(contents)
-                db.import_from_sqlite_file(tmp_file.name)
-            os.unlink(tmp_file.name)
-            load_result = {"success": True, "loaded_tables": db.get_table_names()}
+            tmp_file = None
+            try:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as tmp_file:
+                    tmp_file.write(contents)
+                    results = await db.import_from_db_file(tmp_file.name)
+            finally:
+                if tmp_file:
+                    os.unlink(tmp_file.name)
+            load_result = {"success": True, "loaded_tables": db.get_table_names(), "error": results.get("error")}
 
         else:
             raise HTTPException(status_code=400, detail="Unsupported file format")
@@ -158,14 +162,26 @@ async def upload_database(file: UploadFile = File(...), truncate: bool = Form(Tr
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON format.")
     except Exception as e:
+        print(f"Upload database error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/export-db")
 async def export_database(file_type: str = "json", user_id: str = Header(...)):
-    db = get_user_database(user_id)
+    db = await get_user_database(user_id)
     try:
-        export_result = db.export_all_data()
+        if file_type == "db":
+            output = await db.export_to_db_binary()
+            return StreamingResponse(output, media_type="application/octet-stream", headers={
+                "Content-Disposition": "attachment; filename=byedb_export.db"
+            })
+        elif file_type == "sql":
+            output = await db.export_as_sql()
+            return StreamingResponse(output, media_type="application/octet-stream", headers={
+                "Content-Disposition": "attachment; filename=byedb_export.db"
+            })
+
+        export_result = await db.export_all_data()
         if not export_result["success"]:
             raise HTTPException(status_code=500, detail=export_result["error"])
 
@@ -174,7 +190,7 @@ async def export_database(file_type: str = "json", user_id: str = Header(...)):
         if file_type == "json":
             return {"success": True, "data": data}
 
-        elif file_type == "csv":
+        if file_type == "csv":
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                 for table_name, rows in data.items():
@@ -189,7 +205,7 @@ async def export_database(file_type: str = "json", user_id: str = Header(...)):
                 "Content-Disposition": "attachment; filename=exported_tables.zip"
             })
 
-        elif file_type == "excel":
+        if file_type == "excel":
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
                 for table_name, rows in data.items():
@@ -202,24 +218,16 @@ async def export_database(file_type: str = "json", user_id: str = Header(...)):
                                      media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                      headers={"Content-Disposition": "attachment; filename=exported_tables.xlsx"})
 
-        elif file_type == "db":
-            db_path = db.get_db_path()
-            return StreamingResponse(open(db_path, "rb"), media_type="application/octet-stream", headers={
-                "Content-Disposition": "attachment; filename=byedb_export.db"
-            })
-
-        else:
-            raise HTTPException(status_code=400, detail="Unsupported file type.")
-
+        raise HTTPException(status_code=400, detail="Unsupported file type.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/export-csv")
 async def export_csv(user_id: str = Header(...)):
-    db = get_user_database(user_id)
+    db = await get_user_database(user_id)
     try:
-        tables_result = db.list_tables()
+        tables_result = await db.list_tables()
         if not tables_result["success"]:
             raise HTTPException(status_code=500, detail=tables_result["error"])
 
@@ -228,7 +236,7 @@ async def export_csv(user_id: str = Header(...)):
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
             for table in table_names:
-                query_result = db.execute_sql(f"SELECT * FROM {table}")
+                query_result = await db.execute_sql(f"SELECT * FROM {table}")
                 if not query_result["success"]:
                     continue
                 output = io.StringIO()
@@ -249,7 +257,7 @@ async def export_csv(user_id: str = Header(...)):
 @app.post("/api/clear-memory")
 async def clear_memory(user_id: str = Header(...)):
     try:
-        sql_expert = get_user_agent(user_id)
+        sql_expert = await get_user_agent(user_id)
         sql_expert.clear_memory()
         return {"success": True, "message": "Memory cleared successfully."}
     except Exception as e:
@@ -259,8 +267,8 @@ async def clear_memory(user_id: str = Header(...)):
 @app.post("/api/clear-database")
 async def clear_database(user_id: str = Header(...)):
     try:
-        db = get_user_database(user_id)
-        db.clear_database()
+        db = await get_user_database(user_id)
+        await db.clear_database()
         return {"success": True, "message": "Database cleared successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

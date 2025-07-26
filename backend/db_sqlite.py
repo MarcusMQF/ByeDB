@@ -1,193 +1,114 @@
 import io
-import sqlite3
-from typing import Dict, Any, List, Optional, Tuple
-import pandas as pd
+import os
+import tempfile
+
+import aiosqlite
+import asyncio
 import sqlparse
+import pandas as pd
+from typing import Dict, Any, List, Optional
+
 
 class LocalSQLiteDatabase:
-    """
-    A local SQLite database client with methods for common operations
-    and a generic execute_sql function that supports multiple statements.
-    """
-
     def __init__(self, db_path: str = ':memory:'):
-        """
-        Initializes the SQLite database connection.
-
-        Args:
-            db_path (str, optional): Path to the SQLite database file.
-                                     Defaults to ':memory:' for an in-memory database.
-        """
         self.db_path = db_path
-        self.conn: Optional[sqlite3.Connection] = None
-        self.cursor: Optional[sqlite3.Cursor] = None
-        self._connect()
+        self.conn: Optional[aiosqlite.Connection] = None
 
-    def _connect(self):
-        """Establishes a connection to the SQLite database."""
-        try:
-            self.conn = sqlite3.connect(self.db_path)
-            self.conn.row_factory = sqlite3.Row  # Allows accessing columns by name
-            self.cursor = self.conn.cursor()
-            print(f"Connected to SQLite database: {self.db_path}")
-        except sqlite3.Error as e:
-            print(f"Error connecting to database: {e}")
-            self.conn = None
-            self.cursor = None
+    async def connect(self):
+        self.conn = await aiosqlite.connect(self.db_path)
+        self.conn.row_factory = aiosqlite.Row
+        print(f"Connected to SQLite database: {self.db_path}")
 
-    def close(self):
-        """Closes the database connection."""
+    async def close(self):
         if self.conn:
-            self.conn.close()
+            await self.conn.close()
             print(f"Disconnected from SQLite database: {self.db_path}")
-            self.conn = None
-            self.cursor = None
 
-    def execute_sql(self, sql_query: str) -> Dict[str, Any]:
-        if not self.conn or not self.cursor:
+    async def execute_sql(self, sql_query: str) -> Dict[str, Any]:
+        if not self.conn:
             return {"success": False, "error": "Database not connected."}
 
         try:
             statements = sqlparse.split(sql_query)
             results = []
 
-            for statement in statements:
-                statement = statement.strip()
-                if not statement:
-                    continue
+            async with self.conn.execute("BEGIN"):
+                for statement in statements:
+                    statement = statement.strip()
+                    if not statement:
+                        continue
 
-                self.cursor.execute(statement)
-                upper_stmt = statement.upper()
-                if upper_stmt.startswith("SELECT"):
-                    rows = self.cursor.fetchall()
-                    data = [dict(row) for row in rows]
-                    results.append({
-                        "statement": statement,
-                        "type": "SELECT",
-                        "data": data
-                    })
-                else:
-                    self.conn.commit()
-                    results.append({
-                        "statement": statement,
-                        "type": "NON-SELECT",
-                        "message": "Executed successfully."
-                    })
-            # print(results)
-            data = [row for i in results if i["type"] == "SELECT" for row in i["data"]]
+                    upper_stmt = statement.upper()
+                    async with self.conn.execute(statement) as cursor:
+                        if upper_stmt.startswith("SELECT"):
+                            rows = await cursor.fetchall()
+                            data = [dict(row) for row in rows]
+                            results.append({
+                                "statement": statement,
+                                "type": "SELECT",
+                                "data": data
+                            })
+                        else:
+                            results.append({
+                                "statement": statement,
+                                "type": "NON-SELECT",
+                                "message": "Executed successfully."
+                            })
+                await self.conn.commit()
+
+            data = [row for r in results if r["type"] == "SELECT" for row in r["data"]]
             return {"success": True, "message": "Executed multiple statements.", "data": data, "results": results}
 
-        except sqlite3.Error as e:
-            self.conn.rollback()
-            return {"success": False, "error": str(e)}
         except Exception as e:
-            return {"success": False, "error": f"An unexpected error occurred: {e}"}
+            await self.conn.rollback()
+            return {"success": False, "error": str(e)}
 
-    def execute_script(self, script: str) -> Dict[str, Any]:
-        """
-        Executes multiple SQL statements as a script.
-        This is a convenience method that calls execute_sql with multi_statement=True.
-
-        Args:
-            script (str): The SQL script containing multiple statements.
-
-        Returns:
-            Dict[str, Any]: A dictionary indicating success/failure and a message.
-        """
-        return self.execute_sql(script)
-
-    def execute_statements(self, statements: List[str]) -> Dict[str, Any]:
-        """
-        Executes multiple SQL statements one by one, allowing for individual error handling.
-
-        Args:
-            statements (List[str]): List of SQL statements to execute.
-
-        Returns:
-            Dict[str, Any]: A dictionary with success status, results for each statement, and any errors.
-        """
-        if not self.conn:
-            return {"success": False, "error": "Database not connected."}
-
-        results = []
-        errors = []
-
-        for i, statement in enumerate(statements):
-            statement = statement.strip()
-            if not statement:
-                continue
-
-            try:
-                result = self.execute_sql(statement)
-                results.append({
-                    "statement_index": i,
-                    "statement": statement,
-                    "result": result
-                })
-
-                if not result["success"]:
-                    errors.append({
-                        "statement_index": i,
-                        "statement": statement,
-                        "error": result.get("error", "Unknown error")
-                    })
-            except Exception as e:
-                error_info = {
-                    "statement_index": i,
-                    "statement": statement,
-                    "error": str(e)
-                }
-                errors.append(error_info)
-                results.append({
-                    "statement_index": i,
-                    "statement": statement,
-                    "result": {"success": False, "error": str(e)}
-                })
-
-        return {
-            "success": len(errors) == 0,
-            "message": f"Executed {len(statements)} statements with {len(errors)} errors.",
-            "results": results,
-            "errors": errors
-        }
-
-    def get_table_info(self, table_name: str) -> Dict[str, Any]:
-        """
-        Retrieves schema information for a specific table.
-
-        Args:
-            table_name (str): The name of the table.
-
-        Returns:
-            Dict[str, Any]: A dictionary with success status and table schema data.
-        """
-        sql = f"PRAGMA table_info('{table_name}')"
-        return self.execute_sql(sql)
-
-    def list_tables(self) -> Dict[str, Any]:
-        """
-        Lists all user-defined tables in the database (excluding internal ones like sqlite_sequence).
-
-        Returns:
-            Dict[str, Any]: A dictionary with success status and a list of table names.
-        """
+    async def list_tables(self) -> Dict[str, Any]:
         sql = "SELECT name FROM sqlite_master WHERE type='table' AND name != 'sqlite_sequence';"
-        return self.execute_sql(sql)
+        return await self.execute_sql(sql)
 
-    def export_all_data(self) -> Dict[str, Any]:
-        """
-        Exports all user-defined tables and their data from the database.
+    async def get_table_info(self, table_name: str) -> Dict[str, Any]:
+        return await self.execute_sql(f"PRAGMA table_info('{table_name}')")
 
-        Returns:
-            Dict[str, Any]: A dictionary with success status and exported data.
-        """
+    async def clear_database(self) -> Dict[str, Any]:
         if not self.conn:
             return {"success": False, "error": "Database not connected."}
 
         try:
-            tables_result = self.execute_sql(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name != 'sqlite_sequence';"
-            )
+            tables_result = await self.list_tables()
+            if not tables_result["success"]:
+                return {"success": False, "error": "Failed to retrieve table list."}
+
+            tables = [row["name"] for row in tables_result.get("data", [])]
+            dropped_tables = []
+            errors = []
+
+            for table in tables:
+                try:
+                    await self.conn.execute(f"DROP TABLE IF EXISTS {table};")
+                    dropped_tables.append(table)
+                except Exception as e:
+                    errors.append({"table": table, "error": str(e)})
+
+            await self.conn.commit()
+
+            return {
+                "success": not errors,
+                "message": f"Cleared tables: {len(dropped_tables)}",
+                "dropped_tables": dropped_tables,
+                "errors": errors
+            }
+
+        except Exception as e:
+            await self.conn.rollback()
+            return {"success": False, "error": str(e)}
+
+    async def export_all_data(self) -> Dict[str, Any]:
+        if not self.conn:
+            return {"success": False, "error": "Database not connected."}
+
+        try:
+            tables_result = await self.list_tables()
             if not tables_result["success"]:
                 return {"success": False, "error": "Failed to retrieve table list."}
 
@@ -195,8 +116,7 @@ class LocalSQLiteDatabase:
             export_data = {}
 
             for table in tables:
-                query = f"SELECT * FROM {table};"
-                result = self.execute_sql(query)
+                result = await self.execute_sql(f"SELECT * FROM {table};")
                 if result["success"]:
                     export_data[table] = result["data"]
                 else:
@@ -207,215 +127,223 @@ class LocalSQLiteDatabase:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    def load_all_data(self, data: Dict[str, List[Dict[str, Any]]], truncate: bool = True) -> Dict[str, Any]:
-        """
-        Loads data into the database from a dictionary of tables and rows.
-
-        Args:
-            data (Dict[str, List[Dict[str, Any]]]): The data to load, structured as {table_name: [row_dicts]}.
-            truncate (bool): If True, clears existing data in the tables before loading.
-
-        Returns:
-            Dict[str, Any]: A dictionary with success status, loaded table names, and any errors.
-        """
-        if not self.conn or not self.cursor:
+    async def load_all_data(self, data: Dict[str, List[Dict[str, Any]]]) -> Dict[str, Any]:
+        if not self.conn:
             return {"success": False, "error": "Database not connected."}
 
         errors = []
         loaded_tables = []
 
-        for table, rows in data.items():
-            if not isinstance(rows, list) or not rows:
-                errors.append({"table": table, "error": "No rows provided or invalid format."})
-                continue
+        try:
+            for table, rows in data.items():
+                if not isinstance(rows, list) or not rows:
+                    errors.append({"table": table, "error": "Invalid or empty row data."})
+                    continue
 
-            # Use first row to infer columns
-            columns = list(rows[0].keys())
-
-            try:
-                if truncate:
-                    self.cursor.execute(f"DELETE FROM {table};")
+                columns = list(rows[0].keys())
 
                 placeholders = ", ".join(["?" for _ in columns])
-                column_names = ", ".join(columns)
-                insert_query = f"INSERT INTO {table} ({column_names}) VALUES ({placeholders})"
+                insert_query = f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({placeholders})"
 
                 for row in rows:
                     values = [row.get(col) for col in columns]
-                    self.cursor.execute(insert_query, values)
+                    await self.conn.execute(insert_query, values)
 
                 loaded_tables.append(table)
 
-            except sqlite3.Error as e:
-                errors.append({"table": table, "error": str(e)})
+            await self.conn.commit()
 
-        try:
-            self.conn.commit()
+            return {
+                "success": not errors,
+                "loaded_tables": loaded_tables,
+                "errors": errors
+            }
+
         except Exception as e:
-            return {"success": False, "error": f"Commit failed: {str(e)}"}
+            await self.conn.rollback()
+            return {"success": False, "error": str(e)}
 
-        return {
-            "success": len(errors) == 0,
-            "loaded_tables": loaded_tables,
-            "errors": errors
-        }
-
-    def load_dataframe(self, df: pd.DataFrame, table_name: str, truncate: bool = True) -> dict:
-        """
-        Load a pandas DataFrame into a database table.
-        """
+    async def load_dataframe(self, df: pd.DataFrame, table_name: str) -> Dict[str, Any]:
         if not self.conn:
             return {"success": False, "error": "Database not connected."}
 
         try:
-            if truncate:
-                self.cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
+            await self.conn.execute(f"DROP TABLE IF EXISTS {table_name}")
+            columns = ", ".join([f'"{col}" TEXT' for col in df.columns])
+            await self.conn.execute(f"CREATE TABLE {table_name} ({columns})")
 
-            df.to_sql(table_name, self.conn, index=False, if_exists="replace" if truncate else "append")
-            self.conn.commit()
+            insert_query = f"INSERT INTO {table_name} ({', '.join(df.columns)}) VALUES ({', '.join(['?' for _ in df.columns])})"
+            for _, row in df.iterrows():
+                await self.conn.execute(insert_query, tuple(row.astype(str)))
+
+            await self.conn.commit()
             return {"success": True, "table": table_name}
+
         except Exception as e:
-            return {"success": False, "error": str(e), "table": table_name}
+            await self.conn.rollback()
+            return {"success": False, "error": str(e)}
 
-    def import_from_sqlite_file(self, file_path: str) -> None:
-        """
-        Attach another SQLite database file and copy its tables into the current DB.
-        """
+    async def import_from_sql_file(self, file_path: str) -> Dict[str, Any]:
+        """Imports SQL commands from a .sql file and executes them."""
         if not self.conn:
-            raise ValueError("Database not connected.")
-
+            return {"success": False, "error": "Database not connected."}
         try:
-            self.cursor.execute(f"ATTACH DATABASE '{file_path}' AS imported_db")
+            with open(file_path, "r", encoding="utf-8") as f:
+                sql_script = f.read()
 
-            # Get all table names from the attached DB
-            self.cursor.execute("SELECT name FROM imported_db.sqlite_master WHERE type='table'")
-            tables = [row[0] for row in self.cursor.fetchall()]
+            await self.conn.executescript(sql_script)
+            await self.conn.commit()
+            return {"success": True, "message": f"Executed SQL from file '{file_path}'."}
 
-            for table in tables:
-                self.cursor.execute(f"DROP TABLE IF EXISTS {table}")
-                self.cursor.execute(f"CREATE TABLE {table} AS SELECT * FROM imported_db.{table}")
-
-            self.cursor.execute("DETACH DATABASE imported_db")
-            self.conn.commit()
         except Exception as e:
-            raise RuntimeError(f"Failed to import .db file: {str(e)}")
+            await self.conn.rollback()
+            return {"success": False, "error": str(e)}
 
-    def get_table_names(self) -> list:
-        """
-        Return the list of tables in the database.
-        """
-        if not self.conn:
-            return []
-
-        self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        return [row[0] for row in self.cursor.fetchall()]
-
-    def clear_database(self) -> Dict[str, Any]:
-        """
-        Clears all tables and data from the database.
-
-        Returns:
-            Dict[str, Any]: A dictionary indicating success/failure and a message.
-        """
+    async def import_from_db_file(self, file_path: str) -> Dict[str, Any]:
         if not self.conn:
             return {"success": False, "error": "Database not connected."}
 
         try:
-            tables_result = self.list_tables()
-            if not tables_result["success"]:
-                return {"success": False, "error": "Failed to retrieve table list."}
+            file_conn = await aiosqlite.connect(file_path)
+            file_conn.row_factory = aiosqlite.Row
 
-            tables = [row["name"] for row in tables_result.get("data", [])]
-            dropped_tables = []
-            errors = []
+            tables_result = await file_conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name != 'sqlite_sequence';"
+            )
+            tables = [row["name"] async for row in tables_result]
 
             for table in tables:
-                try:
-                    self.cursor.execute(f"DROP TABLE IF EXISTS {table};")
-                    dropped_tables.append(table)
-                except sqlite3.Error as e:
-                    errors.append({"table": table, "error": str(e)})
+                data_cursor = await file_conn.execute(f"SELECT * FROM {table};")
+                rows = await data_cursor.fetchall()
+                columns = [col[0] for col in data_cursor.description]
 
-            self.conn.commit()
+                await self.conn.execute(f"DROP TABLE IF EXISTS {table}")
+                col_defs = ", ".join([f'"{col}" TEXT' for col in columns])
+                await self.conn.execute(f"CREATE TABLE {table} ({col_defs})")
 
-            if errors:
-                return {
-                    "success": False,
-                    "message": f"Cleared some tables, but encountered errors: {len(errors)} errors.",
-                    "dropped_tables": dropped_tables,
-                    "errors": errors
-                }
-            else:
-                return {
-                    "success": True,
-                    "message": f"Successfully cleared all {len(dropped_tables)} tables.",
-                    "dropped_tables": dropped_tables
-                }
+                insert_query = f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({', '.join(['?' for _ in columns])})"
+                for row in rows:
+                    await self.conn.execute(insert_query, tuple(str(row[col]) for col in columns))
+
+            await file_conn.close()
+            await self.conn.commit()
+
+            return {"success": True, "message": f"Imported tables: {tables}"}
+
         except Exception as e:
-            self.conn.rollback()
-            return {"success": False, "error": f"An unexpected error occurred: {e}"}
+            await self.conn.rollback()
+            return {"success": False, "error": str(e)}
 
-    def export_as_sql(self) -> str:
-        """
-        Exports the entire database as a SQL dump (DDL + inserts).
-        Returns the SQL string.
-        """
+    async def export_as_sql(self) -> str:
         if not self.conn:
             raise ValueError("Database not connected.")
+        buffer = io.StringIO()
+        async for line in self.conn.iterdump():
+            buffer.write(f"{line}\n")
+        return buffer.getvalue()
 
-        sql_dump = io.StringIO()
-        for line in self.conn.iterdump():
-            sql_dump.write(f"{line}\n")
+    async def export_to_db_binary(self) -> [io.BytesIO, None]:
+        if not self.conn:
+            return io.BytesIO()
 
-        return sql_dump.getvalue()
+        tmp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".sqlite") as tmp:
+                tmp_path = tmp.name
+
+            dest_conn = await aiosqlite.connect(tmp_path)
+            await self.conn.backup(dest_conn)
+            await dest_conn.close()
+
+            async with open(tmp_path, "rb") as f:
+                buffer = io.BytesIO(await f.read())
+
+            return buffer
+
+        except Exception as e:
+            print(f"Error: export_to_db_binary: {e}")
+            return None
+
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    async def get_table_names(self) -> List[str]:
+        result = await self.list_tables()
+        if result["success"]:
+            return [row["name"] for row in result["data"]]
+        return []
 
     def get_db_path(self) -> str:
-        """
-        Returns the file path to the SQLite database, if available.
-        """
-        return self.db_path if hasattr(self, "db_path") else None
+        return self.db_path
 
 
-if __name__ == "__main__":
-    import json
+if __name__ == '__main__':
+    import asyncio
+    import tempfile
+    import os
 
+    async def main():
+        print("📦 Initializing original DB...")
+        db = LocalSQLiteDatabase()
+        await db.connect()
 
-    def run_test(name: str, func, *args, **kwargs):
-        """Helper function to run and print test results."""
-        print(f"\n--- Test: {name} ---")
-        result = func(*args, **kwargs)
-        print(json.dumps(result, indent=2))
-        return result
+        print("🧱 Creating and populating test table...")
+        await db.execute_sql("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT
+            );
+            INSERT INTO users (name) VALUES ('Alice'), ('Bob');
+        """)
 
+        print("📄 Exporting SQL dump...")
+        sql_dump = await db.export_as_sql()
+        print("--- SQL DUMP ---\n", sql_dump)
 
-    db = LocalSQLiteDatabase()  # In-memory for quick test
-    create_table_result = db.execute_sql("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL
-    );
-    INSERT INTO users (name) VALUES ('Alice');
-    """)
-    print(f"CREATE TABLE result: {create_table_result}")
-    if not create_table_result["success"]:
-        print(f"Error creating table: {create_table_result.get('error')}")
+        # Save SQL to temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".sql", mode="w", encoding="utf-8") as sql_file:
+            sql_file.write(sql_dump)
+            sql_path = sql_file.name
 
-    # list_tables_result = db.list_tables()
-    # print(f"List tables result after creation attempt: {list_tables_result}")
-    # x = db.export_all_data()
-    # print(x)
+        print(f"✅ SQL written to: {sql_path}")
 
-    # print(db.load_all_data(x["data"]))
-    tables_result = db.list_tables()
-    print(tables_result)
+        print("💾 Exporting binary .sqlite database...")
+        db_binary = await db.export_to_db_binary()
+        binary_path = None
 
-    table_names = [row["name"] for row in tables_result["data"]]
-    print(table_names)
-    for table in table_names:
-        query_result = db.execute_sql(f"SELECT * FROM {table}")
-        if not query_result["success"]:
-            continue
-        print(query_result)
-        print(query_result["data"][0].keys() if query_result["data"] else [])
+        if db_binary:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".sqlite") as bin_file:
+                bin_file.write(db_binary.read())
+                binary_path = bin_file.name
+            print(f"✅ Binary DB written to: {binary_path}")
+        else:
+            print("❌ Failed to export binary DB.")
 
+        print("🧪 Testing import from SQL file into new DB instance...")
+        new_db_sql = LocalSQLiteDatabase()
+        await new_db_sql.connect()
+        result = await new_db_sql.import_from_sql_file(sql_path)
+        print("📥 SQL import result:", result)
+        print("🧾 Imported data (SQL):", await new_db_sql.execute_sql("SELECT * FROM users"))
+        await new_db_sql.close()
+
+        print("🧪 Testing import from binary DB file into another new instance...")
+        new_db_bin = LocalSQLiteDatabase()
+        await new_db_bin.connect()
+        result = await new_db_bin.import_from_db_file(binary_path)
+        print("📥 Binary import result:", result)
+        print("🧾 Imported data (Binary):", await new_db_bin.execute_sql("SELECT * FROM users"))
+        await new_db_bin.close()
+
+        print("🧹 Cleaning up temp files...")
+        if os.path.exists(sql_path):
+            os.remove(sql_path)
+        if binary_path and os.path.exists(binary_path):
+            os.remove(binary_path)
+
+        await db.close()
+        print("✅ All tests complete!")
+
+    asyncio.run(main())
 

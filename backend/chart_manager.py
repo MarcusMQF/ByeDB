@@ -1,5 +1,8 @@
 import random
+import asyncio
 from itertools import cycle, islice
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from typing import List, Dict, Any
 import os
@@ -11,6 +14,7 @@ class ChartManager:
         self.output_dir = output_dir
         self.max_files = max_files
         os.makedirs(self.output_dir, exist_ok=True)
+        self._lock = asyncio.Lock()  # ensures one-at-a-time access
 
     def _get_color_palette(self, length: int) -> List[str]:
         CUSTOM_COLORS = [
@@ -45,7 +49,6 @@ class ChartManager:
         return os.path.abspath(path)
 
     def _touch(self, path: str):
-        # Update modified time
         now = time.time()
         os.utime(path, (now, now))
 
@@ -75,7 +78,7 @@ class ChartManager:
 
         return labels, values, label_col, value_col
 
-    def plot_bar_chart(self, title: str, data: List[Dict[str, Any]]) -> str:
+    def _plot_bar_chart_sync(self, title: str, data: List[Dict[str, Any]]) -> str:
         labels, values, label_col, value_col = self._extract_columns(data)
         palette = self._get_color_palette(len(labels))
         width = max(6.0, min(14.0, 0.6 * len(labels)))
@@ -98,7 +101,7 @@ class ChartManager:
         full_path = self._save_plot(self._generate_filename("bar_chart"))
         return self._get_name(full_path)
 
-    def plot_pie_chart(self, title: str, data: List[Dict[str, Any]]) -> str:
+    def _plot_pie_chart_sync(self, title: str, data: List[Dict[str, Any]]) -> str:
         labels, values, label_col, value_col = self._extract_columns(data)
         palette = self._get_color_palette(len(labels))
 
@@ -121,8 +124,16 @@ class ChartManager:
         plt.title(title or "Pie Chart", fontsize=16, fontweight="bold")
         plt.axis("equal")
 
-        full_path = self._save_plot(self._generate_filename("bar_chart"))
+        full_path = self._save_plot(self._generate_filename("pie_chart"))
         return self._get_name(full_path)
+
+    async def plot_bar_chart(self, title: str, data: List[Dict[str, Any]]) -> str:
+        async with self._lock:
+            return await asyncio.to_thread(self._plot_bar_chart_sync, title, data)
+
+    async def plot_pie_chart(self, title: str, data: List[Dict[str, Any]]) -> str:
+        async with self._lock:
+            return await asyncio.to_thread(self._plot_pie_chart_sync, title, data)
 
     def _get_name(self, filename: str) -> str:
         return f"api/charts/{os.path.basename(filename)}"
@@ -130,19 +141,31 @@ class ChartManager:
     def get_full_path(self, name: str) -> str:
         return os.path.abspath(os.path.join(self.output_dir, os.path.basename(name)))
 
+
+# Global singleton
 cm = ChartManager(output_dir="charts", max_files=100)
 
+# Example for testing
 if __name__ == "__main__":
-    data = [
-        {"product_name": "Laptop", "price": 1200.0},
-        {"product_name": "Mouse", "price": 25.0},
-        {"product_name": "Keyboard", "price": 75.0},
-        {"product_name": "Monitor", "price": 300.0},
-        {"product_name": "Webcam", "price": 50.0}
-    ]
+    import asyncio
 
-    bar_name = cm.plot_bar_chart("Top Products by Price", data)
-    pie_name = cm.plot_pie_chart("Product Price Distribution", data)
+    async def generate_chart(index: int):
+        data = [
+            {"item": f"Item {i}", "value": random.randint(10, 100)}
+            for i in range(5)
+        ]
+        chart_type = random.choice(["bar", "pie"])
+        title = f"Chart {index} - {chart_type.capitalize()}"
 
-    print("Bar chart saved to:", bar_name)
-    print("Pie chart saved to:", pie_name)
+        if chart_type == "bar":
+            path = await cm.plot_bar_chart(title, data)
+        else:
+            path = await cm.plot_pie_chart(title, data)
+
+        print(f"[{index}] {chart_type.capitalize()} chart saved to: {path}")
+
+    async def main():
+        tasks = [generate_chart(i) for i in range(1, 10)]
+        await asyncio.gather(*tasks)
+
+    asyncio.run(main())

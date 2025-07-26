@@ -1,3 +1,4 @@
+import asyncio
 import os
 import json
 from typing import Dict, Any, List, Optional
@@ -72,14 +73,14 @@ class SQLAgent:
         # used to continue execution
         self.previous_context: Optional[ExecutionContext] = None
 
-    def _func_get_schema(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    async def _func_get_schema(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         table_name = arguments.get("table")
         if not table_name:
             return {"success": False, "error": "Missing 'table' argument for schema retrieval."}
 
         try:
             sql = f"SELECT * FROM {table_name} LIMIT 1"
-            result = self.database_client.execute_sql(sql)
+            result = await self.database_client.execute_sql(sql)
 
             if not result.get("success"):
                 return {"success": False, "error": result.get("error", "Failed to retrieve table schema.")}
@@ -93,10 +94,10 @@ class SQLAgent:
         except Exception as e:
             return {"success": False, "error": f"Error retrieving schema: {str(e)}"}
 
-    def _func_execute_sql(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    async def _func_execute_sql(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         sql = arguments["text"]
         print(f"[EXECUTE SQL]: {sql}")
-        result = self.database_client.execute_sql(sql)
+        result = await self.database_client.execute_sql(sql)
 
         if not result.get("success"):
             return {
@@ -104,7 +105,7 @@ class SQLAgent:
                 "error": result.get("error", "Unknown error")
             }
         try:
-            tables_result = self.database_client.execute_sql("SELECT name FROM sqlite_master WHERE type='table'")
+            tables_result = await self.database_client.execute_sql("SELECT name FROM sqlite_master WHERE type='table'")
             if tables_result.get("success") and tables_result.get("data"):
                 return {
                     "success": True,
@@ -120,10 +121,10 @@ class SQLAgent:
             "data": result.get("data", [])
         }
 
-    def _func_query_sql(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    async def _func_query_sql(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         sql = arguments["text"]
         print(f"[QUERY SQL]: {sql}")
-        result = self.database_client.execute_sql(sql)
+        result = await self.database_client.execute_sql(sql)
 
         if result.get("success"):
             return {
@@ -137,13 +138,13 @@ class SQLAgent:
                 "error": result.get("error", "Unknown error")
             }
 
-    def _func_plot_graph(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    async def _func_plot_graph(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         title = arguments["title"]
         sql = arguments["text"]
         print(f"[PLOT {name.upper()}]: {title} | SQL: {sql}")
 
         # Execute the query
-        result = self.database_client.execute_sql(sql)
+        result = await self.database_client.execute_sql(sql)
         if not result.get("success"):
             return {
                 "success": False,
@@ -159,9 +160,9 @@ class SQLAgent:
 
         # Call your chart generator function (update this to match your own)
         if name == "plot_pie":
-            image_path_or_url = cm.plot_pie_chart(title, data)
+            image_path_or_url = await cm.plot_pie_chart(title, data)
         else:
-            image_path_or_url = cm.plot_bar_chart(title, data)
+            image_path_or_url = await cm.plot_bar_chart(title, data)
 
         return {
             "success": True,
@@ -170,15 +171,15 @@ class SQLAgent:
             "data": data
         }
 
-    def execute_function(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_function(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Execute function calls using the actual database"""
         try:
             if name == "execute_sql":
-                return self._func_execute_sql(name, arguments)
+                return await self._func_execute_sql(name, arguments)
             elif name == "query_sql":
-                return self._func_query_sql(name, arguments)
+                return await self._func_query_sql(name, arguments)
             elif name in ["plot_bar", "plot_pie"]:
-                return self._func_plot_graph(name, arguments)
+                return await self._func_plot_graph(name, arguments)
             return {"success": False, "error": f"Function {name} not recognized."}
         except Exception as e:
             return {"success": False, "error": f"Error executing {name}: {str(e)}"}
@@ -294,7 +295,7 @@ When you need to call a function, instead of a tool call, respond with a JSON ob
             "content": response_text
         }
 
-    def _generate_response_in_loop(self, context: ExecutionContext, max_depth: int) -> Dict[str, Any]:
+    async def _generate_response_in_loop(self, context: ExecutionContext, max_depth: int) -> Dict[str, Any]:
         """Generate response with context management"""
 
         for i in range(max_depth):
@@ -302,14 +303,14 @@ When you need to call a function, instead of a tool call, respond with a JSON ob
             print(f"Loop {i + 1}: Generating response...")
 
             try:
-                response = llmCentral.generate_response(prompt)
+                response = await llmCentral.generate_response(prompt)
             except Exception as e:
                 return {
                     "success": False,
                     "response": str(e),
                     "error": str(e),
                     "function_called": context.function_called.copy(),
-                    "usage": {"note": "Gemini API doesn't provide detailed usage stats"}
+                    "usage": "Unknown"
                 }
             try:
                 parsed_response = self._parse_llm_response(response.text)
@@ -345,7 +346,7 @@ When you need to call a function, instead of a tool call, respond with a JSON ob
                     #         "requires_continue": True
                     #     }
 
-                    function_result = self.execute_function(fn_name, fn_args)
+                    function_result = await self.execute_function(fn_name, fn_args)
                     context.add_function_call(fn_name, fn_args, function_result)
                     continue
 
@@ -369,7 +370,7 @@ When you need to call a function, instead of a tool call, respond with a JSON ob
                     "success": False,
                     "response": final_response,
                     "function_called": context.function_called.copy(),
-                    "usage": {"note": "Gemini API doesn't provide detailed usage stats"}
+                    "usage": {"note": "Unknown"}
                 }
 
         # If we reach here, it means MAX_LOOPS were hit without a final direct response
@@ -380,7 +381,7 @@ When you need to call a function, instead of a tool call, respond with a JSON ob
             "success": False,
             "response": final_response,
             "function_called": context.function_called.copy(),
-            "usage": {"note": "Gemini API doesn't provide detailed usage stats"}
+            "usage": {"note": "Unknown"}
         }
 
     def _dismiss_previous_context(self):
@@ -400,20 +401,20 @@ When you need to call a function, instead of a tool call, respond with a JSON ob
         self.conversation_memory.append(self.previous_context.current_conversation.copy())
         self.previous_context = None
 
-    def generate_sql_response(self, user_question: str) -> Dict[str, Any]:
+    async def generate_sql_response(self, user_question: str) -> Dict[str, Any]:
         """Generate response with memory and database integration, allowing for multiple function calls."""
         self._dismiss_previous_context()
         context = ExecutionContext()
         context.add_user_message(user_question)
         try:
-            return self._generate_response_in_loop(context, 20)
+            return await self._generate_response_in_loop(context, 20)
         except Exception as e:
             return {
                 "success": False,
                 "error": f"Error generating response: {str(e)}"
             }
 
-    def continue_sql_respond(self) -> Dict[str, Any]:
+    async def continue_sql_respond(self) -> Dict[str, Any]:
         """
         Continues the previous conversation, optionally executing any pending function.
         """
@@ -432,17 +433,17 @@ When you need to call a function, instead of a tool call, respond with a JSON ob
                 print(f"[CONFIRM EXECUTION] {fn_name} with args {fn_args}")
 
                 # Execute the function
-                function_result = self.execute_function(fn_name, fn_args)
+                function_result = await self.execute_function(fn_name, fn_args)
                 context.add_function_call(fn_name, fn_args, function_result)
                 context.clear_pending_function()
 
             # Proceed with next steps regardless of whether a function was executed
-            return self._generate_response_in_loop(context, 20)
+            return await self._generate_response_in_loop(context, 20)
 
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    def cancel_sql_execution(self) -> Dict[str, Any]:
+    async def cancel_sql_execution(self) -> Dict[str, Any]:
         """
         Cancels the pending function and continues the previous conversation.
         """
@@ -459,7 +460,7 @@ When you need to call a function, instead of a tool call, respond with a JSON ob
             }
         )
         self.previous_context.clear_pending_function()
-        return self.continue_sql_respond()
+        return await self.continue_sql_respond()
 
     def clear_memory(self):
         """Clear conversation memory"""
@@ -475,18 +476,14 @@ When you need to call a function, instead of a tool call, respond with a JSON ob
 
 
 # Usage example
-def main():
-    # Import your SupabaseClient
+async def main():
     from db_sqlite import LocalSQLiteDatabase  # Replace with actual import
 
-    # Initialize database client
     db_client = LocalSQLiteDatabase()
-
-    # Initialize agent
+    await db_client.connect()
     agent = SQLAgent(db_client)
 
-    print(
-        "SQL Expert Agent with Memory (type 'quit' to exit, 'memory' to see conversation history, 'clear' to clear memory)")
+    print("SQL Expert Agent with Memory (type 'quit' to exit, 'memory' to see conversation history, 'clear' to clear memory)")
 
     while True:
         user_input = input("\nPrompt: ")
@@ -511,31 +508,32 @@ def main():
             agent.mode = 'ask'
             continue
 
-        response = agent.generate_sql_response(user_input)
+        response = await agent.generate_sql_response(user_input)
 
         while response.get("requires_approval") or response.get("requires_continue"):
             if response.get("requires_continue"):
                 print(response["function_called"][-1]["args"])
                 print(response["data"])
-                response = agent.continue_sql_respond()
+                response = await agent.continue_sql_respond()
                 continue
+
             print(f"Response: {response['response']}")
             print(f"Functions to execute: {response['function_called']}")
 
             approval = input("Do you want to proceed? (y/n): ").lower().strip()
             if approval in ['y', 'yes']:
                 print("Executing approved function...")
-                response = agent.continue_sql_respond()
+                response = await agent.continue_sql_respond()
             else:
-                response = agent.cancel_sql_execution()
+                response = await agent.cancel_sql_execution()
                 print("Execution cancelled.")
                 break
+
         if response["success"]:
             print(f"\nResponse: {response['response']}")
             print(json.dumps(response, indent=2))
         else:
             print(f"Error: {response}")
 
-
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
