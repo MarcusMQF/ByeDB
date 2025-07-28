@@ -38,7 +38,7 @@ export function ChatMessage({ isUser, children, content }: ChatMessageProps) {
         src={
           isUser
             ? userConfig.avatar
-            : "/chat.png"
+            : "/icons/chat.png"
         }
         alt={isUser ? "User profile" : "ByeDB logo"}
         width={40}

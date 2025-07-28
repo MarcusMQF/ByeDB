@@ -116,7 +116,7 @@ export default function Home() {
             >
               <div className="relative">
                 <img 
-                  src="/crop.png" 
+                  src="/icons/crop.png" 
                   alt="ByeDB Icon" 
                   className="h-10 w-10 drop-shadow-lg"
                 />
@@ -145,7 +145,7 @@ export default function Home() {
                       ? 'text-gray-300 hover:text-white hover:bg-white/5' 
                       : 'text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm'
                   }`}
-                  onClick={() => window.open('https://github.com/MarcusMQF/ByeDB', '_blank')}
+                  onClick={() => window.open('https://deepwiki.com/MarcusMQF/ByeDB/1-overview', '_blank')}
                 >
                   Docs
                 </Button>
@@ -654,7 +654,7 @@ Say goodbye to complex SQL struggles! ByeDB is your AI-powered SQL Agent that tr
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <img 
-                      src="/crop.png" 
+                      src="/icons/crop.png" 
                       alt="ByeDB Icon" 
                       className="h-10 w-10 drop-shadow-lg"
                     />

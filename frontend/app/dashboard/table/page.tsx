@@ -11,6 +11,7 @@ import {
 } from "@/components/table";
 import { useState, useCallback, useMemo } from "react";
 import { RiSearchLine, RiRefreshLine, RiDownloadLine, RiExpandUpDownLine, RiTableLine, RiShareLine, RiShareCircleLine, RiLoader4Line } from "@remixicon/react";
+import * as XLSX from 'xlsx';
 import { Input } from "@/components/input";
 import {
   Breadcrumb,
@@ -226,33 +227,67 @@ export default function TablePage() {
     link.click();
   };
 
-  // Export as XLSX (we'll create a simple tab-separated format that Excel can open)
+  // Export as XLSX using proper XLSX library - consolidated format like CSV
   const exportAsXLSX = async () => {
-    let xlsxContent = '';
-    
-    datasets.forEach((dataset, datasetIndex) => {
-      if (datasetIndex > 0) xlsxContent += '\n\n';
-      xlsxContent += `Dataset: ${dataset.name}\n`;
+    try {
+      // Create a workbook
+      const workbook = XLSX.utils.book_new();
       
-      if (dataset.data && dataset.data.length > 0) {
-        const headers = Object.keys(dataset.data[0]);
-        xlsxContent += headers.join('\t') + '\n';
-        
-        dataset.data.forEach(row => {
-          const values = headers.map(header => {
-            const value = row[header];
-            return value === null || value === undefined ? '' : String(value);
+      // Prepare consolidated data for a single worksheet
+      const worksheetData = [];
+      
+      // Process each dataset and add to the consolidated data
+      datasets.forEach((dataset, datasetIndex) => {
+        if (dataset.data && dataset.data.length > 0) {
+          // Add dataset header row
+          worksheetData.push([`# Dataset: ${dataset.name}`]);
+          
+          // Add headers
+          const headers = Object.keys(dataset.data[0]);
+          worksheetData.push(headers);
+          
+          // Add data rows
+          dataset.data.forEach(row => {
+            const values = headers.map(header => {
+              const value = row[header];
+              return value === null || value === undefined ? '' : value;
+            });
+            worksheetData.push(values);
           });
-          xlsxContent += values.join('\t') + '\n';
-        });
-      }
-    });
-
-    const blob = new Blob([xlsxContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `datasets_export_${new Date().toISOString().split('T')[0]}.xlsx`;
-    link.click();
+          
+          // Add empty row between datasets (except after the last one)
+          if (datasetIndex < datasets.length - 1) {
+            worksheetData.push([]);
+            worksheetData.push([]);
+          }
+        }
+      });
+      
+      // Create worksheet from the consolidated data
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+      
+      // Add the worksheet to the workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Datasets Export');
+      
+      // Generate the XLSX file
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      
+      // Create blob and download
+      const blob = new Blob([excelBuffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `datasets_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting to XLSX:', error);
+      // Fallback to CSV if XLSX export fails
+      alert('XLSX export failed. Falling back to CSV format.');
+      await exportAsCSV();
+    }
   };
 
   // Export as DB (SQL format)
@@ -348,7 +383,7 @@ export default function TablePage() {
             </table>
           </div>
           <div className="bg-gray-50 px-4 py-2 text-center text-sm text-gray-600 border-t select-none">
-            Showing 5 of {totalRows} rows
+            {totalRows <= 5 ? `Showing all ${totalRows} rows` : `Showing 5 of ${totalRows} rows`}
           </div>
         </div>
       );
@@ -379,9 +414,11 @@ export default function TablePage() {
             </div>
           </div>
         </div>
-                          <div className="overflow-x-auto max-w-full custom-scrollbar">
-           <table className="text-sm" style={{minWidth: '100%', width: 'max-content'}}>
-             <thead className="bg-gray-50">
+        
+        {/* Table container with horizontal scroll only */}
+        <div className="overflow-x-auto max-w-full custom-scrollbar">
+          <table className="text-sm" style={{minWidth: '100%', width: 'max-content'}}>
+            <thead className="bg-gray-50">
               <tr className="border-b">
                 {headers.map((header) => (
                   <th key={header} className="px-4 py-3 text-left text-xs font-medium text-gray-700 whitespace-nowrap min-w-[120px]">
@@ -404,38 +441,36 @@ export default function TablePage() {
               ))}
             </tbody>
           </table>
-          
-          {/* Loading indicator at bottom */}
-          {isLoadingMore && (
-            <div className="flex items-center justify-center py-4 bg-gray-50 border-t">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <RiLoader4Line className="w-4 h-4 animate-spin" />
-                Loading more rows...
-              </div>
-            </div>
-          )}
-          
-          {/* Load more button for manual loading */}
-          {hasMore && !isLoadingMore && (
-            <div className="flex items-center justify-center py-4 bg-gray-50 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => loadMoreRows(dataset.id, totalRows)}
-                className="text-xs"
-              >
-                Load More Rows ({Math.min(LOAD_MORE_BATCH_SIZE, totalRows - displayedRowCount)} more)
-              </Button>
-            </div>
-          )}
-          
-          {/* End indicator */}
-          {!hasMore && !isLoadingMore && displayedRowCount === totalRows && (
-            <div className="bg-gray-50 px-4 py-2 text-center text-sm text-gray-600 border-t select-none">
-              Showing all {totalRows} rows
-            </div>
-          )}
         </div>
+        
+        {/* Status indicators outside the scrollable container */}
+        {isLoadingMore && (
+          <div className="flex items-center justify-center py-4 bg-gray-50 border-t">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <RiLoader4Line className="w-4 h-4 animate-spin" />
+              Loading more rows...
+            </div>
+          </div>
+        )}
+        
+        {hasMore && !isLoadingMore && (
+          <div className="flex items-center justify-center py-4 bg-gray-50 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => loadMoreRows(dataset.id, totalRows)}
+              className="text-xs"
+            >
+              Load More Rows ({Math.min(LOAD_MORE_BATCH_SIZE, totalRows - displayedRowCount)} more)
+            </Button>
+          </div>
+        )}
+        
+        {!hasMore && !isLoadingMore && displayedRowCount === totalRows && (
+          <div className="bg-gray-50 px-4 py-2 text-center text-sm text-gray-600 border-t select-none">
+            Showing all {totalRows} rows
+          </div>
+        )}
       </div>
     );
   };

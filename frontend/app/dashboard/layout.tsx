@@ -4,9 +4,9 @@ export const metadata: Metadata = {
   title: "ByeDB Dashboard",
   icons: {
     icon: [
-      { url: "/crop.png", type: "image/png" }
+      { url: "/icons/crop.png", type: "image/png" }
     ],
-    apple: "/crop.png",
+    apple: "/icons/crop.png",
   },
 };
 
@@ -17,8 +17,9 @@ import {
   SidebarTrigger,
 } from "@/components/sidebar";
 import UserDropdown from "@/components/user-dropdown";
-import { SettingsPanelProvider, SettingsPanel } from "@/components/data_panel";
+import { SettingsPanelProvider } from "@/components/data_panel";
 import { DatasetProvider } from "@/lib/dataset-context";
+import { DashboardContent } from "@/components/dashboard-content";
 
 export default function DashboardLayout({
   children,
@@ -42,7 +43,7 @@ export default function DashboardLayout({
               </a>
               <a
                 className="text-sidebar-foreground/50 hover:text-sidebar-foreground/70 transition-colors [&[aria-current]]:text-sidebar-foreground before:content-['/'] before:px-4 before:text-sidebar-foreground/30 first:before:hidden"
-                href="https://github.com/MarcusMQF/ByeDB"
+                href="https://deepwiki.com/MarcusMQF/ByeDB/1-overview"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -60,10 +61,9 @@ export default function DashboardLayout({
         </header>
         <SettingsPanelProvider>
           <DatasetProvider>
-            <div className="flex h-[calc(100svh-4rem)] overflow-hidden bg-[hsl(240_5%_92.16%)] md:rounded-tl-[1.5rem] transition-all ease-in-out duration-300 min-w-0">
+            <DashboardContent>
               {children}
-              <SettingsPanel />
-            </div>
+            </DashboardContent>
           </DatasetProvider>
         </SettingsPanelProvider>
       </SidebarInset>

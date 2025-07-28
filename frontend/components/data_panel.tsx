@@ -208,7 +208,7 @@ const SettingsPanelContent = () => {
       {/* Sidebar header */}
       <div className="py-5">
         <div className="flex items-center gap-2">
-          <RiDatabaseLine
+          <RiFileTextLine
             className="text-muted-foreground/70"
             size={20}
             aria-hidden="true"
@@ -223,8 +223,8 @@ const SettingsPanelContent = () => {
           <h3 className="text-xs font-medium uppercase text-muted-foreground/80">
             Upload Dataset
           </h3>
-          {datasets.length > 0 && (
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            {datasets.length > 0 ? (
               <Button
                 variant="ghost"
                 size="sm"
@@ -234,8 +234,13 @@ const SettingsPanelContent = () => {
                 <RiDeleteBinLine className="w-3 h-3" />
                 <span>Clear Dataset</span>
               </Button>
-            </div>
-          )}
+            ) : (
+              <div className="h-6 px-2 text-xs text-transparent flex items-center gap-1">
+                <div className="w-3 h-3" />
+                <span>Clear Dataset</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {(error || apiError) && (
@@ -308,7 +313,7 @@ const SettingsPanelContent = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-center mx-auto group-hover:animate-[bounce-up_1.5s_ease-in-out_infinite]">
                   <Image 
-                    src="/file.png" 
+                    src="/icons/file.png" 
                     alt="Upload file" 
                     width={48} 
                     height={48}

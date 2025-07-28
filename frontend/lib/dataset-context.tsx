@@ -95,7 +95,7 @@ export const DatasetProvider: React.FC<DatasetProviderProps> = ({ children }) =>
     );
 
     if (mightModifyData) {
-      // Add a small delay to ensure backend has processed the changes
+      // Reduced delay for more real-time updates
       setTimeout(async () => {
         const previousHash = previousDatasetStateRef.current;
         await refreshDatasets();
@@ -127,7 +127,7 @@ export const DatasetProvider: React.FC<DatasetProviderProps> = ({ children }) =>
             setDatasetUpdateTimes(newUpdateTimes);
           }
         }
-      }, 500);
+      }, 200); // Reduced from 500ms to 200ms for faster real-time updates
     }
   }, [refreshDatasets, hasDatasetChanged]);
 
@@ -141,16 +141,18 @@ export const DatasetProvider: React.FC<DatasetProviderProps> = ({ children }) =>
     return () => clearTimeout(timeoutId);
   }, [refreshDatasets]);
 
-  // Update dataset timestamps when datasets change
+  // Update dataset timestamps when datasets change - optimized to prevent unnecessary updates
   React.useEffect(() => {
     if (datasets.length > 0) {
       const now = new Date();
       const newUpdateTimes = new Map(datasetUpdateTimes);
+      let hasChanges = false;
       
       // Initialize timestamps for datasets that don't have them yet
       datasets.forEach(dataset => {
         if (!newUpdateTimes.has(dataset.id)) {
           newUpdateTimes.set(dataset.id, dataset.lastUpdated || now);
+          hasChanges = true;
         }
       });
       
@@ -159,11 +161,12 @@ export const DatasetProvider: React.FC<DatasetProviderProps> = ({ children }) =>
       for (const [datasetId] of newUpdateTimes) {
         if (!currentDatasetIds.has(datasetId)) {
           newUpdateTimes.delete(datasetId);
+          hasChanges = true;
         }
       }
       
-      if (newUpdateTimes.size !== datasetUpdateTimes.size || 
-          ![...newUpdateTimes.keys()].every(key => datasetUpdateTimes.has(key))) {
+      // Only update state if there are actual changes
+      if (hasChanges) {
         setDatasetUpdateTimes(newUpdateTimes);
       }
     }
@@ -189,15 +192,35 @@ export const DatasetProvider: React.FC<DatasetProviderProps> = ({ children }) =>
       }
     };
 
-    // Listen for user activity
-    document.addEventListener('mousedown', handleUserActivity);
-    document.addEventListener('keydown', handleUserActivity);
-    document.addEventListener('scroll', handleUserActivity);
+    // Check if user is on dataset page
+    const isOnDatasetPage = () => {
+      return window.location.pathname === '/dashboard/table';
+    };
+
+    // Listen for user activity - but exclude typing in input fields to prevent lag
+    const handleUserActivityWithFilter = (e: Event) => {
+      // Skip if user is typing in an input field, textarea, or contenteditable
+      const target = e.target as HTMLElement;
+      if (target && (
+        target.tagName === 'INPUT' || 
+        target.tagName === 'TEXTAREA' || 
+        target.contentEditable === 'true' ||
+        target.closest('input') ||
+        target.closest('textarea')
+      )) {
+        return;
+      }
+      handleUserActivity();
+    };
+
+    document.addEventListener('mousedown', handleUserActivityWithFilter);
+    document.addEventListener('keydown', handleUserActivityWithFilter);
+    document.addEventListener('scroll', handleUserActivityWithFilter);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    // Set up periodic refresh
+    // Set up periodic refresh - but skip if user is on dataset page
     intervalId = setInterval(async () => {
-      if (isUserActive && document.visibilityState === 'visible') {
+      if (isUserActive && document.visibilityState === 'visible' && !isOnDatasetPage()) {
         await refreshDatasets();
         setLastRefreshTime(new Date());
         isUserActive = false; // Reset activity flag
@@ -206,9 +229,9 @@ export const DatasetProvider: React.FC<DatasetProviderProps> = ({ children }) =>
 
     return () => {
       clearInterval(intervalId);
-      document.removeEventListener('mousedown', handleUserActivity);
-      document.removeEventListener('keydown', handleUserActivity);
-      document.removeEventListener('scroll', handleUserActivity);
+      document.removeEventListener('mousedown', handleUserActivityWithFilter);
+      document.removeEventListener('keydown', handleUserActivityWithFilter);
+      document.removeEventListener('scroll', handleUserActivityWithFilter);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [refreshDatasets]);

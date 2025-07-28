@@ -5,6 +5,7 @@ import { Button } from './button';
 import { RiFileCopyLine, RiCheckLine, RiDownloadLine, RiFileTextLine, RiFileExcelLine, RiTableLine } from '@remixicon/react';
 import { SQLSyntaxHighlighter } from './sql-syntax-highlighter';
 import { buildImageUrl } from '@/lib/api-config';
+import * as XLSX from 'xlsx';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,7 @@ import {
 
 interface MarkdownResponseProps {
   content: string;
+  onImageLoad?: (imageSrc: string) => void;
 }
 
 interface CodeBlockProps {
@@ -26,272 +28,159 @@ interface TableProps {
   headers?: string[];
 }
 
+// Enhanced inline formatting processor that works for all contexts
+const processInlineFormatting = (text: string, context: string = 'text') => {
+  // Step 1: Protect code blocks with placeholders
+  const codeBlocks: string[] = [];
+  const inlineCodeRegex = /`([^`]+)`/g;
+  const textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
+    const index = codeBlocks.length;
+    codeBlocks.push(code);
+    return `__CODE_PLACEHOLDER_${index}__`;
+  });
+
+  // Step 2: Process bold text
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let partIndex = 0;
+  
+  const boldRegex = /\*\*([^*]+)\*\*/g;
+  const boldMatches = Array.from(textWithCodePlaceholders.matchAll(boldRegex));
+  for (const match of boldMatches) {
+    // Add text before bold
+    if (match.index! > lastIndex) {
+      const beforeText = textWithCodePlaceholders.slice(lastIndex, match.index);
+      parts.push(processItalicAndCode(beforeText, `${context}-before-bold-${partIndex++}`, codeBlocks));
+    }
+    
+    // Add bold text (process italic inside bold)
+    parts.push(
+      <strong key={`${context}-bold-${partIndex++}`} className="font-semibold">
+        {processItalicAndCode(match[1], `${context}-inside-bold-${partIndex}`, codeBlocks)}
+      </strong>
+    );
+    
+    lastIndex = match.index! + match[0].length;
+  }
+  
+  // Add remaining text
+  if (lastIndex < textWithCodePlaceholders.length) {
+    const remainingText = textWithCodePlaceholders.slice(lastIndex);
+    parts.push(processItalicAndCode(remainingText, `${context}-remaining-${partIndex++}`, codeBlocks));
+  }
+  
+  return parts.length > 0 ? parts : [processItalicAndCode(textWithCodePlaceholders, `${context}-full-${partIndex++}`, codeBlocks)];
+};
+
+const processItalicAndCode = (text: string, key: string, codeBlocks: string[]) => {
+  // Step 3: Process italic text (single asterisks, but not double)
+  const italicRegex = /(?<!\*)\*([^*]+)\*(?!\*)/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let partIndex = 0;
+  
+  const italicMatches = Array.from(text.matchAll(italicRegex));
+  for (const match of italicMatches) {
+    // Add text before italic
+    if (match.index! > lastIndex) {
+      const beforeText = text.slice(lastIndex, match.index);
+      parts.push(restoreCodeBlocks(beforeText, `${key}-before-italic-${partIndex++}`, codeBlocks));
+    }
+    
+    // Add italic text
+    parts.push(
+      <em key={`${key}-italic-${partIndex++}`} className="italic">
+        {restoreCodeBlocks(match[1], `${key}-inside-italic-${partIndex}`, codeBlocks)}
+      </em>
+    );
+    
+    lastIndex = match.index! + match[0].length;
+  }
+  
+  // Add remaining text
+  if (lastIndex < text.length) {
+    const remainingText = text.slice(lastIndex);
+    parts.push(restoreCodeBlocks(remainingText, `${key}-remaining-${partIndex++}`, codeBlocks));
+  }
+  
+  return parts.length > 0 ? parts : [restoreCodeBlocks(text, `${key}-full-${partIndex++}`, codeBlocks)];
+};
+
+const restoreCodeBlocks = (text: string, key: string, codeBlocks: string[]) => {
+  // Step 4: Restore code blocks from placeholders
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let partIndex = 0;
+  
+  const placeholderRegex = /__CODE_PLACEHOLDER_(\d+)__/g;
+  const placeholderMatches = Array.from(text.matchAll(placeholderRegex));
+  
+  for (const match of placeholderMatches) {
+    // Add text before code
+    if (match.index! > lastIndex) {
+      const beforeText = text.slice(lastIndex, match.index);
+      if (beforeText.trim()) {
+        parts.push(beforeText);
+      }
+    }
+    
+    // Add code block with context-aware styling
+    const codeIndex = parseInt(match[1]);
+    if (codeIndex < codeBlocks.length) {
+      // Determine if this is in a header context
+      const isHeaderContext = key.includes('header');
+      const codeClassName = isHeaderContext 
+        ? "px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono" // Inherit font size from parent
+        : "px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-sm font-mono"; // Fixed small size for other contexts
+      
+      parts.push(
+        <code 
+          key={`${key}-code-${partIndex++}`}
+          className={codeClassName}
+        >
+          {codeBlocks[codeIndex]}
+        </code>
+      );
+    }
+    
+    lastIndex = match.index! + match[0].length;
+  }
+  
+  // Add remaining text
+  if (lastIndex < text.length) {
+    const remainingText = text.slice(lastIndex);
+    if (remainingText.trim()) {
+      parts.push(remainingText);
+    }
+  }
+  
+  return parts.length > 0 ? parts : [text];
+};
+
 const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
   const [copied, setCopied] = useState(false);
 
   // Determine if we need horizontal scrolling based on column count
   const columnCount = headers ? headers.length : (data.length > 0 ? data[0].length : 0);
   const needsHorizontalScroll = columnCount >= 8;
-  
-  // Calculate intelligent column widths based on content length
-  const calculateColumnWidths = () => {
-    if (needsHorizontalScroll) {
-      // For many columns, use fixed min-width
-      return Array(columnCount).fill('120px');
-    }
-    
-    if (columnCount === 0) return [];
-    
-    // Calculate average content length for each column
-    const columnStats = Array(columnCount).fill(0).map(() => ({
-      totalLength: 0,
-      maxLength: 0,
-      avgLength: 0,
-      samples: 0
-    }));
-    
-    // Analyze headers if they exist
-    if (headers) {
-      headers.forEach((header, index) => {
-        const length = header.length;
-        columnStats[index].totalLength += length;
-        columnStats[index].maxLength = Math.max(columnStats[index].maxLength, length);
-        columnStats[index].samples += 1;
-      });
-    }
-    
-    // Analyze data content
-    data.forEach(row => {
-      row.forEach((cell, index) => {
-        if (index < columnStats.length) {
-          const length = cell.length;
-          columnStats[index].totalLength += length;
-          columnStats[index].maxLength = Math.max(columnStats[index].maxLength, length);
-          columnStats[index].samples += 1;
-        }
-      });
-    });
-    
-    // Calculate average lengths
-    columnStats.forEach(stat => {
-      stat.avgLength = stat.samples > 0 ? stat.totalLength / stat.samples : 0;
-    });
-    
-    // Calculate base weights using a combination of average and max length
-    const baseWeights = columnStats.map(stat => {
-      // Use weighted combination of average and max, with more emphasis on average
-      const weight = (stat.avgLength * 0.7) + (stat.maxLength * 0.3);
-      return Math.max(weight, 3); // Minimum weight to ensure visibility
-    });
-    
-    const totalWeight = baseWeights.reduce((sum, weight) => sum + weight, 0);
-    
-    // Convert to percentages with constraints
-    const minWidthPercent = 8; // Minimum 8% width for any column
-    const maxWidthPercent = 50; // Maximum 50% width for any column
-    
-    let percentages = baseWeights.map(weight => (weight / totalWeight) * 100);
-    
-    // Apply constraints
-    let redistributeTotal = 0;
-    let redistributeCount = 0;
-    
-    // First pass: handle columns that are too small
-    percentages = percentages.map(percent => {
-      if (percent < minWidthPercent) {
-        redistributeTotal += (minWidthPercent - percent);
-        return minWidthPercent;
-      }
-      return percent;
-    });
-    
-    // Second pass: handle columns that are too large and redistribute
-    const adjustableColumns: number[] = [];
-    percentages = percentages.map((percent, index) => {
-      if (percent > maxWidthPercent) {
-        redistributeTotal += (percent - maxWidthPercent);
-        return maxWidthPercent;
-      } else if (percent > minWidthPercent && percent < maxWidthPercent) {
-        adjustableColumns.push(index);
-      }
-      return percent;
-    });
-    
-    // Redistribute excess width to adjustable columns
-    if (redistributeTotal > 0 && adjustableColumns.length > 0) {
-      const redistributePerColumn = redistributeTotal / adjustableColumns.length;
-      adjustableColumns.forEach(index => {
-        const newPercent = percentages[index] + redistributePerColumn;
-        percentages[index] = Math.min(newPercent, maxWidthPercent);
-      });
-    }
-    
-    // Ensure total is 100%
-    const currentTotal = percentages.reduce((sum, percent) => sum + percent, 0);
-    const adjustmentFactor = 100 / currentTotal;
-    percentages = percentages.map(percent => percent * adjustmentFactor);
-    
-    return percentages.map(percent => `${percent.toFixed(1)}%`);
-  };
-  
-  const columnWidths = calculateColumnWidths();
-  
-  // Process inline formatting for table cells
-  const processInlineFormatting = (text: string) => {
-    // Step 1: Protect code blocks with placeholders
-    const codeBlocks: string[] = [];
-    const inlineCodeRegex = /`([^`]+)`/g;
-    const textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
-      const index = codeBlocks.length;
-      codeBlocks.push(code);
-      return `__CODE_PLACEHOLDER_${index}__`;
-    });
 
-    // Step 2: Process bold text
-    const boldRegex = /\*\*([^*]+)\*\*/g;
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
-    let partIndex = 0;
-    
-    const boldMatches = Array.from(textWithCodePlaceholders.matchAll(boldRegex));
-    for (const match of boldMatches) {
-      // Add text before bold
-      if (match.index! > lastIndex) {
-        const beforeText = textWithCodePlaceholders.slice(lastIndex, match.index);
-        parts.push(processItalicAndCode(beforeText, `table-before-bold-${partIndex++}`, codeBlocks));
-      }
-      
-      // Add bold text (process italic inside bold)
-      parts.push(
-        <strong key={`table-bold-${partIndex++}`} className="font-semibold">
-          {processItalicAndCode(match[1], `table-inside-bold-${partIndex}`, codeBlocks)}
-        </strong>
-      );
-      
-      lastIndex = match.index! + match[0].length;
+  // Calculate column min-widths: only set for very short columns (like 'ID')
+  const getColumnStyle = (header: string, index: number): React.CSSProperties => {
+    // Heuristic: if header is 'id' or all data in this column is short, use small min-width
+    const lowerHeader = header.trim().toLowerCase();
+    if (lowerHeader === 'id' || lowerHeader === '#' || lowerHeader === 'no' || lowerHeader === 'qty' || lowerHeader === 'code') {
+      return { minWidth: '40px', maxWidth: '60px', textAlign: 'center' as const };
     }
-    
-    // Add remaining text
-    if (lastIndex < textWithCodePlaceholders.length) {
-      const remainingText = textWithCodePlaceholders.slice(lastIndex);
-      parts.push(processItalicAndCode(remainingText, `table-remaining-${partIndex++}`, codeBlocks));
-    }
-    
-    return parts.length > 0 ? parts : [processItalicAndCode(textWithCodePlaceholders, `table-full-${partIndex++}`, codeBlocks)];
+    // For other columns, no min-width, let content decide
+    return { minWidth: 'unset', maxWidth: '320px' };
   };
 
-  const processItalicAndCode = (text: string, key: string, codeBlocks: string[]) => {
-    // Step 3: Process italic text
-    const italicRegex = /\*([^*]+)\*/g;
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
-    let partIndex = 0;
-    
-    const italicMatches = Array.from(text.matchAll(italicRegex));
-    for (const match of italicMatches) {
-      // Add text before italic
-      if (match.index! > lastIndex) {
-        const beforeText = text.slice(lastIndex, match.index);
-        parts.push(restoreCodeBlocks(beforeText, `${key}-before-italic-${partIndex++}`, codeBlocks));
-      }
-      
-      // Add italic text
-      parts.push(
-        <em key={`table-italic-${key}-${partIndex++}`} className="italic">
-          {restoreCodeBlocks(match[1], `${key}-inside-italic-${partIndex}`, codeBlocks)}
-        </em>
-      );
-      
-      lastIndex = match.index! + match[0].length;
-    }
-    
-    // Add remaining text
-    if (lastIndex < text.length) {
-      const remainingText = text.slice(lastIndex);
-      parts.push(restoreCodeBlocks(remainingText, `${key}-remaining-${partIndex++}`, codeBlocks));
-    }
-    
-    return parts.length > 0 ? parts : [restoreCodeBlocks(text, `${key}-full-${partIndex++}`, codeBlocks)];
-  };
-
-  const restoreCodeBlocks = (text: string, key: string, codeBlocks: string[]) => {
-    // Step 4: Restore code blocks from placeholders
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
-    let partIndex = 0;
-    
-    const placeholderRegex = /__CODE_PLACEHOLDER_(\d+)__/g;
-    const placeholderMatches = Array.from(text.matchAll(placeholderRegex));
-    
-    for (const match of placeholderMatches) {
-      // Add text before code
-      if (match.index! > lastIndex) {
-        const beforeText = text.slice(lastIndex, match.index);
-        if (beforeText.trim()) {
-          parts.push(beforeText);
-        }
-      }
-      
-      // Add code block
-      const codeIndex = parseInt(match[1]);
-      if (codeIndex < codeBlocks.length) {
-        parts.push(
-          <code 
-            key={`${key}-code-${partIndex++}`}
-            className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-sm font-mono"
-          >
-            {codeBlocks[codeIndex]}
-          </code>
-        );
-      }
-      
-      lastIndex = match.index! + match[0].length;
-    }
-    
-    // Add remaining text
-    if (lastIndex < text.length) {
-      const remainingText = text.slice(lastIndex);
-      if (remainingText.trim()) {
-        parts.push(remainingText);
-      }
-    }
-    
-    return parts.length > 0 ? parts : [text];
-  };
-
-  const processInlineCode = (text: string, key: string) => {
-    const inlineCodeRegex = /`([^`]+)`/g;
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
-    let partIndex = 0;
-    
-    const inlineMatches = Array.from(text.matchAll(inlineCodeRegex));
-    for (const match of inlineMatches) {
-      // Add text before inline code
-      if (match.index! > lastIndex) {
-        parts.push(text.slice(lastIndex, match.index));
-      }
-      
-      // Add inline code
-      parts.push(
-        <code 
-          key={`table-inline-code-${key}-${partIndex++}`}
-          className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-sm font-mono"
-        >
-          {match[1]}
-        </code>
-      );
-      
-      lastIndex = match.index! + match[0].length;
-    }
-    
-    // Add remaining text
-    if (lastIndex < text.length) {
-      parts.push(text.slice(lastIndex));
-    }
-    
-    return parts.length > 0 ? parts : [text];
-  };
+  // Truncate long cell content with ellipsis and show tooltip
+  const renderCell = (cell: string) => (
+    <div className="truncate max-w-[320px]" title={cell}>
+      {processInlineFormatting(cell, 'table-cell')}
+    </div>
+  );
 
   const exportAsMarkdown = () => {
     let markdown = '';
@@ -339,24 +228,48 @@ const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
   };
 
   const exportAsXLSX = () => {
-    // For XLSX export, we'll create a simple tab-separated format that Excel can open
-    let content = '';
-    
-    if (headers && headers.length > 0) {
-      content += headers.join('\t') + '\n';
+    try {
+      // Create a workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      
+      // Prepare data for the worksheet
+      const worksheetData = [];
+      
+      // Add headers if they exist
+      if (headers && headers.length > 0) {
+        worksheetData.push(headers);
+      }
+      
+      // Add data rows
+      data.forEach(row => {
+        worksheetData.push(row);
+      });
+      
+      // Create worksheet from the data
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+      
+      // Add the worksheet to the workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Table Data');
+      
+      // Generate the XLSX file
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      
+      // Create blob and download
+      const blob = new Blob([excelBuffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'table-data.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting to XLSX:', error);
+      // Fallback to CSV if XLSX export fails
+      alert('XLSX export failed. Falling back to CSV format.');
+      exportAsCSV();
     }
-    
-    data.forEach(row => {
-      content += row.join('\t') + '\n';
-    });
-    
-    const blob = new Blob([content], { type: 'application/vnd.ms-excel' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'table-data.xlsx';
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   return (
@@ -401,9 +314,12 @@ const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
       </div>
       
       <div 
-        className={`w-full ${needsHorizontalScroll ? 'overflow-x-auto custom-scrollbar' : 'overflow-x-visible'}`}
+        className={`w-full ${needsHorizontalScroll ? 'table-container custom-scrollbar' : 'overflow-x-visible'}`}
       >
-        <table className={`intelligent-table border-collapse ${needsHorizontalScroll ? 'min-w-full' : 'w-full'}`}>
+        <table 
+          className={`intelligent-table border-collapse w-full`} 
+          style={{ tableLayout: 'auto' }}
+        >
           {headers && headers.length > 0 && (
             <thead className="bg-slate-50 dark:bg-slate-800/50">
               <tr>
@@ -411,10 +327,10 @@ const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
                   <th
                     key={index}
                     className={`px-3 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider border-b border-slate-200 dark:border-slate-600 ${needsHorizontalScroll ? 'whitespace-nowrap' : 'break-words'}`}
-                    style={needsHorizontalScroll ? { minWidth: '120px' } : { width: columnWidths[index] }}
+                    style={getColumnStyle(header, index)}
                   >
-                    <div className={`font-semibold ${needsHorizontalScroll ? '' : 'text-left'}`} title={header}>
-                      {processInlineFormatting(header)}
+                    <div className={`font-semibold ${needsHorizontalScroll ? 'whitespace-normal break-words' : 'text-left'}`} title={header}>
+                      {processInlineFormatting(header, 'table-header')}
                     </div>
                   </th>
                 ))}
@@ -428,11 +344,9 @@ const TableComponent: React.FC<TableProps> = ({ data, headers }) => {
                   <td
                     key={cellIndex}
                     className={`px-3 py-3 text-sm text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-700 last:border-r-0 ${needsHorizontalScroll ? '' : 'break-words'}`}
-                    style={needsHorizontalScroll ? { minWidth: '120px' } : { width: columnWidths[cellIndex] }}
+                    style={getColumnStyle(headers ? headers[cellIndex] : '', cellIndex)}
                   >
-                    <div className={`${needsHorizontalScroll ? 'break-words' : 'break-words text-left'} leading-relaxed`} title={cell}>
-                      {processInlineFormatting(cell)}
-                    </div>
+                    {renderCell(cell)}
                   </td>
                 ))}
               </tr>
@@ -473,7 +387,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language = 'sql' }) => {
   const formattedCode = formatSqlCode(code);
 
   return (
-    <div className="relative my-2 rounded-lg border bg-slate-50 dark:bg-slate-900 dark:border-slate-700 w-full max-w-full overflow-hidden">
+    <div className="relative my-4 rounded-lg border bg-slate-50 dark:bg-slate-900 dark:border-slate-700 w-full max-w-full overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 border-b dark:border-slate-700">
         <span className="text-sm font-medium text-slate-600 dark:text-slate-400 uppercase">
           {language}
@@ -511,7 +425,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language = 'sql' }) => {
   );
 };
 
-const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
+const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content, onImageLoad }) => {
   const parseMarkdown = (text: string) => {
     const elements: React.ReactNode[] = [];
     let currentIndex = 0;
@@ -538,7 +452,6 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
     const tables: { start: number; end: number; match: string; data: string[][]; headers?: string[] }[] = [];
     const images: { start: number; end: number; match: string; alt: string; src: string }[] = []; // New: Array to store image matches
     let match;
-
 
     
     // Find code blocks
@@ -827,462 +740,60 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
           />
         );
       } else if (part.type === 'header' && part.headerText !== undefined && part.headerLevel !== undefined) {
-        // Professional typography hierarchy
+        // Enhanced header rendering with inline formatting support
         const getHeaderClass = (level: number) => {
           switch (level) {
-            case 1: return "text-3xl font-bold mb-0.5 mt-0 text-slate-900 dark:text-slate-100"; // # - Largest
-            case 2: return "text-2xl font-bold mb-0.5 mt-0 text-slate-800 dark:text-slate-200"; // ## - Second largest
-            case 3: return "text-xl font-semibold mb-0.5 mt-0 text-slate-700 dark:text-slate-300"; // ### - Third largest
-            case 4: return "text-lg font-semibold mb-0.5 mt-0 text-slate-600 dark:text-slate-400"; // #### - Fourth largest
-            case 5: return "text-base font-medium mb-0.5 mt-0 text-slate-600 dark:text-slate-400"; // ##### - Normal size
-            case 6: return "text-sm font-medium mb-0.5 mt-0 text-slate-500 dark:text-slate-500"; // ###### - Smallest
-            default: return "text-base font-normal mb-1 mt-0";
+            case 1: return "text-3xl font-bold mb-2 mt-4 text-slate-900 dark:text-slate-100 leading-tight"; // # - Largest
+            case 2: return "text-2xl font-bold mb-2 mt-3 text-slate-800 dark:text-slate-200 leading-tight"; // ## - Second largest
+            case 3: return "text-xl font-semibold mb-1 mt-2 text-slate-700 dark:text-slate-300 leading-tight"; // ### - Third largest
+            case 4: return "text-lg font-semibold mb-1 mt-2 text-slate-600 dark:text-slate-400 leading-tight"; // #### - Fourth largest
+            case 5: return "text-base font-medium mb-1 mt-1 text-slate-600 dark:text-slate-400 leading-tight"; // ##### - Normal size
+            case 6: return "text-sm font-medium mb-1 mt-1 text-slate-500 dark:text-slate-500 leading-tight"; // ###### - Smallest
+            default: return "text-base font-normal mb-1 mt-1 leading-tight";
           }
         };
         
         const headerClass = getHeaderClass(part.headerLevel);
         const headerTag = `h${Math.min(part.headerLevel, 6)}`;
         
-          elements.push(
+        elements.push(
           React.createElement(
             headerTag,
             {
               key: `header-${elementIndex++}`,
               className: headerClass
             },
-            part.headerText
+            processInlineFormatting(part.headerText, 'header')
           )
-          );
+        );
       } else if (part.type === 'hr') {
         elements.push(
-          <hr key={`hr-${elementIndex++}`} className="mt-0 mb-1 border-t border-gray-300 dark:border-gray-600" />
+          <hr key={`hr-${elementIndex++}`} className="my-3 border-t border-gray-300 dark:border-gray-600" />
         );
       } else if (part.type === 'bullet' && part.bulletText !== undefined) {
-        // Process bullet text for inline formatting (bold, inline code)
-        const processBulletText = (text: string) => {
-          // Step 1: Protect code blocks with placeholders
-          const codeBlocks: string[] = [];
-          const inlineCodeRegex = /`([^`]+)`/g;
-          const textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
-            const index = codeBlocks.length;
-            codeBlocks.push(code);
-            return `__CODE_PLACEHOLDER_${index}__`;
-          });
-
-          // Step 2: Process bold text
-          const parts: React.ReactNode[] = [];
-          let lastIndex = 0;
-          let partIndex = 0;
-          
-          const boldMatches = Array.from(textWithCodePlaceholders.matchAll(boldRegex));
-          for (const match of boldMatches) {
-            // Add text before bold
-            if (match.index! > lastIndex) {
-              const beforeText = textWithCodePlaceholders.slice(lastIndex, match.index);
-              parts.push(processBulletItalicAndCode(beforeText, `bullet-before-bold-${partIndex++}`, codeBlocks));
-            }
-            
-            // Add bold text (process italic inside bold)
-            parts.push(
-              <strong key={`bullet-bold-${partIndex++}`} className="font-semibold">
-                {processBulletItalicAndCode(match[1], `bullet-inside-bold-${partIndex}`, codeBlocks)}
-              </strong>
-            );
-            
-            lastIndex = match.index! + match[0].length;
-          }
-          
-          // Add remaining text
-          if (lastIndex < textWithCodePlaceholders.length) {
-            const remainingText = textWithCodePlaceholders.slice(lastIndex);
-            parts.push(processBulletItalicAndCode(remainingText, `bullet-remaining-${partIndex++}`, codeBlocks));
-          }
-          
-          return parts.length > 0 ? parts : [processBulletItalicAndCode(textWithCodePlaceholders, `bullet-full-${partIndex++}`, codeBlocks)];
-        };
-        
-        const processBulletItalicAndCode = (text: string, key: string, codeBlocks: string[]) => {
-          // Step 3: Process italic text (single asterisks, but not double, and not at start of line for bullets)
-          const italicRegex = /(?<!\*|^[\s]*)\*([^*\n]+)\*(?!\*)/g;
-          const parts: React.ReactNode[] = [];
-          let lastIndex = 0;
-          let partIndex = 0;
-          
-          const italicMatches = Array.from(text.matchAll(italicRegex));
-          for (const match of italicMatches) {
-            // Add text before italic
-            if (match.index! > lastIndex) {
-              const beforeText = text.slice(lastIndex, match.index);
-              parts.push(restoreBulletCodeBlocks(beforeText, `${key}-before-italic-${partIndex++}`, codeBlocks));
-            }
-            
-            // Add italic text (subtle italic style)
-            parts.push(
-              <em key={`${key}-italic-${partIndex++}`} className="italic font-normal" style={{ fontStyle: 'italic', fontWeight: 'inherit' }}>
-                {restoreBulletCodeBlocks(match[1], `${key}-inside-italic-${partIndex}`, codeBlocks)}
-              </em>
-            );
-            
-            lastIndex = match.index! + match[0].length;
-          }
-          
-          // Add remaining text
-          if (lastIndex < text.length) {
-            const remainingText = text.slice(lastIndex);
-            parts.push(restoreBulletCodeBlocks(remainingText, `${key}-remaining-${partIndex++}`, codeBlocks));
-          }
-          
-          return parts.length > 0 ? parts : [restoreBulletCodeBlocks(text, `${key}-full-${partIndex++}`, codeBlocks)];
-        };
-        
-        const restoreBulletCodeBlocks = (text: string, key: string, codeBlocks: string[]) => {
-          // Step 4: Restore code blocks from placeholders
-          const parts: React.ReactNode[] = [];
-          let lastIndex = 0;
-          let partIndex = 0;
-          
-          const placeholderRegex = /__CODE_PLACEHOLDER_(\d+)__/g;
-          const placeholderMatches = Array.from(text.matchAll(placeholderRegex));
-          
-          for (const match of placeholderMatches) {
-            // Add text before code
-            if (match.index! > lastIndex) {
-              const beforeText = text.slice(lastIndex, match.index);
-              if (beforeText.length > 0) {
-                parts.push(beforeText);
-              }
-            }
-            
-            // Add code block
-            const codeIndex = parseInt(match[1]);
-            if (codeIndex < codeBlocks.length) {
-              parts.push(
-                <code 
-                  key={`${key}-code-${partIndex++}`}
-                  className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-sm font-mono"
-                >
-                  {codeBlocks[codeIndex]}
-                </code>
-              );
-            }
-            
-            lastIndex = match.index! + match[0].length;
-          }
-          
-          // Add remaining text
-          if (lastIndex < text.length) {
-            const remainingText = text.slice(lastIndex);
-            if (remainingText.length > 0) {
-              parts.push(remainingText);
-            }
-          }
-          
-          return parts.length > 0 ? parts : [text];
-        };
-        
-        const processInlineCode = (text: string, key: string) => {
-          const parts: React.ReactNode[] = [];
-          let lastIndex = 0;
-          let partIndex = 0;
-          
-          const inlineMatches = Array.from(text.matchAll(inlineCodeRegex));
-          for (const match of inlineMatches) {
-            // Add text before inline code
-            if (match.index! > lastIndex) {
-              parts.push(text.slice(lastIndex, match.index));
-            }
-            
-            // Add inline code
-            parts.push(
-              <code 
-                key={`bullet-inline-code-${key}-${partIndex++}`}
-                className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-sm font-mono"
-              >
-                {match[1]}
-              </code>
-            );
-            
-            lastIndex = match.index! + match[0].length;
-          }
-          
-          // Add remaining text
-          if (lastIndex < text.length) {
-            parts.push(text.slice(lastIndex));
-          }
-          
-          return parts.length > 0 ? parts : [text];
-        };
-        
-        const bulletContent = processBulletText(part.bulletText);
         elements.push(
           <div key={`bullet-${elementIndex++}`} className="relative pl-6 mb-0 mt-1 ml-4">
             <span className="absolute left-0 top-0 text-slate-600 dark:text-slate-400 font-bold leading-snug">•</span>
-            <div className="leading-snug">
-              {bulletContent}
+            <div className="leading-relaxed">
+              {processInlineFormatting(part.bulletText, 'bullet')}
             </div>
           </div>
         );
       } else if (part.type === 'subBullet' && part.subBulletText !== undefined) {
-        // Process sub-bullet text for inline formatting (bold, inline code)
-        const processSubBulletText = (text: string) => {
-          // Step 1: Protect code blocks with placeholders
-          const codeBlocks: string[] = [];
-          const inlineCodeRegex = /`([^`]+)`/g;
-          let textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
-            const index = codeBlocks.length;
-            codeBlocks.push(code);
-            return `__CODE_PLACEHOLDER_${index}__`;
-          });
-
-          // Step 2: Process bold text
-          const parts: React.ReactNode[] = [];
-          let lastIndex = 0;
-          let partIndex = 0;
-          
-          const boldMatches = Array.from(textWithCodePlaceholders.matchAll(boldRegex));
-          for (const match of boldMatches) {
-            // Add text before bold
-            if (match.index! > lastIndex) {
-              const beforeText = textWithCodePlaceholders.slice(lastIndex, match.index);
-              parts.push(processSubBulletItalicAndCode(beforeText, `subbullet-before-bold-${partIndex++}`, codeBlocks));
-            }
-            
-            // Add bold text (process italic inside bold)
-            parts.push(
-              <strong key={`subbullet-bold-${partIndex++}`} className="font-semibold">
-                {processSubBulletItalicAndCode(match[1], `subbullet-inside-bold-${partIndex}`, codeBlocks)}
-              </strong>
-            );
-            
-            lastIndex = match.index! + match[0].length;
-          }
-          
-          // Add remaining text
-          if (lastIndex < textWithCodePlaceholders.length) {
-            const remainingText = textWithCodePlaceholders.slice(lastIndex);
-            parts.push(processSubBulletItalicAndCode(remainingText, `subbullet-remaining-${partIndex++}`, codeBlocks));
-          }
-          
-          return parts.length > 0 ? parts : [processSubBulletItalicAndCode(textWithCodePlaceholders, `subbullet-full-${partIndex++}`, codeBlocks)];
-        };
-        
-        const processSubBulletItalicAndCode = (text: string, key: string, codeBlocks: string[]) => {
-          // Step 3: Process italic text (single asterisks, but not double, and not at start of line for bullets)
-          const italicRegex = /(?<!\*|^[\s]*)\*([^*\n]+)\*(?!\*)/g;
-          const parts: React.ReactNode[] = [];
-          let lastIndex = 0;
-          let partIndex = 0;
-          
-          const italicMatches = Array.from(text.matchAll(italicRegex));
-          for (const match of italicMatches) {
-            // Add text before italic
-            if (match.index! > lastIndex) {
-              const beforeText = text.slice(lastIndex, match.index);
-              parts.push(restoreSubBulletCodeBlocks(beforeText, `${key}-before-italic-${partIndex++}`, codeBlocks));
-            }
-            
-            // Add italic text (subtle italic style)
-            parts.push(
-              <em key={`${key}-italic-${partIndex++}`} className="italic font-normal" style={{ fontStyle: 'italic', fontWeight: 'inherit' }}>
-                {restoreSubBulletCodeBlocks(match[1], `${key}-inside-italic-${partIndex}`, codeBlocks)}
-              </em>
-            );
-            
-            lastIndex = match.index! + match[0].length;
-          }
-          
-          // Add remaining text
-          if (lastIndex < text.length) {
-            const remainingText = text.slice(lastIndex);
-            parts.push(restoreSubBulletCodeBlocks(remainingText, `${key}-remaining-${partIndex++}`, codeBlocks));
-          }
-          
-          return parts.length > 0 ? parts : [restoreSubBulletCodeBlocks(text, `${key}-full-${partIndex++}`, codeBlocks)];
-        };
-        
-        const restoreSubBulletCodeBlocks = (text: string, key: string, codeBlocks: string[]) => {
-          // Step 4: Restore code blocks from placeholders
-          const parts: React.ReactNode[] = [];
-          let lastIndex = 0;
-          let partIndex = 0;
-          
-          const placeholderRegex = /__CODE_PLACEHOLDER_(\d+)__/g;
-          const placeholderMatches = Array.from(text.matchAll(placeholderRegex));
-          
-          for (const match of placeholderMatches) {
-            // Add text before code
-            if (match.index! > lastIndex) {
-              const beforeText = text.slice(lastIndex, match.index);
-              if (beforeText.length > 0) {
-                parts.push(beforeText);
-              }
-            }
-            
-            // Add code block
-            const codeIndex = parseInt(match[1]);
-            if (codeIndex < codeBlocks.length) {
-              parts.push(
-                <code 
-                  key={`${key}-code-${partIndex++}`}
-                  className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-sm font-mono"
-                >
-                  {codeBlocks[codeIndex]}
-                </code>
-              );
-            }
-            
-            lastIndex = match.index! + match[0].length;
-          }
-          
-          // Add remaining text
-          if (lastIndex < text.length) {
-            const remainingText = text.slice(lastIndex);
-            if (remainingText.length > 0) {
-              parts.push(remainingText);
-            }
-          }
-          
-          return parts.length > 0 ? parts : [text];
-        };
-        
-        const subBulletContent = processSubBulletText(part.subBulletText);
         elements.push(
-          <div key={`subBullet-${elementIndex++}`} className="relative pl-6 mb-0 mt-0.5 ml-8">
+          <div key={`subBullet-${elementIndex++}`} className="relative pl-6 mb-0.5 mt-0.5 ml-8">
             <span className="absolute left-0 top-0 text-slate-600 dark:text-slate-400 font-bold leading-relaxed">◦</span>
             <div className="leading-relaxed">
-              {subBulletContent}
+              {processInlineFormatting(part.subBulletText, 'subbullet')}
             </div>
           </div>
         );
       } else if (part.type === 'numbered' && part.numberedText !== undefined) {
-        // Process numbered text for inline formatting (bold, inline code)
-        const processNumberedText = (text: string) => {
-          // Step 1: Protect code blocks with placeholders
-          const codeBlocks: string[] = [];
-          const inlineCodeRegex = /`([^`]+)`/g;
-          let textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
-            const index = codeBlocks.length;
-            codeBlocks.push(code);
-            return `__CODE_PLACEHOLDER_${index}__`;
-          });
-
-          // Step 2: Process bold text
-          const parts: React.ReactNode[] = [];
-          let lastIndex = 0;
-          let partIndex = 0;
-          
-          const boldMatches = Array.from(textWithCodePlaceholders.matchAll(boldRegex));
-          for (const match of boldMatches) {
-            // Add text before bold
-            if (match.index! > lastIndex) {
-              const beforeText = textWithCodePlaceholders.slice(lastIndex, match.index);
-              parts.push(processNumberedItalicAndCode(beforeText, `numbered-before-bold-${partIndex++}`, codeBlocks));
-            }
-            
-            // Add bold text (process italic inside bold)
-            parts.push(
-              <strong key={`numbered-bold-${partIndex++}`} className="font-semibold">
-                {processNumberedItalicAndCode(match[1], `numbered-inside-bold-${partIndex}`, codeBlocks)}
-              </strong>
-            );
-            
-            lastIndex = match.index! + match[0].length;
-          }
-          
-          // Add remaining text
-          if (lastIndex < textWithCodePlaceholders.length) {
-            const remainingText = textWithCodePlaceholders.slice(lastIndex);
-            parts.push(processNumberedItalicAndCode(remainingText, `numbered-remaining-${partIndex++}`, codeBlocks));
-          }
-          
-          return parts.length > 0 ? parts : [processNumberedItalicAndCode(textWithCodePlaceholders, `numbered-full-${partIndex++}`, codeBlocks)];
-        };
-        
-        const processNumberedItalicAndCode = (text: string, key: string, codeBlocks: string[]) => {
-          // Step 3: Process italic text (single asterisks, but not double, and not at start of line for bullets)
-          const italicRegex = /(?<!\*|^[\s]*)\*([^*\n]+)\*(?!\*)/g;
-          const parts: React.ReactNode[] = [];
-          let lastIndex = 0;
-          let partIndex = 0;
-          
-          const italicMatches = Array.from(text.matchAll(italicRegex));
-          for (const match of italicMatches) {
-            // Add text before italic
-            if (match.index! > lastIndex) {
-              const beforeText = text.slice(lastIndex, match.index);
-              parts.push(restoreNumberedCodeBlocks(beforeText, `${key}-before-italic-${partIndex++}`, codeBlocks));
-            }
-            
-            // Add italic text (subtle italic style)
-            parts.push(
-              <em key={`${key}-italic-${partIndex++}`} className="italic font-normal" style={{ fontStyle: 'italic', fontWeight: 'inherit' }}>
-                {restoreNumberedCodeBlocks(match[1], `${key}-inside-italic-${partIndex}`, codeBlocks)}
-              </em>
-            );
-            
-            lastIndex = match.index! + match[0].length;
-          }
-          
-          // Add remaining text
-          if (lastIndex < text.length) {
-            const remainingText = text.slice(lastIndex);
-            parts.push(restoreNumberedCodeBlocks(remainingText, `${key}-remaining-${partIndex++}`, codeBlocks));
-          }
-          
-          return parts.length > 0 ? parts : [restoreNumberedCodeBlocks(text, `${key}-full-${partIndex++}`, codeBlocks)];
-        };
-        
-        const restoreNumberedCodeBlocks = (text: string, key: string, codeBlocks: string[]) => {
-          // Step 4: Restore code blocks from placeholders
-          const parts: React.ReactNode[] = [];
-          let lastIndex = 0;
-          let partIndex = 0;
-          
-          const placeholderRegex = /__CODE_PLACEHOLDER_(\d+)__/g;
-          const placeholderMatches = Array.from(text.matchAll(placeholderRegex));
-          
-          for (const match of placeholderMatches) {
-            // Add text before code
-            if (match.index! > lastIndex) {
-              const beforeText = text.slice(lastIndex, match.index);
-              if (beforeText.length > 0) {
-                parts.push(beforeText);
-              }
-            }
-            
-            // Add code block
-            const codeIndex = parseInt(match[1]);
-            if (codeIndex < codeBlocks.length) {
-              parts.push(
-                <code 
-                  key={`${key}-code-${partIndex++}`}
-                  className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-sm font-mono"
-                >
-                  {codeBlocks[codeIndex]}
-                </code>
-              );
-            }
-            
-            lastIndex = match.index! + match[0].length;
-          }
-          
-          // Add remaining text
-          if (lastIndex < text.length) {
-            const remainingText = text.slice(lastIndex);
-            if (remainingText.length > 0) {
-              parts.push(remainingText);
-            }
-          }
-          
-          return parts.length > 0 ? parts : [text];
-        };
-        
-        const numberedContent = processNumberedText(part.numberedText);
         elements.push(
-          <div key={`numbered-${elementIndex++}`} className="relative pl-6 mb-0 mt-1 ml-4">
+          <div key={`numbered-${elementIndex++}`} className="relative pl-6 mb-1 mt-1 ml-4">
             <span className="absolute left-0 top-0 text-slate-600 dark:text-slate-400 font-bold leading-snug">{part.number}.</span>
-            <div className="leading-snug">
-              {numberedContent}
+            <div className="leading-relaxed">
+              {processInlineFormatting(part.numberedText, 'numbered')}
             </div>
           </div>
         );
@@ -1300,168 +811,15 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
             key={`image-${elementIndex++}`}
             src={part.imageSrc}
             alt={part.imageAlt || ''}
-            className="my-2 max-w-full h-auto max-h-[50vh] object-contain"
+            className="my-2 max-w-full h-auto max-h-[50vh] object-contain rounded-lg"
+            onLoad={() => onImageLoad?.(part.imageSrc!)}
           />
         );
       } else if (part.type === 'text') {
         // Process regular text for inline formatting
-        const processInlineFormatting = (text: string) => {
-          // Step 1: Protect code blocks with placeholders
-          const codeBlocks: string[] = [];
-          const inlineCodeRegex = /`([^`]+)`/g;
-          let textWithCodePlaceholders = text.replace(inlineCodeRegex, (match, code) => {
-            const index = codeBlocks.length;
-            codeBlocks.push(code);
-            return `__CODE_PLACEHOLDER_${index}__`;
-          });
-
-          // Step 2: Process bold text
-          const parts: React.ReactNode[] = [];
-          let lastIndex = 0;
-          let partIndex = 0;
-          
-          const boldMatches = Array.from(textWithCodePlaceholders.matchAll(boldRegex));
-          for (const match of boldMatches) {
-            // Add text before bold
-            if (match.index! > lastIndex) {
-              const beforeText = textWithCodePlaceholders.slice(lastIndex, match.index);
-              parts.push(processTextItalicAndCode(beforeText, `before-bold-${partIndex++}`, codeBlocks));
-            }
-            
-            // Add bold text (process italic inside bold)
-            parts.push(
-              <strong key={`bold-${partIndex++}`} className="font-semibold">
-                {processTextItalicAndCode(match[1], `inside-bold-${partIndex}`, codeBlocks)}
-              </strong>
-            );
-            
-            lastIndex = match.index! + match[0].length;
-          }
-          
-          // Add remaining text
-          if (lastIndex < textWithCodePlaceholders.length) {
-            const remainingText = textWithCodePlaceholders.slice(lastIndex);
-            parts.push(processTextItalicAndCode(remainingText, `remaining-${partIndex++}`, codeBlocks));
-          }
-          
-          return parts.length > 0 ? parts : [processTextItalicAndCode(textWithCodePlaceholders, `full-${partIndex++}`, codeBlocks)];
-        };
-        
-        const processTextItalicAndCode = (text: string, key: string, codeBlocks: string[]) => {
-          // Step 3: Process italic text (single asterisks, but not double)
-          const italicRegex = /(?<!\*)\*([^*]+)\*(?!\*)/g;
-          const parts: React.ReactNode[] = [];
-          let lastIndex = 0;
-          let partIndex = 0;
-          
-          const italicMatches = Array.from(text.matchAll(italicRegex));
-          for (const match of italicMatches) {
-            // Add text before italic
-            if (match.index! > lastIndex) {
-              const beforeText = text.slice(lastIndex, match.index);
-              parts.push(restoreTextCodeBlocks(beforeText, `${key}-before-italic-${partIndex++}`, codeBlocks));
-            }
-            
-            // Add italic text (subtle italic style)
-            parts.push(
-              <em key={`${key}-italic-${partIndex++}`} className="italic font-normal" style={{ fontStyle: 'italic', fontWeight: 'inherit' }}>
-                {restoreTextCodeBlocks(match[1], `${key}-inside-italic-${partIndex}`, codeBlocks)}
-              </em>
-            );
-            
-            lastIndex = match.index! + match[0].length;
-          }
-          
-          // Add remaining text
-          if (lastIndex < text.length) {
-            const remainingText = text.slice(lastIndex);
-            parts.push(restoreTextCodeBlocks(remainingText, `${key}-remaining-${partIndex++}`, codeBlocks));
-          }
-          
-          return parts.length > 0 ? parts : [restoreTextCodeBlocks(text, `${key}-full-${partIndex++}`, codeBlocks)];
-        };
-        
-        const restoreTextCodeBlocks = (text: string, key: string, codeBlocks: string[]) => {
-          // Step 4: Restore code blocks from placeholders
-          const parts: React.ReactNode[] = [];
-          let lastIndex = 0;
-          let partIndex = 0;
-          
-          const placeholderRegex = /__CODE_PLACEHOLDER_(\d+)__/g;
-          const placeholderMatches = Array.from(text.matchAll(placeholderRegex));
-          
-          for (const match of placeholderMatches) {
-            // Add text before code
-            if (match.index! > lastIndex) {
-              const beforeText = text.slice(lastIndex, match.index);
-              if (beforeText.length > 0) {
-                parts.push(beforeText);
-              }
-            }
-            
-            // Add code block
-            const codeIndex = parseInt(match[1]);
-            if (codeIndex < codeBlocks.length) {
-              parts.push(
-                <code 
-                  key={`${key}-code-${partIndex++}`}
-                  className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-sm font-mono"
-                >
-                  {codeBlocks[codeIndex]}
-                </code>
-              );
-            }
-            
-            lastIndex = match.index! + match[0].length;
-          }
-          
-          // Add remaining text
-          if (lastIndex < text.length) {
-            const remainingText = text.slice(lastIndex);
-            if (remainingText.length > 0) {
-              parts.push(remainingText);
-            }
-          }
-          
-          return parts.length > 0 ? parts : [text];
-        };
-        
-        const processInlineCode = (text: string, key: string) => {
-          const parts: React.ReactNode[] = [];
-          let lastIndex = 0;
-          let partIndex = 0;
-          
-          const inlineMatches = Array.from(text.matchAll(inlineCodeRegex));
-          for (const match of inlineMatches) {
-            // Add text before inline code
-            if (match.index! > lastIndex) {
-              parts.push(text.slice(lastIndex, match.index));
-            }
-            
-            // Add inline code
-            parts.push(
-              <code 
-                key={`inline-code-${key}-${partIndex++}`}
-                className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-sm font-mono"
-              >
-                {match[1]}
-              </code>
-            );
-            
-            lastIndex = match.index! + match[0].length;
-          }
-          
-          // Add remaining text
-          if (lastIndex < text.length) {
-            parts.push(text.slice(lastIndex));
-          }
-          
-          return parts.length > 0 ? parts : [text];
-        };
-        
-        const formattedContent = processInlineFormatting(part.text);
+        const formattedContent = processInlineFormatting(part.text, 'text');
         elements.push(
-          <div key={`text-${elementIndex++}`} className="whitespace-pre-wrap mb-1 mt-0 break-words max-w-full overflow-hidden">
+          <div key={`text-${elementIndex++}`} className="whitespace-pre-wrap mb-2 mt-0 break-words max-w-full overflow-hidden leading-relaxed">
             {formattedContent}
           </div>
         );
@@ -1472,7 +830,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content }) => {
   };
 
   return (
-    <div className="space-y-0.5 w-full min-w-0">
+    <div className="space-y-1 w-full min-w-0">
       {parseMarkdown(content)}
     </div>
   );

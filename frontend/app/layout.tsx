@@ -13,9 +13,9 @@ export const metadata: Metadata = {
   description: "Transform your data interaction with ByeDB's intelligent database assistant.",
   icons: {
     icon: [
-      { url: "/crop.png", type: "image/png" }
+      { url: "/icons/crop.png", type: "image/png" }
     ],
-    apple: "/crop.png",
+    apple: "/icons/crop.png",
   },
 };
 

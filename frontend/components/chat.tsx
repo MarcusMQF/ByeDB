@@ -29,7 +29,7 @@ import {
   RiArrowDownSLine
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
-import { useRef, useEffect, useState, useMemo } from "react";
+import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/tooltip";
 import MarkdownResponse from "@/components/markdown-response";
 import {
@@ -130,6 +130,17 @@ export default function Chat() {
   
   // State for collapsible query results - tracks which results are expanded
   const [expandedResults, setExpandedResults] = useState<Set<string>>(new Set());
+
+  // State to track loaded images for auto-scroll
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
+
+  // Function to handle image load events
+  const handleImageLoad = (imageSrc: string) => {
+    // Add a small delay to ensure the image is fully rendered before scrolling
+    setTimeout(() => {
+      setLoadedImages(prev => new Set(prev).add(imageSrc));
+    }, 100);
+  };
 
   // Toggle function for query result expansion
   const toggleResultExpansion = (resultId: string) => {
@@ -435,7 +446,7 @@ export default function Chat() {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       saveToLocalStorage(CHAT_INPUT_KEY, inputValue);
-    }, 500); // Debounce input saving by 500ms
+    }, 1000); // Increased debounce to 1 second to reduce frequency
 
     return () => clearTimeout(timeoutId);
   }, [inputValue]);
@@ -444,7 +455,7 @@ export default function Chat() {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
-  }, [messages]);
+  }, [messages, loadedImages]);
 
   // Register keyboard shortcuts
   useEffect(() => {
@@ -467,35 +478,35 @@ export default function Chat() {
     };
   }, []);
 
-  // Auto-resize textarea based on content
-  const adjustTextareaHeight = () => {
+  // Auto-resize textarea based on content - optimized for performance
+  const adjustTextareaHeight = useCallback(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
-    // Reset height to auto to get the correct scrollHeight
-    textarea.style.height = 'auto';
+    // Only adjust if content has actually changed significantly
+    const currentHeight = textarea.style.height;
+    const scrollHeight = textarea.scrollHeight;
     
-    // Set minimum height
+    // Set minimum and maximum heights
     const minHeight = 84;
+    const maxHeight = 180; // About 8 lines
     
-    // Calculate the line height (assuming 1.5 line-height and 15px font size)
-    const lineHeight = 22.5; // 15px * 1.5
+    // Calculate new height
+    const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
     
-    // Calculate max height (about 8 lines)
-    const maxHeight = Math.max(minHeight, lineHeight * 8);
-    
-    // Set the height based on content, but within min/max bounds
-    const newHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
-    textarea.style.height = `${newHeight}px`;
-  };
+    // Only update if height actually needs to change
+    if (currentHeight !== `${newHeight}px`) {
+      textarea.style.height = `${newHeight}px`;
+    }
+  }, []);
 
   useEffect(() => {
-    // Use requestAnimationFrame for smooth height adjustment
-    const frameId = requestAnimationFrame(() => {
+    // Debounce height adjustment to prevent excessive calculations
+    const timeoutId = setTimeout(() => {
       adjustTextareaHeight();
-    });
+    }, 100); // 100ms debounce
 
-    return () => cancelAnimationFrame(frameId);
+    return () => clearTimeout(timeoutId);
   }, [inputValue]);
 
   const handleSendMessage = async () => {
@@ -808,29 +819,20 @@ export default function Chat() {
       const data = await response.json();
       const enhancedText = data.enhancedPrompt.replace(/\s+/g, ' ').trim();
 
-      // Check if enhanced text is short enough for instant display
-      const shouldUseInstantMode = enhancedText.length < 100;
-
-      if (shouldUseInstantMode) {
-        // Instant mode for short responses
-        setInputValue(enhancedText);
-        setIsEnhancing(false);
-      } else {
-        // Clear current input and start typing animation
-        setInputValue("");
-        
-        // Typing animation effect for longer responses
-        let currentIndex = 0;
-        const typingInterval = setInterval(() => {
-          if (currentIndex < enhancedText.length) {
-            setInputValue(enhancedText.substring(0, currentIndex + 1));
-            currentIndex++;
-          } else {
-            clearInterval(typingInterval);
-            setIsEnhancing(false);
-          }
-        }, 15); // Faster typing speed (15ms per character)
-      }
+      // Clear current input and start typing animation
+      setInputValue("");
+      
+      // Typing animation effect for all responses
+      let currentIndex = 0;
+      const typingInterval = setInterval(() => {
+        if (currentIndex < enhancedText.length) {
+          setInputValue(enhancedText.substring(0, currentIndex + 1));
+          currentIndex++;
+        } else {
+          clearInterval(typingInterval);
+          setIsEnhancing(false);
+        }
+      }, 15); // Faster typing speed (15ms per character)
 
     } catch (error) {
       console.error('Error enhancing prompt:', error);
@@ -930,7 +932,14 @@ export default function Chat() {
                       size={14}
                       aria-hidden="true"
                     />
-                    Today
+                    {messages.length > 0 
+                      ? new Date(messages[0].timestamp).toLocaleDateString('en-US', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric'
+                        })
+                      : 'Start a new conversation'
+                    }
                   </div>
                 </div>
                 {messages.map((message, index) => (
@@ -1052,7 +1061,7 @@ export default function Chat() {
                                 Execution Results:
                               </div>
                               <div className="space-y-3 w-full min-w-0">
-                                <MarkdownResponse content={message.confirmationData.executionResult} />
+                                <MarkdownResponse content={message.confirmationData.executionResult} onImageLoad={handleImageLoad} />
                               </div>
                               
                               {/* Need Explanation Button - After execution results */}
@@ -1206,7 +1215,7 @@ export default function Chat() {
                           )}
                           
                           <div className="w-full min-w-0">
-                            <MarkdownResponse content={message.content} />
+                            <MarkdownResponse content={message.content} onImageLoad={handleImageLoad} />
                           </div>
                           
                           {/* Add explanation button for AI responses in agent mode that have completed function calls */}
@@ -1360,7 +1369,7 @@ export default function Chat() {
                           onClick={enhancePrompt}
                         >
                           <img
-                            src={inputValue.trim() && !isEnhancing ? "/gemini.png" : "/gemini-disabled.png"}
+                            src={inputValue.trim() && !isEnhancing ? "/icons/gemini.png" : "/icons/gemini-disabled.png"}
                             alt={inputValue.trim() && !isEnhancing ? "Gemini" : ""}
                             className="w-5 h-5 object-contain select-none"
                             draggable={false}

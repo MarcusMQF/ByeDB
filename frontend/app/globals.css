@@ -267,16 +267,16 @@
 /* Enhanced table styling for intelligent column widths */
 .intelligent-table {
   font-variant-numeric: tabular-nums;
+  table-layout: fixed; /* Ensures consistent column widths */
 }
 
 .intelligent-table th {
   position: relative;
+  overflow: hidden;
 }
 
-/* Removed header column separators */
-
-.intelligent-table tbody tr {
-  /* Removed hover transition and effects */
+.intelligent-table td {
+  overflow: hidden;
 }
 
 /* Zebra striping for better readability */
@@ -288,7 +288,42 @@
   background-color: rgba(15, 23, 42, 0.3);
 }
 
-/* Removed column resize indicator hover effect */
+/* Table container with proper horizontal scrolling */
+.table-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: 0.75rem;
+  position: relative;
+  width: 100%;
+}
+
+/* Ensure last column is fully visible */
+.table-container table {
+  min-width: 100%;
+  width: max-content;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+/* Ensure proper spacing for table cells */
+.table-container th,
+.table-container td {
+  box-sizing: border-box;
+}
+
+/* Ensure last column is fully visible */
+.table-container table {
+  min-width: 100%;
+  width: max-content;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+/* Additional rule to ensure last column visibility */
+.table-container {
+  scroll-padding-right: 0;
+  scroll-snap-type: x mandatory;
+}
 
 /* Floating animations for hero cards */
 @keyframes float-up {

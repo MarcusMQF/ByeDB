@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { TeamSwitcher } from "@/components/team-switcher";
+import { getVersionInfo, getShortVersion } from "@/lib/version";
 import {
   Sidebar,
   SidebarContent,
@@ -32,15 +33,7 @@ const data = {
   teams: [
     {
       name: "ByeDB.AI",
-      logo: "icon.png",
-    },
-    {
-      name: "Acme Corp.",
-      logo: "https://raw.githubusercontent.com/origin-space/origin-images/refs/heads/main/exp2/logo-01_upxvqe.png",
-    },
-    {
-      name: "Evil Corp.",
-      logo: "https://raw.githubusercontent.com/origin-space/origin-images/refs/heads/main/exp2/logo-01_upxvqe.png",
+      logo: "icons/icon.png",
     },
   ],
   navMain: [
@@ -96,6 +89,8 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
+  const versionInfo = getVersionInfo();
+  const shortVersion = getShortVersion(versionInfo);
 
   return (
     <Sidebar {...props} className="dark !border-none">
@@ -165,6 +160,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        
+        {/* Version Display */}
+        <div className="px-4 py-2 border-t border-sidebar-border/50">
+          <div className="flex items-center justify-between text-xs text-sidebar-foreground/60">
+            <span>Version</span>
+            <span className="font-mono font-medium">{shortVersion}</span>
+          </div>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
