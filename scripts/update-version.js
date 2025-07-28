@@ -5,7 +5,8 @@ const path = require('path');
 
 // Configuration
 const PACKAGE_JSON_PATH = path.join(__dirname, '../frontend/package.json');
-const VERSION_FILE_PATH = path.join(__dirname, '../frontend/lib/version.json');
+const VERSION_JSON_PATH = path.join(__dirname, '../frontend/lib/version.json');
+const VERSION_TXT_PATH = path.join(__dirname, '../frontend/lib/version_string.txt');
 
 // Get current timestamp for build date
 const buildDate = new Date().toISOString();
@@ -35,8 +36,8 @@ function getCurrentVersion() {
 // Generate build number (increment from previous or start from 1)
 function getBuildNumber() {
   try {
-    if (fs.existsSync(VERSION_FILE_PATH)) {
-      const versionData = JSON.parse(fs.readFileSync(VERSION_FILE_PATH, 'utf8'));
+    if (fs.existsSync(VERSION_JSON_PATH)) {
+      const versionData = JSON.parse(fs.readFileSync(VERSION_JSON_PATH, 'utf8'));
       const currentBuild = parseInt(versionData.buildNumber) || 0;
       return (currentBuild + 1).toString();
     }
@@ -60,7 +61,8 @@ function updateVersion() {
   };
 
   // Write version info to file
-  fs.writeFileSync(VERSION_FILE_PATH, JSON.stringify(versionInfo, null, 2));
+  fs.writeFileSync(VERSION_JSON_PATH, JSON.stringify(versionInfo, null, 2));
+  fs.writeFileSync(VERSION_TXT_PATH, currentVersion.trim());
 
   // Create environment variables for build
   const envVars = {
@@ -91,4 +93,4 @@ if (require.main === module) {
   updateVersion();
 }
 
-module.exports = { updateVersion }; 
+module.exports = { updateVersion };
