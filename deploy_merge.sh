@@ -17,7 +17,9 @@ VERSION=$(cat frontend/lib/version_string.txt)
 echo "Extracted version from text file: $VERSION"
 
 # Add the modified version files to staging
-git add .
+git add frontend/lib/version_string.txt
+git add frontend/lib/version.json
+git add frontend/package.json
 git commit -m "version $VERSION"
 git push
 
@@ -41,4 +43,4 @@ git push
 echo "Returning to SC branch..."
 git checkout SC
 
-echo "✅ Deployment merge complete with version update."
+echo "✅ Deployment merge complete with version update: $VERSION"
