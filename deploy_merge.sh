@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e  # Exit immediately on any error
+
 # Checkout backend-deploy and merge SC
 echo "Checking out backend-deploy..."
 git checkout backend-deploy
