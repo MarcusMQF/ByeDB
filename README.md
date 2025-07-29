@@ -1,5 +1,5 @@
 <div align="center">
-<img src="frontend/public/crop.png" alt="ByeDB Logo" width="130"/>
+<img src="frontend/public/icons/crop.png" alt="ByeDB Logo" width="130"/>
 <h1>ByeDB.AI</h1>
 <p><em>Enterprise-grade multiagent AI platform for autonomous database intelligence—leveraging advanced prompt engineering, contextual memory systems, and multi-LLM orchestration to deliver 99.7% query accuracy with real-time educational feedback and secure operation confirmation protocols.</em></p>
 

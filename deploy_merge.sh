@@ -4,11 +4,7 @@ set -e  # Exit immediately on any error
 
 echo "Deploying code from branch 'SC'..."
 
-# Auto-bump version based on commit analysis
-echo "🔄 Analyzing commits and auto-bumping version..."
-/mnt/d/Program\ Files/nodejs/node.exe scripts/auto-bump-version.js
-
-# Update version information
+# Update version information (build number, commit hash, etc.)
 echo "🔄 Updating version information..."
 /mnt/d/Program\ Files/nodejs/node.exe scripts/update-version.js
 
@@ -18,7 +14,6 @@ echo "Extracted version from text file: $VERSION"
 
 # Add the modified version files to staging
 git add frontend/lib/version_string.txt
-git add frontend/lib/version.json
 git add frontend/package.json
 git commit -m "version $VERSION"
 git push

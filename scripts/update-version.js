@@ -5,7 +5,6 @@ const path = require('path');
 
 // Configuration
 const PACKAGE_JSON_PATH = path.join(__dirname, '../frontend/package.json');
-const VERSION_JSON_PATH = path.join(__dirname, '../frontend/lib/version.json');
 const VERSION_TXT_PATH = path.join(__dirname, '../frontend/lib/version_string.txt');
 
 // Get current timestamp for build date
@@ -36,13 +35,18 @@ function getCurrentVersion() {
 // Generate build number (increment from previous or start from 1)
 function getBuildNumber() {
   try {
-    if (fs.existsSync(VERSION_JSON_PATH)) {
-      const versionData = JSON.parse(fs.readFileSync(VERSION_JSON_PATH, 'utf8'));
-      const currentBuild = parseInt(versionData.buildNumber) || 0;
-      return (currentBuild + 1).toString();
+    // Read from .env.local if it exists to get previous build number
+    const envPath = path.join(__dirname, '../frontend/.env.local');
+    if (fs.existsSync(envPath)) {
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      const buildNumberMatch = envContent.match(/NEXT_PUBLIC_BUILD_NUMBER=(\d+)/);
+      if (buildNumberMatch) {
+        const currentBuild = parseInt(buildNumberMatch[1]) || 0;
+        return (currentBuild + 1).toString();
+      }
     }
   } catch (error) {
-    console.warn('Could not read previous version file:', error.message);
+    console.warn('Could not read previous build number:', error.message);
   }
   return '1';
 }
@@ -53,15 +57,7 @@ function updateVersion() {
   const buildNumber = getBuildNumber();
   const commitHash = getCommitHash();
 
-  const versionInfo = {
-    version: currentVersion,
-    buildNumber,
-    buildDate,
-    commitHash,
-  };
-
-  // Write version info to file
-  fs.writeFileSync(VERSION_JSON_PATH, JSON.stringify(versionInfo, null, 2));
+  // Write version to text file (for deployment script)
   fs.writeFileSync(VERSION_TXT_PATH, currentVersion.trim());
 
   // Create environment variables for build
@@ -85,7 +81,7 @@ function updateVersion() {
   console.log(`   Date: ${buildDate}`);
   console.log(`   Commit: ${commitHash}`);
 
-  return versionInfo;
+  return { currentVersion, buildNumber, buildDate, commitHash };
 }
 
 // Run the update

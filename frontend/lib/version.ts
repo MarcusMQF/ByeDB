@@ -1,4 +1,4 @@
-// Version management system
+// Simplified version management system
 export interface VersionInfo {
   version: string;
   buildNumber: string;
@@ -6,32 +6,20 @@ export interface VersionInfo {
   commitHash?: string;
 }
 
-// Default version - this will be updated during deployment
-const DEFAULT_VERSION: VersionInfo = {
-  version: "2.0.0",
-  buildNumber: "1",
-  buildDate: new Date().toISOString(),
-};
-
-// Try to load version from environment or build-time variables
+// Single source of truth - package.json version
 export function getVersionInfo(): VersionInfo {
-  // In production, these will be set during build time
-  const buildVersion = process.env.NEXT_PUBLIC_APP_VERSION;
-  const buildNumber = process.env.NEXT_PUBLIC_BUILD_NUMBER;
-  const buildDate = process.env.NEXT_PUBLIC_BUILD_DATE;
-  const commitHash = process.env.NEXT_PUBLIC_COMMIT_HASH;
+  // Use NEXT_PUBLIC_APP_VERSION which is set by next.config.mjs
+  const version = process.env.NEXT_PUBLIC_APP_VERSION || '1.9.0';
+  const buildNumber = process.env.NEXT_PUBLIC_BUILD_NUMBER || '1';
+  const buildDate = process.env.NEXT_PUBLIC_BUILD_DATE || new Date().toISOString();
+  const commitHash = process.env.NEXT_PUBLIC_COMMIT_HASH || 'dev';
 
-  if (buildVersion && buildNumber && buildDate) {
-    return {
-      version: buildVersion,
-      buildNumber,
-      buildDate,
-      commitHash,
-    };
-  }
-
-  // Fallback to default version (development)
-  return DEFAULT_VERSION;
+  return {
+    version,
+    buildNumber,
+    buildDate,
+    commitHash,
+  };
 }
 
 // Format version for display
@@ -42,4 +30,4 @@ export function formatVersion(versionInfo: VersionInfo): string {
 // Get short version for compact display
 export function getShortVersion(versionInfo: VersionInfo): string {
   return `v${versionInfo.version}`;
-} 
+}
