@@ -2,8 +2,6 @@
 
 set -e  # Exit immediately on any error
 
-echo "Deploying code from branch 'SC'..."
-
 # Update version information (build number, commit hash, etc.)
 echo "🔄 Updating version information..."
 /mnt/d/Program\ Files/nodejs/node.exe scripts/update-version.js
