@@ -205,20 +205,8 @@ const SettingsPanelContent = () => {
         onOpenChange={setShowClearDialog}
       />
 
-      {/* Sidebar header */}
-      <div className="py-5">
-        <div className="flex items-center gap-2">
-          <RiFileTextLine
-            className="text-muted-foreground/70"
-            size={20}
-            aria-hidden="true"
-          />
-          <h2 className="text-sm font-medium">Upload Dataset</h2>
-        </div>
-      </div>
-
       {/* Upload Section */}
-      <div className="space-y-4">
+      <div className="space-y-4 pt-6">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-medium uppercase text-muted-foreground/80">
             Upload Dataset
@@ -335,10 +323,24 @@ const SettingsPanelContent = () => {
                 
                 <Button
                   size="sm"
-                  className="mt-2 bg-gradient-to-r from-gray-900 to-black hover:from-black hover:to-gray-900 text-white shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-700 hover:border-gray-600"
+                  className={`
+                    relative overflow-hidden
+                    bg-gradient-to-r from-gray-900 to-black 
+                    hover:from-gray-800 hover:to-gray-900
+                    text-white font-medium
+                    border border-gray-700
+                    shadow-lg hover:shadow-xl
+                    transition-all duration-300 ease-out
+                    focus:outline-none
+                    group
+                  `}
                 >
-                  <RiUploadLine className="w-4 h-4 mr-2" />
-                  Choose File
+                  <div className="flex items-center gap-2">
+                    <RiUploadLine className="w-4 h-4 transition-transform group-hover:scale-110" />
+                    <span>Choose File</span>
+                  </div>
+                  {/* Shine effect overlay */}
+                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out" />
                 </Button>
               </div>
             </div>

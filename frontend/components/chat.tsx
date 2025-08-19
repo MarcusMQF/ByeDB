@@ -26,7 +26,8 @@ import {
   RiQuestionLine,
   RiDownloadLine,
   RiArrowRightSLine,
-  RiArrowDownSLine
+  RiArrowDownSLine,
+  RiPriceTag3Line
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
@@ -52,6 +53,7 @@ import {
 import { useDatasetContext } from "@/lib/dataset-context";
 import { SQLSyntaxHighlighter } from "@/components/sql-syntax-highlighter";
 import { getApiConfig } from "@/lib/api-config";
+import { DatasetCommand } from "@/components/dataset-command";
 
 // Helper function to format SQL queries by adding line breaks after semicolons
 const formatSQLQuery = (sqlText: string): string => {
@@ -76,7 +78,7 @@ const CopyButton: React.FC<CopyButtonProps> = ({ text, id, label, isCopied, onCo
     <button
       onClick={() => onCopy(id, text)}
       className={`
-        relative inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium
+        relative inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-normal
         transition-all duration-200 ease-out overflow-hidden group
         ${isCopied
           ? 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 shadow-sm'
@@ -110,7 +112,7 @@ const CopyButton: React.FC<CopyButtonProps> = ({ text, id, label, isCopied, onCo
 export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { refreshAfterSQLOperation } = useDatasetContext();
+  const { refreshAfterSQLOperation, datasets } = useDatasetContext();
   const { endpoints } = getApiConfig();
   const [messages, setMessages] = useState<Message[]>(() => 
     loadFromLocalStorage(CHAT_MESSAGES_KEY, [])
@@ -125,6 +127,9 @@ export default function Chat() {
   const [chatMode, setChatMode] = useState<ChatMode>(() => 
     loadFromLocalStorage(CHAT_MODE_KEY, 'agent')
   );
+  // Mode menu state to control open and show current selection
+  const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
+  const [modeHighlight, setModeHighlight] = useState<ChatMode>('agent');
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [copiedItems, setCopiedItems] = useState<Set<string>>(new Set()); // Track copied items by unique ID
   
@@ -134,12 +139,255 @@ export default function Chat() {
   // State to track loaded images for auto-scroll
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
 
+  // State for @datasets command
+  const [showDatasetCommand, setShowDatasetCommand] = useState(false);
+  const [commandStartPosition, setCommandStartPosition] = useState(0);
+  const [showAutoCompleteHint, setShowAutoCompleteHint] = useState(false);
+  const [autoCompleteHint, setAutoCompleteHint] = useState('');
+  const [isCommandActive, setIsCommandActive] = useState(false);
+  // Ref to the tag button to coordinate outside-click behavior in DatasetCommand
+  const tagButtonRef = useRef<HTMLButtonElement>(null);
+  const modeButtonRef = useRef<HTMLButtonElement>(null);
+  const agentItemRef = useRef<HTMLDivElement>(null);
+  const askItemRef = useRef<HTMLDivElement>(null);
+  
+  // Toggle dataset menu on tag button mouse down; stop propagation to avoid click-outside closing/reopening
+  const handleTagButtonMouseDown = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (showDatasetCommand) {
+      setShowDatasetCommand(false);
+      setShowAutoCompleteHint(false);
+      setIsCommandActive(false);
+      return;
+    }
+    if (!textareaRef.current) return;
+    // Ensure command start is current caret; menu will filter in component
+    const caret = textareaRef.current.selectionStart || 0;
+    setCommandStartPosition(caret);
+    setShowDatasetCommand(true);
+    setIsCommandActive(true);
+    // Ensure textarea remains focused for keyboard navigation
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  }, [showDatasetCommand]);
+
   // Function to handle image load events
   const handleImageLoad = (imageSrc: string) => {
     // Add a small delay to ensure the image is fully rendered before scrolling
     setTimeout(() => {
       setLoadedImages(prev => new Set(prev).add(imageSrc));
     }, 100);
+  };
+
+  // Handle input changes and detect @datasets command
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+
+    // Check for @datasets command
+    const cursorPosition = e.target.selectionStart;
+    const textBeforeCursor = value.substring(0, cursorPosition);
+    
+    // Find the word at cursor position
+    const words = textBeforeCursor.split(/\s/);
+    const currentWord = words[words.length - 1];
+
+    // Check if current word starts with @ and contains 'da' (for @datasets)
+    if (currentWord.startsWith('@') && currentWord.toLowerCase().includes('da')) {
+      // Show dataset command if we have '@da' or similar
+      setShowDatasetCommand(true);
+      setIsCommandActive(true);
+      setCommandStartPosition(cursorPosition - currentWord.length);
+      
+      // Show auto-complete hint
+      if (currentWord.toLowerCase() !== '@datasets') {
+        const remaining = 'datasets'.substring(currentWord.length - 1); // Remove the '@' from comparison
+        setAutoCompleteHint(remaining);
+        setShowAutoCompleteHint(true);
+      } else {
+        setShowAutoCompleteHint(false);
+      }
+    } else {
+      // Check if we have a complete @datasets command in the text
+      const hasDatasetCommand = /\@datasets\b/.test(value);
+      
+      if (hasDatasetCommand) {
+        // If @datasets exists in text but we're not actively typing it, keep it highlighted but don't show menu
+        setIsCommandActive(true);
+        setShowDatasetCommand(false);
+        setShowAutoCompleteHint(false);
+      } else {
+        // Check if we have any partial @datasets command
+        const hasPartialCommand = /\@da/.test(value);
+        
+        if (hasPartialCommand) {
+          // Still typing the command
+          setIsCommandActive(true);
+          setShowDatasetCommand(false);
+          setShowAutoCompleteHint(false);
+        } else {
+          // Hide command if we're not typing a command or if we've moved away from it
+          setShowDatasetCommand(false);
+          setShowAutoCompleteHint(false);
+          setIsCommandActive(false);
+        }
+      }
+    }
+  };
+
+  // Handle dataset selection
+  const handleDatasetSelect = (datasetName: string) => {
+    const beforeCommand = inputValue.substring(0, commandStartPosition);
+    const afterCommand = inputValue.substring(commandStartPosition);
+    const afterAtSymbol = afterCommand.replace(/@\w*/, ''); // Remove the @command part
+    
+    // Append a thin hair space (U+200A) inside the tag for a slightly wider visual, then a regular space
+    const newValue = beforeCommand + '@' + datasetName + '\u200A ' + afterAtSymbol;
+    setInputValue(newValue);
+    setShowDatasetCommand(false);
+    setShowAutoCompleteHint(false);
+    
+    // Reset command state after selection
+    setIsCommandActive(false);
+    
+    // Focus back to textarea and position cursor after the dataset name and space
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newPosition = commandStartPosition + datasetName.length + 3; // +1 for @, +1 hair space, +1 normal space
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newPosition, newPosition);
+      }
+    }, 0);
+  };
+
+  // Highlight mentions inside rendered user messages (keeps blue after sending)
+  const renderMessageWithMentions = (text: string) => {
+    if (!text) return null;
+    if (!datasets || datasets.length === 0) return text;
+
+    // Build a single regex for all dataset names to handle multiple mentions in order
+    const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const names = datasets.map(d => d.name).sort((a,b)=> b.length - a.length).map(escape).join('|');
+    if (!names) return text;
+    const regex = new RegExp(`@(?:${names})`, 'g');
+
+    const elements: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(text)) !== null) {
+      const start = match.index;
+      const end = start + match[0].length;
+      if (start > lastIndex) {
+        elements.push(
+          <span key={`t-${lastIndex}`}>{text.slice(lastIndex, start)}</span>
+        );
+      }
+      elements.push(
+        <span key={`m-${start}`} className="text-blue-600 dark:text-blue-400">{match[0]}</span>
+      );
+      lastIndex = end;
+    }
+    if (lastIndex < text.length) {
+      elements.push(<span key={`t-end`}>{text.slice(lastIndex)}</span>);
+    }
+    return elements.length ? elements : text;
+  };
+
+  // Function to highlight dataset mentions (do not create a tag for the @datasets command itself)
+  const renderHighlightedText = () => {
+    if (!inputValue) return null;
+    
+    let text = inputValue;
+    let elements: any[] = [];
+    let currentIndex = 0;
+    
+    // Handle dataset mentions
+    datasets.forEach((dataset) => {
+      const mentionPattern = `@${dataset.name}`;
+      const mentionIndex = text.indexOf(mentionPattern, currentIndex);
+      
+      if (mentionIndex !== -1) {
+        // Add text before the mention
+        if (mentionIndex > currentIndex) {
+          elements.push(
+            <span key={`text-${currentIndex}`} className="text-foreground">
+              {text.substring(currentIndex, mentionIndex)}
+            </span>
+          );
+        }
+        
+        // Add highlighted mention with simplified styling that preserves text width - just the dataset name
+        elements.push(
+          <span
+            key={`mention-${dataset.id}`}
+            className="text-blue-600 dark:text-blue-400"
+            title={`Dataset: ${dataset.name}`}
+          >
+            {mentionPattern}
+          </span>
+        );
+        
+        currentIndex = mentionIndex + mentionPattern.length;
+      }
+    });
+    
+    // Add remaining text
+    if (currentIndex < text.length) {
+      elements.push(
+        <span key="text-end" className="text-foreground">
+          {text.substring(currentIndex)}
+        </span>
+      );
+    }
+    
+    return elements.length > 0 ? elements : null;
+  };
+
+  // Whether the input contains any tokenizable content (mentions or commands)
+  const hasTokenChips = useMemo(() => {
+    if (!inputValue) return false;
+    if (/@datasets\b/i.test(inputValue)) return true;
+    for (const d of datasets) {
+      if (inputValue.includes(`@${d.name}`)) return true;
+    }
+    return false;
+  }, [inputValue, datasets]);
+
+  // Handle closing dataset command
+  const handleCloseDatasetCommand = () => {
+    setShowDatasetCommand(false);
+  };
+
+  // Handle auto-complete for @datasets command
+  const handleAutoComplete = () => {
+    const cursorPosition = textareaRef.current?.selectionStart || 0;
+    const textBeforeCursor = inputValue.substring(0, cursorPosition);
+    const words = textBeforeCursor.split(/\s/);
+    const currentWord = words[words.length - 1];
+
+    // Check if current word starts with @ and contains 'da' but is not complete
+    if (currentWord.startsWith('@') && currentWord.toLowerCase().includes('da') && currentWord.toLowerCase() !== '@datasets') {
+      const beforeCommand = inputValue.substring(0, commandStartPosition);
+      const afterCommand = inputValue.substring(commandStartPosition);
+      const afterAtSymbol = afterCommand.replace(/@\w*/, ''); // Remove the @command part
+      
+      const newValue = beforeCommand + '@datasets' + afterAtSymbol;
+      setInputValue(newValue);
+      setShowAutoCompleteHint(false); // Hide hint after completion
+      
+      // Focus back to textarea and position cursor after '@datasets'
+      setTimeout(() => {
+        if (textareaRef.current) {
+          const newPosition = commandStartPosition + '@datasets'.length;
+          textareaRef.current.focus();
+          textareaRef.current.setSelectionRange(newPosition, newPosition);
+        }
+      }, 0);
+      
+      return true; // Indicate that auto-complete was handled
+    }
+    
+    return false; // No auto-complete needed
   };
 
   // Toggle function for query result expansion
@@ -478,6 +726,44 @@ export default function Chat() {
     };
   }, []);
 
+  // Sync highlight to current mode when the menu opens
+  useEffect(() => {
+    if (isModeMenuOpen) {
+      setModeHighlight(chatMode);
+    }
+  }, [isModeMenuOpen, chatMode]);
+
+  // When menu opens, move focus to the highlighted item to ensure Enter targets it
+  useEffect(() => {
+    if (!isModeMenuOpen) return;
+    const target = modeHighlight === 'agent' ? agentItemRef.current : askItemRef.current;
+    requestAnimationFrame(() => target?.focus());
+  }, [isModeMenuOpen, modeHighlight]);
+
+  // When the mode menu is open, handle ArrowUp/Down for highlight and Enter to select
+  useEffect(() => {
+    if (!isModeMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setModeHighlight(prev => (prev === 'ask' ? 'agent' : 'agent'));
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setModeHighlight(prev => (prev === 'agent' ? 'ask' : 'ask'));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        // If user didn't move highlight (still equals current mode), toggle to the other mode
+        const targetMode = modeHighlight === chatMode
+          ? (chatMode === 'agent' ? 'ask' : 'agent')
+          : modeHighlight;
+        setChatMode(targetMode);
+        setIsModeMenuOpen(false);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isModeMenuOpen, modeHighlight]);
+
   // Auto-resize textarea based on content - optimized for performance
   const adjustTextareaHeight = useCallback(() => {
     const textarea = textareaRef.current;
@@ -724,9 +1010,90 @@ export default function Chat() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // If the mode menu is open, let Enter be handled by the menu selection logic
+    if (isModeMenuOpen && e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      return;
+    }
+    // Atomic backspace for a dataset mention directly before the caret
+    if (e.key === 'Backspace') {
+      const caret = e.currentTarget.selectionStart;
+      // Only when no selection
+      if (caret === e.currentTarget.selectionEnd && caret > 0) {
+        // Look for a token ending right before caret: @<datasetName>
+        for (const d of datasets) {
+          const token = `@${d.name}`;
+          const start = caret - token.length - 1; // include a preceding optional space
+          const tokenStart = caret - token.length;
+          // Cases: "token ", " token", or just token start at 0
+          if (tokenStart >= 0 && inputValue.slice(tokenStart, caret) === token) {
+            // If there is a single space before the token, allow removing it together when caret is just after space
+            const hasLeadingSpace = tokenStart > 0 && inputValue[tokenStart - 1] === ' ';
+            e.preventDefault();
+            const removeFrom = hasLeadingSpace ? tokenStart - 1 : tokenStart;
+            const newValue = inputValue.slice(0, removeFrom) + inputValue.slice(caret);
+            setInputValue(newValue);
+            // Ensure dataset command UI is closed when tag is removed
+            setShowDatasetCommand(false);
+            setShowAutoCompleteHint(false);
+            setIsCommandActive(false);
+            // Set caret to removeFrom
+            requestAnimationFrame(() => {
+              if (textareaRef.current) {
+                textareaRef.current.setSelectionRange(removeFrom, removeFrom);
+              }
+            });
+            return;
+          }
+        }
+        // Also support atomic removal of the @datasets command token itself
+        const cmd = '@datasets';
+        const cmdStart = caret - cmd.length;
+        if (cmdStart >= 0 && inputValue.slice(cmdStart, caret).toLowerCase() === cmd) {
+          e.preventDefault();
+          const hasLeadingSpace = cmdStart > 0 && inputValue[cmdStart - 1] === ' ';
+          const removeFrom = hasLeadingSpace ? cmdStart - 1 : cmdStart;
+          const newValue = inputValue.slice(0, removeFrom) + inputValue.slice(caret);
+          setInputValue(newValue);
+          setShowDatasetCommand(false);
+          setShowAutoCompleteHint(false);
+          setIsCommandActive(false);
+          requestAnimationFrame(() => {
+            if (textareaRef.current) {
+              textareaRef.current.setSelectionRange(removeFrom, removeFrom);
+            }
+          });
+          return;
+        }
+      }
+    }
     if (e.key === "Enter" && !e.shiftKey) {
+      // If dataset command is visible, don't send message - let the dataset command handle Enter
+      if (showDatasetCommand) {
+        return;
+      }
       e.preventDefault();
       handleSendMessage();
+    } else if (e.key === "Escape" && showDatasetCommand) {
+      e.preventDefault();
+      handleCloseDatasetCommand();
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      // Try to auto-complete @da to @dataset
+      if (!handleAutoComplete()) {
+        // If no auto-complete, insert a tab character
+        const cursorPosition = e.currentTarget.selectionStart;
+        const newValue = inputValue.substring(0, cursorPosition) + '\t' + inputValue.substring(cursorPosition);
+        setInputValue(newValue);
+        
+        // Set cursor position after the tab
+        setTimeout(() => {
+          if (textareaRef.current) {
+            const newPosition = cursorPosition + 1;
+            textareaRef.current.setSelectionRange(newPosition, newPosition);
+          }
+        }, 0);
+      }
     }
   };
 
@@ -897,8 +1264,8 @@ export default function Chat() {
                     <span className="sr-only">Export to PDF</span>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Export conversation to PDF</p>
+                <TooltipContent className="px-2 py-1">
+                  <p className="text-xs">Export conversation to PDF</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -913,7 +1280,7 @@ export default function Chat() {
           <div className="max-w-4xl mx-auto mt-4 sm:mt-6 space-y-4 pb-6 min-w-0">{/* Responsive max-width and margins */}
             {messages.length === 0 ? (
               <div className="text-center my-8">
-                <div className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-full border border-blue-200/60 dark:border-blue-800/40 shadow-sm text-xs font-medium py-1.5 px-3 text-blue-700 dark:text-blue-300">
+                <div className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-full border border-blue-200/60 dark:border-blue-800/40 shadow-sm text-xs font-normal py-1.5 px-3 text-blue-700 dark:text-blue-300">
                   <RiShining2Line
                     className="me-1.5 text-blue-600 dark:text-blue-400 animate-pulse"
                     size={14}
@@ -926,7 +1293,7 @@ export default function Chat() {
             ) : (
               <>
                 <div className="text-center my-8">
-                  <div className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-full border border-blue-200/60 dark:border-blue-800/40 shadow-sm text-xs font-medium py-1.5 px-3 text-blue-700 dark:text-blue-300">
+                  <div className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-full border border-blue-200/60 dark:border-blue-800/40 shadow-sm text-xs font-normal py-1.5 px-3 text-blue-700 dark:text-blue-300">
                     <RiShining2Line
                       className="me-1.5 text-blue-600 dark:text-blue-400 animate-pulse"
                       size={14}
@@ -946,8 +1313,8 @@ export default function Chat() {
                   <div key={message.id} className={`${index > 0 && messages[index-1].isUser !== message.isUser ? "mt-6" : ""} w-full min-w-0`}>
                     <ChatMessage isUser={message.isUser} content={message.content}>
                       {message.isUser ? (
-                        <div className="break-words max-w-full">
-                          <p>{message.content}</p>
+                        <div className="break-words max-w-full whitespace-pre-wrap">
+                          {renderMessageWithMentions(message.content)}
                         </div>
                       ) : message.requiresConfirmation ? (
                         <div className="space-y-3">
@@ -959,7 +1326,7 @@ export default function Chat() {
                                 func.args?.text && (
                                   <div key={funcIndex} className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 border overflow-hidden">
                                     {message.confirmationData.function_called.length > 1 && (
-                                      <div className="text-xs text-gray-600 dark:text-gray-400 font-medium mb-2">
+                                      <div className="text-xs text-gray-600 dark:text-gray-400 font-normal mb-2">
                                         SQL Query {funcIndex + 1}:
                                       </div>
                                     )}
@@ -991,7 +1358,7 @@ export default function Chat() {
                                   <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300 tracking-wide">
                                     Executed Successfully
                                   </span>
-                                  <span className="text-xs text-emerald-600/70 dark:text-emerald-400/70 font-medium">
+                                  <span className="text-xs text-emerald-600/70 dark:text-emerald-400/70 font-normal">
                                     Query completed without errors
                                   </span>
                                 </div>
@@ -1013,7 +1380,7 @@ export default function Chat() {
                                 <span className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide">
                                   Confirmation Expired
                                 </span>
-                                <span className="text-xs text-gray-500/70 dark:text-gray-500/70 font-medium">
+                                <span className="text-xs text-gray-500/70 dark:text-gray-500/70 font-normal">
                                   Execution not confirmed by user
                                 </span>
                               </div>
@@ -1026,7 +1393,7 @@ export default function Chat() {
                                 relative overflow-hidden
                                 bg-gradient-to-r from-gray-900 to-black 
                                 hover:from-gray-800 hover:to-gray-900
-                                text-white font-medium
+                                text-white font-normal
                                 border border-gray-700
                                 shadow-lg hover:shadow-xl
                                 transition-all duration-300 ease-out
@@ -1057,7 +1424,7 @@ export default function Chat() {
                           {/* Execution results section */}
                           {message.confirmationData?.executed && message.confirmationData?.executionResult && (
                             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                              <div className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-2">
+                              <div className="text-sm text-gray-600 dark:text-gray-400 font-normal mb-2">
                                 Execution Results:
                               </div>
                               <div className="space-y-3 w-full min-w-0">
@@ -1073,7 +1440,7 @@ export default function Chat() {
                                     relative overflow-hidden
                                     bg-gradient-to-r from-gray-900 to-black 
                                     hover:from-gray-800 hover:to-gray-900
-                                    text-white font-medium
+                                    text-white font-normal
                                     border border-gray-700
                                     shadow-lg hover:shadow-xl
                                     transition-all duration-300 ease-out
@@ -1108,7 +1475,7 @@ export default function Chat() {
                           {/* Display executed SQL queries for all responses (not just in agent mode) - ABOVE the response */}
                           {message.confirmationData?.function_called && message.confirmationData.function_called.length > 0 && (
                             <div className="space-y-3">
-                              <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                              <div className="text-sm text-gray-600 dark:text-gray-400 font-normal">
                                 Executed SQL Queries:
                               </div>
                               {message.confirmationData.function_called.map((func: any, funcIndex: number) => (
@@ -1154,7 +1521,7 @@ export default function Chat() {
                                                 {expandedResults.has(`${message.id}-${funcIndex}`) ? 'Click to collapse' : 'Click to expand'}
                                               </span>
                                             </div>
-                                                                                         <div onClick={(e) => e.stopPropagation()}>
+                                                <div onClick={(e) => e.stopPropagation()}>
                                                <CopyButton
                                                  text={(() => {
                                                    try {
@@ -1227,7 +1594,7 @@ export default function Chat() {
                                 relative overflow-hidden
                                 bg-black
                                 hover:bg-gray-800
-                                text-white font-medium
+                                text-white font-normal
                                 border border-gray-700
                                 shadow-lg hover:shadow-xl
                                 transition-all duration-300 ease-out
@@ -1285,74 +1652,134 @@ export default function Chat() {
           <div className="relative rounded-[20px] border border-transparent bg-muted transition-colors focus-within:bg-muted/50 focus-within:border-input">
             <textarea
               ref={textareaRef}
-              className="flex w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-none resize-none overflow-hidden transition-all duration-200"
+              className={`flex w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed font-normal ${hasTokenChips ? 'text-transparent caret-foreground' : 'text-foreground'} placeholder:text-muted-foreground/70 focus-visible:outline-none resize-none overflow-hidden transition-all duration-200`}
               placeholder="Ask me anything..."
               aria-label="Enter your prompt"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               rows={1}
               style={{ 
                 height: '84px',
-                minHeight: '84px'
+                minHeight: '84px',
+                fontWeight: 400
               }}
             />
+            
+            {/* Highlight overlay for dataset mentions - only render when chips exist */}
+            {hasTokenChips && renderHighlightedText() && (
+              <div 
+                className="absolute inset-0 pointer-events-none px-4 py-3 text-[15px] leading-relaxed font-normal overflow-hidden"
+                style={{ 
+                  height: '84px',
+                  minHeight: '84px',
+                  fontWeight: 400
+                }}
+              >
+                {renderHighlightedText()}
+              </div>
+            )}
+            
+            {/* Dataset Command Dropdown */}
+            <DatasetCommand
+              isVisible={showDatasetCommand}
+              onSelectDataset={handleDatasetSelect}
+              onClose={handleCloseDatasetCommand}
+              triggerRef={tagButtonRef}
+            />
+            
             {/* Textarea buttons */}
             <div className="flex items-center justify-between gap-1 sm:gap-2 px-3 sm:px-4 pb-3">
               {/* Left buttons - Mode selector */}
               <div className="flex items-center gap-2">
-                <DropdownMenu>
+                <DropdownMenu open={isModeMenuOpen} onOpenChange={setIsModeMenuOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="h-8 gap-1 bg-background/80 hover:bg-background border-muted-foreground/20 rounded-full px-3 transition-all hover:shadow-sm"
+                      className="h-8 gap-1 bg-background/80 hover:bg-background border-muted-foreground/20 rounded-full px-3 transition-all hover:shadow-sm focus:outline-none focus-visible:outline-none focus-visible:ring-0 ring-0 focus:ring-0"
+                      ref={modeButtonRef}
                     >
                       {chatMode === 'agent' ? (
                         <RiRobot2Line className="text-primary size-4 mr-1.5" />
                       ) : (
                         <RiQuestionAnswerLine className="text-primary size-4 mr-1.5" />
                       )}
-                      <span className="text-sm font-medium hidden sm:inline">
+                      <span className="text-sm font-normal hidden sm:inline select-none">
                         {chatMode === 'agent' ? 'Agent' : 'Ask'}
                       </span>
-                      <RiArrowUpSLine className="text-muted-foreground size-4" />
+                      <RiArrowUpSLine className={`text-muted-foreground size-4 transition-transform duration-200 ${isModeMenuOpen ? 'rotate-180' : 'rotate-0'}`} />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent 
                     align="start" 
-                    className="w-[220px] p-2 rounded-xl border-muted-foreground/10 shadow-lg"
+                    className="w-[240px] p-2 rounded-xl border-muted-foreground/10 shadow-lg"
+                    onCloseAutoFocus={(e: Event) => { e.preventDefault(); }}
                   >
                     <DropdownMenuItem 
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${chatMode === 'agent' ? 'bg-primary/10 text-primary' : 'hover:bg-muted/80'}`}
-                      onClick={() => setChatMode('agent')}
+                      ref={agentItemRef}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors border ${modeHighlight === 'agent' 
+                        ? 'bg-gray-100 dark:bg-gray-700 border-gray-200/50 dark:border-gray-600/50 data-[highlighted]:!bg-gray-100 dark:data-[highlighted]:!bg-gray-700'
+                        : 'border-transparent hover:bg-gray-50/80 dark:hover:bg-gray-800/50 data-[highlighted]:!bg-gray-50/80 dark:data-[highlighted]:!bg-gray-800/50'} focus:!text-foreground data-[highlighted]:!text-foreground`}
+                      onClick={() => { setModeHighlight('agent'); setChatMode('agent'); setIsModeMenuOpen(false); requestAnimationFrame(() => modeButtonRef.current?.focus()); }}
+                      onSelect={() => { setModeHighlight('agent'); setChatMode('agent'); setIsModeMenuOpen(false); requestAnimationFrame(() => modeButtonRef.current?.focus()); }}
                     >
-                      <RiRobot2Line className={`size-5 ${chatMode === 'agent' ? 'text-primary' : ''}`} />
-                      <div className="flex flex-col">
-                        <span className="font-medium">Agent</span>
-                        <span className="text-xs text-muted-foreground">Interactive SQL assistant</span>
+                      <RiRobot2Line className={`size-5 flex-shrink-0`} />
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className="font-normal truncate">Agent</span>
+                        <span className="text-xs text-muted-foreground line-clamp-2 leading-tight">Interactive assistant</span>
                       </div>
-                      <div className="ml-auto flex items-center rounded bg-muted/80 px-1.5 py-0.5 text-xs text-muted-foreground">
+                      <div className="ml-auto flex items-center rounded bg-muted/80 px-1.5 py-0.5 text-xs text-muted-foreground flex-shrink-0">
                         <RiKeyboardLine className="mr-1 size-3" />
                         Ctrl+I
                       </div>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      className={`flex items-center gap-3 px-3 py-2.5 mt-1 rounded-lg transition-colors ${chatMode === 'ask' ? 'bg-primary/10 text-primary' : 'hover:bg-muted/80'}`}
-                      onClick={() => setChatMode('ask')}
+                      ref={askItemRef}
+                      className={`flex items-center gap-3 px-3 py-2.5 mt-1 rounded-lg transition-colors border ${modeHighlight === 'ask' 
+                        ? 'bg-gray-100 dark:bg-gray-700 border-gray-200/50 dark:border-gray-600/50 data-[highlighted]:!bg-gray-100 dark:data-[highlighted]:!bg-gray-700' 
+                        : 'border-transparent hover:bg-gray-50/80 dark:hover:bg-gray-800/50 data-[highlighted]:!bg-gray-50/80 dark:data-[highlighted]:!bg-gray-800/50'} focus:!text-foreground data-[highlighted]:!text-foreground`}
+                      onClick={() => { setModeHighlight('ask'); setChatMode('ask'); setIsModeMenuOpen(false); requestAnimationFrame(() => modeButtonRef.current?.focus()); }}
+                      onSelect={() => { setModeHighlight('ask'); setChatMode('ask'); setIsModeMenuOpen(false); requestAnimationFrame(() => modeButtonRef.current?.focus()); }}
                     >
-                      <RiQuestionAnswerLine className={`size-5 ${chatMode === 'ask' ? 'text-primary' : ''}`} />
-                      <div className="flex flex-col">
-                        <span className="font-medium">Ask</span>
-                        <span className="text-xs text-muted-foreground">Direct question answering</span>
+                      <RiQuestionAnswerLine className={`size-5 flex-shrink-0`} />
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className="font-normal truncate">Ask</span>
+                        <span className="text-xs text-muted-foreground line-clamp-2 leading-tight">Direct question</span>
                       </div>
-                      <div className="ml-auto flex items-center rounded bg-muted/80 px-1.5 py-0.5 text-xs text-muted-foreground">
+                      <div className="ml-auto flex items-center rounded bg-muted/80 px-1.5 py-0.5 text-xs text-muted-foreground flex-shrink-0">
                         <RiKeyboardLine className="mr-1 size-3" />
                         Ctrl+L
                       </div>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                {/* Tag button to open dataset menu */}
+                <TooltipProvider delayDuration={0}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="size-8 rounded-full bg-background/80 hover:bg-background border-muted-foreground/20 transition-all hover:shadow-sm gap-0 p-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 ring-0 focus:ring-0"
+                        ref={tagButtonRef}
+                        onMouseDown={handleTagButtonMouseDown}
+                        aria-label="Mention file"
+                      >
+                        <img
+                          src="/icons/mention.png"
+                          alt="Mention"
+                          className="w-4 h-4 object-contain select-none block"
+                          draggable={false}
+                        />
+                        <span className="sr-only">Mention file</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="px-2 py-1">
+                      <p className="text-xs">Mention file</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               {/* Right buttons */}
               <div className="flex items-center gap-1 sm:gap-2">
@@ -1381,8 +1808,8 @@ export default function Chat() {
                         )}
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="dark px-2 py-1 text-xs">
-                      <p>Enhance Prompt</p>
+                    <TooltipContent side="top" className="px-2 py-1">
+                      <p className="text-xs">Enhance Prompt</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

@@ -56,11 +56,6 @@ const data = {
           url: "#",
           icon: RiHistoryLine,
         },
-        {
-          title: "Documentation",
-          url: "#",
-          icon: RiBracesLine,
-        },
       ],
     },
     {
@@ -164,7 +159,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* Version Display */}
         <div className="px-4 py-2 border-t border-sidebar-border/50">
           <div className="flex items-center justify-between text-xs text-sidebar-foreground/60">
-            <span>Version</span>
+            <span>VERSION</span>
             <span className="font-mono font-medium">{shortVersion}</span>
           </div>
         </div>

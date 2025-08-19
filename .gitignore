@@ -230,4 +230,6 @@ next-env.d.ts
 
 /backend/charts/
 
+/docs/
+/.cursor/
 TODO.md

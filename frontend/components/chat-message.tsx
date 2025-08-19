@@ -77,8 +77,8 @@ function ActionButton({ icon, label, onClick }: ActionButtonProps) {
           <span className="sr-only">{label}</span>
         </button>
       </TooltipTrigger>
-      <TooltipContent side="bottom" className="dark px-2 py-1 text-xs">
-        <p>{label}</p>
+      <TooltipContent side="bottom" className="px-2 py-1">
+        <p className="text-xs">{label}</p>
       </TooltipContent>
     </Tooltip>
   );
