@@ -20,9 +20,10 @@ type ChatMessageProps = {
   isUser?: boolean;
   children: React.ReactNode;
   content?: string;
+  showActions?: boolean;
 };
 
-export function ChatMessage({ isUser, children, content }: ChatMessageProps) {
+export function ChatMessage({ isUser, children, content, showActions = true }: ChatMessageProps) {
   return (
     <article
       className={cn(
@@ -33,7 +34,7 @@ export function ChatMessage({ isUser, children, content }: ChatMessageProps) {
       <img
         className={cn(
           "rounded-full w-10 h-10 object-cover flex-shrink-0",
-          isUser ? "order-1" : "border border-black/[0.08] shadow-sm",
+          isUser ? "order-1 shadow-sm border border-black/[0.08]" : "border border-black/[0.08] shadow-sm",
         )}
         src={
           isUser
@@ -46,14 +47,16 @@ export function ChatMessage({ isUser, children, content }: ChatMessageProps) {
       />
       <div
         className={cn(
-          isUser ? "bg-muted px-4 py-3 rounded-xl max-w-[80%] min-w-0" : "space-y-4 flex-1 min-w-0"
+          isUser 
+            ? "bg-muted px-4 py-3 rounded-xl max-w-[80%] min-w-0"
+            : "space-y-2 flex-1 min-w-0 pt-2" // compact spacing with slight top offset
         )}
       >
         <div className="flex flex-col gap-3">
           <p className="sr-only">{isUser ? "You" : "ByeDB"} said:</p>
           {children}
         </div>
-        {!isUser && <MessageActions rawContent={content} />}
+        {!isUser && showActions && <MessageActions rawContent={content} />}
       </div>
     </article>
   );
@@ -99,8 +102,12 @@ function MessageActions({ rawContent }: { rawContent?: string }) {
     }
   };
 
+  // Hide actions if there's no meaningful content yet (e.g., placeholder "Thinking...")
+  const hasRenderableContent = !!rawContent && rawContent.trim().length > 0 && rawContent.trim().toLowerCase() !== 'thinking...';
+  if (!hasRenderableContent) return null;
+
   return (
-    <div className="relative inline-flex bg-white dark:bg-slate-800 rounded-md border border-black/[0.08] dark:border-slate-700 shadow-sm -space-x-px">
+    <div className="relative inline-flex bg-white dark:bg-slate-800 rounded-md border border-black/[0.08] dark:border-slate-700 shadow-sm -space-x-px mt-1">
       <TooltipProvider delayDuration={0}>
         <ActionButton icon={<RiLoopRightFill size={16} />} label="Refresh" />
         <ActionButton 

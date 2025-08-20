@@ -1209,11 +1209,11 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex-1 w-full min-w-0 shadow-md bg-background flex flex-col h-full overflow-hidden">
+    <div className="flex-1 w-full min-w-0 shadow-md bg-background flex flex-col h-[100dvh] sm:h-full overflow-hidden">
       {/* Confirmation Dialog for Clear Chat */}
       <ConfirmationDialog
         title="Are you absolutely sure?"
-        description="This action cannot be undone. This will permanently delete your chat history and remove your data from our servers."
+        description="This action cannot be undone. This will permanently delete your chat history."
         confirmText="Continue"
         cancelText="Cancel"
         onConfirm={handleClearChat}
@@ -1222,7 +1222,7 @@ export default function Chat() {
       />
       
       {/* Header */}
-      <div className="py-3 sm:py-4 lg:py-5 px-3 sm:px-4 md:px-6 lg:px-8 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06] shrink-0">
+      <div className="py-3 px-3 sm:px-4 md:px-6 lg:px-8 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06] shrink-0">
         <div className="flex items-center justify-between gap-1 sm:gap-2">
           <Breadcrumb>
             <BreadcrumbList className="sm:gap-1.5">
@@ -1275,9 +1275,9 @@ export default function Chat() {
       </div>
 
       {/* Messages - Scrollable area */}
-      <ScrollArea className="flex-1 overflow-hidden">
-        <div className="px-3 sm:px-4 md:px-6 lg:px-8 pb-4 h-full">
-          <div className="max-w-4xl mx-auto mt-4 sm:mt-6 space-y-4 pb-6 min-w-0">{/* Responsive max-width and margins */}
+      <ScrollArea className="flex-1 overflow-hidden min-h-0">
+        <div className="px-3 sm:px-4 md:px-6 lg:px-8 pb-2 h-full">
+          <div className="max-w-4xl mx-auto mt-4 sm:mt-6 space-y-4 pb-3 min-w-0">{/* Responsive max-width and margins */}
             {messages.length === 0 ? (
               <div className="text-center my-8">
                 <div className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-full border border-blue-200/60 dark:border-blue-800/40 shadow-sm text-xs font-normal py-1.5 px-3 text-blue-700 dark:text-blue-300">
@@ -1288,7 +1288,6 @@ export default function Chat() {
                   />
                   Start a conversation
                 </div>
-
               </div>
             ) : (
               <>
@@ -1628,7 +1627,7 @@ export default function Chat() {
                 ))}
                 
                 {isLoading && (
-                  <ChatMessage isUser={false} content="Thinking...">
+                  <ChatMessage isUser={false} content="Thinking..." showActions={false}>
                     <div className="flex items-center gap-2">
                       <div className="flex space-x-1">
                         <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>

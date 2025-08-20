@@ -730,6 +730,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content, onImageLoa
 
     // Process each part
     let elementIndex = 0;
+    let previousWasHeader = false;
     for (const part of textParts) {
       if (part.type === 'code' && part.code !== undefined && part.language !== undefined) {
         elements.push(
@@ -739,17 +740,18 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content, onImageLoa
             language={part.language}
           />
         );
+        previousWasHeader = false;
       } else if (part.type === 'header' && part.headerText !== undefined && part.headerLevel !== undefined) {
         // Enhanced header rendering with inline formatting support
         const getHeaderClass = (level: number) => {
           switch (level) {
-            case 1: return "text-3xl font-bold mb-2 mt-4 text-slate-900 dark:text-slate-100 leading-tight"; // # - Largest
-            case 2: return "text-2xl font-bold mb-2 mt-3 text-slate-800 dark:text-slate-200 leading-tight"; // ## - Second largest
-            case 3: return "text-xl font-semibold mb-1 mt-2 text-slate-700 dark:text-slate-300 leading-tight"; // ### - Third largest
-            case 4: return "text-lg font-semibold mb-1 mt-2 text-slate-600 dark:text-slate-400 leading-tight"; // #### - Fourth largest
-            case 5: return "text-base font-medium mb-1 mt-1 text-slate-600 dark:text-slate-400 leading-tight"; // ##### - Normal size
-            case 6: return "text-sm font-medium mb-1 mt-1 text-slate-500 dark:text-slate-500 leading-tight"; // ###### - Smallest
-            default: return "text-base font-normal mb-1 mt-1 leading-tight";
+            case 1: return "text-3xl font-bold mb-3 mt-1.5 text-black dark:text-white leading-tight"; // # - Largest
+            case 2: return "text-2xl font-bold mb-3 mt-1.5 text-black dark:text-white leading-tight"; // ## - Second largest
+            case 3: return "text-xl font-semibold mb-3 mt-1 text-black dark:text-white leading-tight"; // ### - Third largest
+            case 4: return "text-lg font-semibold mb-3 mt-0.5 text-black dark:text-white leading-tight"; // #### - Fourth largest
+            case 5: return "text-base font-medium mb-3 mt-0.5 text-black dark:text-white leading-tight"; // ##### - Normal size
+            case 6: return "text-sm font-medium mb-3 mt-0.5 text-black dark:text-white leading-tight"; // ###### - Smallest
+            default: return "text-base font-normal mb-3 mt-0.5 text-black dark:text-white leading-tight";
           }
         };
         
@@ -766,37 +768,42 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content, onImageLoa
             processInlineFormatting(part.headerText, 'header')
           )
         );
+        previousWasHeader = true;
       } else if (part.type === 'hr') {
         elements.push(
-          <hr key={`hr-${elementIndex++}`} className="my-3 border-t border-gray-300 dark:border-gray-600" />
+          <hr key={`hr-${elementIndex++}`} className="my-2 border-t border-gray-300 dark:border-gray-600" />
         );
+        previousWasHeader = false;
       } else if (part.type === 'bullet' && part.bulletText !== undefined) {
         elements.push(
-          <div key={`bullet-${elementIndex++}`} className="relative pl-6 mb-0 mt-1 ml-4">
-            <span className="absolute left-0 top-0 text-slate-600 dark:text-slate-400 font-bold leading-snug">•</span>
+          <div key={`bullet-${elementIndex++}`} className="relative pl-5 mb-1 mt-3 ml-4">
+            <span className="absolute left-0 top-0 text-black dark:text-white font-bold leading-snug">•</span>
             <div className="leading-relaxed">
               {processInlineFormatting(part.bulletText, 'bullet')}
             </div>
           </div>
         );
+        previousWasHeader = false;
       } else if (part.type === 'subBullet' && part.subBulletText !== undefined) {
         elements.push(
-          <div key={`subBullet-${elementIndex++}`} className="relative pl-6 mb-0.5 mt-0.5 ml-8">
-            <span className="absolute left-0 top-0 text-slate-600 dark:text-slate-400 font-bold leading-relaxed">◦</span>
+          <div key={`subBullet-${elementIndex++}`} className="relative pl-5 mb-0.5 ml-8">
+            <span className="absolute left-0 top-0 text-black dark:text-white font-bold leading-relaxed">◦</span>
             <div className="leading-relaxed">
               {processInlineFormatting(part.subBulletText, 'subbullet')}
             </div>
           </div>
         );
+        previousWasHeader = false;
       } else if (part.type === 'numbered' && part.numberedText !== undefined) {
         elements.push(
-          <div key={`numbered-${elementIndex++}`} className="relative pl-6 mb-1 mt-1 ml-4">
-            <span className="absolute left-0 top-0 text-slate-600 dark:text-slate-400 font-bold leading-snug">{part.number}.</span>
+          <div key={`numbered-${elementIndex++}`} className="relative pl-6 mb-0 ml-4">
+            <span className="absolute left-0 top-0 text-black dark:text-white font-bold leading-snug">{part.number}.</span>
             <div className="leading-relaxed">
               {processInlineFormatting(part.numberedText, 'numbered')}
             </div>
           </div>
         );
+        previousWasHeader = false;
       } else if (part.type === 'table' && part.tableData !== undefined) {
         elements.push(
           <TableComponent 
@@ -805,24 +812,40 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content, onImageLoa
             headers={part.tableHeaders}
           />
         );
+        previousWasHeader = false;
       } else if (part.type === 'image' && part.imageSrc !== undefined) { // New: Render images
+        const isPngImage = /\.png(\?|$)/i.test(part.imageSrc || '');
+        const imageMarginClass = isPngImage ? 'my-6' : 'my-2';
         elements.push(
           <img
             key={`image-${elementIndex++}`}
             src={part.imageSrc}
             alt={part.imageAlt || ''}
-            className="my-2 max-w-full h-auto max-h-[50vh] object-contain rounded-lg"
+            className={`${imageMarginClass} max-w-full h-auto max-h-[40vh] object-contain rounded-lg`}
             onLoad={() => onImageLoad?.(part.imageSrc!)}
           />
         );
+        previousWasHeader = false;
       } else if (part.type === 'text') {
+        // Skip whitespace-only nodes to prevent extra spacing between blocks
+        if (!part.text || part.text.trim().length === 0) {
+          continue;
+        }
+        const contentForText = previousWasHeader
+          ? part.text.replace(/^[\s\r\n]+/, '')
+          : part.text;
+        if (contentForText.trim().length === 0) {
+          previousWasHeader = false;
+          continue;
+        }
         // Process regular text for inline formatting
-        const formattedContent = processInlineFormatting(part.text, 'text');
+        const formattedContent = processInlineFormatting(contentForText, 'text');
         elements.push(
-          <div key={`text-${elementIndex++}`} className="whitespace-pre-wrap mb-2 mt-0 break-words max-w-full overflow-hidden leading-relaxed">
+          <div key={`text-${elementIndex++}`} className="whitespace-pre-wrap mb-1 mt-0 break-words max-w-full overflow-hidden leading-normal">
             {formattedContent}
           </div>
         );
+        previousWasHeader = false;
       }
     }
     
@@ -830,7 +853,7 @@ const MarkdownResponse: React.FC<MarkdownResponseProps> = ({ content, onImageLoa
   };
 
   return (
-    <div className="space-y-1 w-full min-w-0">
+    <div className="w-full min-w-0">
       {parseMarkdown(content)}
     </div>
   );
