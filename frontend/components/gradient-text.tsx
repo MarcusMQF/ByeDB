@@ -29,7 +29,7 @@ export default function GradientText({
         ></div>
       )}
       <div 
-        className="bg-clip-text text-transparent bg-gradient-to-r animate-pulse font-bold"
+        className="bg-clip-text text-transparent bg-gradient-to-r animate-pulse"
         style={gradientStyle}
       >
         {children}

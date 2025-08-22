@@ -109,7 +109,9 @@ const CopyButton: React.FC<CopyButtonProps> = ({ text, id, label, isCopied, onCo
   );
 };
 
-export default function Chat() {
+export default function Chat({ initialMessage }: { initialMessage?: string | null }) {
+  console.log('Chat component rendered with initialMessage:', initialMessage);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { refreshAfterSQLOperation, datasets } = useDatasetContext();
@@ -117,6 +119,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<Message[]>(() => 
     loadFromLocalStorage(CHAT_MESSAGES_KEY, [])
   );
+  const hasSentInitialMessageRef = useRef(false);
   const [inputValue, setInputValue] = useState(() => 
     loadFromLocalStorage(CHAT_INPUT_KEY, "")
   );
@@ -891,6 +894,115 @@ export default function Chat() {
       setIsLoading(false);
     }
   };
+
+  // Auto-send initial message if provided
+  useEffect(() => {
+    console.log('useEffect triggered with initialMessage:', initialMessage, 'hasSentInitialMessage:', hasSentInitialMessageRef.current);
+    
+    if (initialMessage && initialMessage.trim() && !hasSentInitialMessageRef.current) {
+      console.log('Processing initial message:', initialMessage);
+      
+      // Set the flag to prevent multiple sends
+      hasSentInitialMessageRef.current = true;
+      
+      // Set the input value to the initial message and send it
+      const message = initialMessage.trim();
+      
+      // Create and send the user message immediately
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        content: message,
+        isUser: true,
+        timestamp: new Date(),
+      };
+
+      console.log('Adding user message to chat:', userMessage);
+      setMessages(prev => [...prev, userMessage]);
+      
+      // Automatically send the message to the API after a short delay
+      const timer = setTimeout(async () => {
+        console.log('Timer fired - sending initial message to API:', message);
+        console.log('API endpoint:', endpoints.sqlQuestion);
+        console.log('Headers:', getApiHeaders());
+        setIsLoading(true);
+        
+        try {
+          const requestBody = {
+            question: message,
+            mode: chatMode
+          };
+          console.log('Request body:', requestBody);
+          
+          const response = await fetch(endpoints.sqlQuestion, {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify(requestBody),
+          });
+
+          console.log('Response status:', response.status);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          console.log('API Response:', data);
+          
+          const requiresApproval = data.meta?.requires_approval === true || data.requires_approval === true;
+          
+          const aiResponse: Message = {
+            id: (Date.now() + 1).toString(),
+            content: data.success ? data.response : `Error: ${data.error}`,
+            isUser: false,
+            timestamp: new Date(),
+            requiresConfirmation: requiresApproval,
+            confirmationData: data.meta || data
+          };
+
+          console.log('AI Response Message:', aiResponse); // Debug log
+
+          setMessages(prev => [...prev, aiResponse]);
+
+          // Clear input value after sending (matching handleSendMessage behavior)
+          setInputValue("");
+
+          // Refresh datasets after SQL operations (for non-confirmation responses)
+          if (!requiresApproval && data.meta?.function_called && data.meta.function_called.length > 0) {
+            const sqlQueries = data.meta.function_called
+              .filter((func: any) => func.args?.text)
+              .map((func: any) => func.args.text);
+            
+            if (sqlQueries.length > 0) {
+              await refreshAfterSQLOperation(sqlQueries[0]);
+            }
+          }
+        } catch (error) {
+          console.error('Error calling API for initial message:', error);
+          console.error('Error details:', {
+            message,
+            chatMode,
+            endpoints: endpoints.sqlQuestion,
+            headers: getApiHeaders()
+          });
+          
+          const errorResponse: Message = {
+            id: (Date.now() + 1).toString(),
+            content: "Sorry, I'm having trouble connecting to the server. Please make sure the backend is running on http://localhost:8000",
+            isUser: false,
+            timestamp: new Date(),
+          };
+
+          setMessages(prev => [...prev, errorResponse]);
+          
+          // Clear input value after error (matching handleSendMessage behavior)
+          setInputValue("");
+        } finally {
+          setIsLoading(false);
+        }
+      }, 500); // Increased delay to ensure component is fully ready
+      
+      return () => clearTimeout(timer);
+    }
+  }, [initialMessage]); // Simplified dependencies to avoid re-runs
 
   const handleConfirmExecution = async (confirmationData: any, messageId: string) => {
     setIsConfirming(messageId); // Set loading state for this specific message
