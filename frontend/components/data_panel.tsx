@@ -7,7 +7,7 @@ import {
   RiSettingsLine, 
   RiDatabaseLine, 
   RiUploadLine, 
-  RiFileTextLine, 
+  RiArrowRightSLine, 
   RiFileExcelLine,
   RiCheckLine,
   RiDeleteBinLine,
@@ -35,9 +35,11 @@ import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { useDatasetContext } from "@/lib/dataset-context";
 
 type SettingsPanelContext = {
+  isMobile: boolean;
   openMobile: boolean;
   setOpenMobile: (open: boolean) => void;
-  isMobile: boolean;
+  openDesktop: boolean;
+  setOpenDesktop: (open: boolean) => void;
   togglePanel: () => void;
 };
 
@@ -58,20 +60,27 @@ function useSettingsPanel() {
 const SettingsPanelProvider = ({ children }: { children: React.ReactNode }) => {
   const isMobile = useIsMobile(1280); // Use xl breakpoint for better responsive behavior
   const [openMobile, setOpenMobile] = React.useState(false);
+  const [openDesktop, setOpenDesktop] = React.useState(true);
 
   // Helper to toggle the sidebar.
   const togglePanel = React.useCallback(() => {
-    return isMobile && setOpenMobile((open) => !open);
-  }, [isMobile, setOpenMobile]);
+    if (isMobile) {
+      setOpenMobile((open) => !open);
+    } else {
+      setOpenDesktop((open) => !open);
+    }
+  }, [isMobile]);
 
   const contextValue = React.useMemo<SettingsPanelContext>(
     () => ({
       isMobile,
       openMobile,
       setOpenMobile,
+      openDesktop,
+      setOpenDesktop,
       togglePanel,
     }),
-    [isMobile, openMobile, setOpenMobile, togglePanel],
+    [isMobile, openMobile, openDesktop, togglePanel],
   );
 
   return (
@@ -197,7 +206,7 @@ const SettingsPanelContent = () => {
       {/* Confirmation Dialog for Clear Dataset */}
       <ConfirmationDialog
         title="Are you absolutely sure?"
-        description="This action cannot be undone. This will permanently delete your datasets and clear the chat memory."
+        description="This action cannot be undone. This will permanently delete your datasets."
         confirmText="Clear Dataset"
         cancelText="Cancel"
         onConfirm={handleClearDatasets}
@@ -205,20 +214,8 @@ const SettingsPanelContent = () => {
         onOpenChange={setShowClearDialog}
       />
 
-      {/* Sidebar header */}
-      <div className="py-5">
-        <div className="flex items-center gap-2">
-          <RiFileTextLine
-            className="text-muted-foreground/70"
-            size={20}
-            aria-hidden="true"
-          />
-          <h2 className="text-sm font-medium">Upload Dataset</h2>
-        </div>
-      </div>
-
       {/* Upload Section */}
-      <div className="space-y-4">
+      <div className="space-y-4 pt-6">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-medium uppercase text-muted-foreground/80">
             Upload Dataset
@@ -335,10 +332,24 @@ const SettingsPanelContent = () => {
                 
                 <Button
                   size="sm"
-                  className="mt-2 bg-gradient-to-r from-gray-900 to-black hover:from-black hover:to-gray-900 text-white shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-700 hover:border-gray-600"
+                  className={`
+                    relative overflow-hidden
+                    bg-gradient-to-r from-gray-900 to-black 
+                    hover:from-gray-800 hover:to-gray-900
+                    text-white font-medium
+                    border border-gray-700
+                    shadow-lg hover:shadow-xl
+                    transition-all duration-300 ease-out
+                    focus:outline-none
+                    group
+                  `}
                 >
-                  <RiUploadLine className="w-4 h-4 mr-2" />
-                  Choose File
+                  <div className="flex items-center gap-2">
+                    <RiUploadLine className="w-4 h-4 transition-transform group-hover:scale-110" />
+                    <span>Choose File</span>
+                  </div>
+                  {/* Shine effect overlay */}
+                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out" />
                 </Button>
               </div>
             </div>
@@ -481,7 +492,22 @@ const SettingsPanelContent = () => {
 SettingsPanelContent.displayName = "SettingsPanelContent";
 
 const SettingsPanel = () => {
-  const { isMobile, openMobile, setOpenMobile } = useSettingsPanel();
+  const { isMobile, openMobile, setOpenMobile, openDesktop } = useSettingsPanel();
+  
+  // Compute responsive panel width (matches previous Tailwind breakpoints)
+  const getPanelWidth = React.useCallback(() => {
+    const viewport = typeof window !== "undefined" ? window.innerWidth : 1920;
+    if (viewport >= 1536) return 320; // 2xl
+    if (viewport >= 1280) return 300; // xl
+    if (viewport >= 1024) return 280; // lg
+    return 250; // base
+  }, []);
+  const [panelWidth, setPanelWidth] = React.useState<number>(getPanelWidth());
+  React.useEffect(() => {
+    const handler = () => setPanelWidth(getPanelWidth());
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, [getPanelWidth]);
 
   if (isMobile) {
     return (
@@ -500,11 +526,17 @@ const SettingsPanel = () => {
   }
 
   return (
-    <ScrollArea>
-      <div className="w-[250px] lg:w-[280px] xl:w-[300px] 2xl:w-[320px] px-3 md:px-4 lg:px-6">
-        <SettingsPanelContent />
-      </div>
-    </ScrollArea>
+    <div
+      className="relative overflow-hidden transition-[width] duration-300 ease-in-out border-l border-black/[0.06] bg-[hsl(240_5%_92.16%)]"
+      style={{ width: openDesktop ? panelWidth : 0 }}
+      aria-hidden={!openDesktop}
+    >
+      <ScrollArea>
+        <div className="px-3 md:px-4 lg:px-6" style={{ width: panelWidth }}>
+          <SettingsPanelContent />
+        </div>
+      </ScrollArea>
+    </div>
   );
 };
 SettingsPanel.displayName = "SettingsPanel";
@@ -514,24 +546,21 @@ const SettingsPanelTrigger = ({
 }: {
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }) => {
-  const { isMobile, togglePanel } = useSettingsPanel();
-
-  if (!isMobile) {
-    return null;
-  }
+  const { togglePanel, openDesktop, isMobile, openMobile } = useSettingsPanel();
+  const isOpen = isMobile ? openMobile : openDesktop;
 
   return (
     <Button
-      variant="ghost"
-      size="sm"
-      className="px-2 h-8"
+      variant="outline"
+      size="icon"
+      className="size-8"
       onClick={(event) => {
         onClick?.(event);
         togglePanel();
       }}
     >
-      <RiSettingsLine
-        className="text-muted-foreground/70 size-4"
+      <RiArrowRightSLine
+        className={`size-4 text-muted-foreground transition-transform duration-300 ${isOpen ? 'rotate-0' : 'rotate-180'}`}
         aria-hidden="true"
       />
       <span className="sr-only">Dataset Panel</span>

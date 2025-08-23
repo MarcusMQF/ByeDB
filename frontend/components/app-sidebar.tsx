@@ -56,34 +56,9 @@ const data = {
           url: "#",
           icon: RiHistoryLine,
         },
-        {
-          title: "Documentation",
-          url: "#",
-          icon: RiBracesLine,
-        },
       ],
     },
-    {
-      title: "More",
-      url: "#",
-      items: [
-        {
-          title: "Community",
-          url: "#",
-          icon: RiPlanetLine,
-        },
-        {
-          title: "Help Centre",
-          url: "#",
-          icon: RiSeedlingLine,
-        },
-        {
-          title: "Settings",
-          url: "#",
-          icon: RiSettings3Line,
-        },
-      ],
-    },
+    // Removed secondary "More" section per request
   ],
 };
 
@@ -130,40 +105,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        {/* Secondary Navigation */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="uppercase text-sidebar-foreground/50">
-            {data.navMain[1]?.title}
-          </SidebarGroupLabel>
-          <SidebarGroupContent className="px-2">
-            <SidebarMenu>
-              {data.navMain[1]?.items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    className="group/menu-button font-medium gap-3 h-9 rounded-md [&>a]:flex [&>a]:items-center [&>a]:w-full [&>svg]:size-auto"
-                    isActive={pathname === item.url}
-                  >
-                    <Link href={item.url}>
-                      {item.icon && (
-                        <item.icon
-                          className="text-sidebar-foreground/50 group-data-[active=true]/menu-button:text-primary"
-                          size={22}
-                          aria-hidden="true"
-                        />
-                      )}
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        
         {/* Version Display */}
         <div className="px-4 py-2 border-t border-sidebar-border/50">
-          <div className="flex items-center justify-between text-xs text-sidebar-foreground/60">
+          <div className="flex items-center justify-between text-xs text-sidebar-foreground/60 mt-2">
             <span>Version</span>
             <span className="font-mono font-medium">{shortVersion}</span>
           </div>

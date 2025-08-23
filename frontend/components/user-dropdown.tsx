@@ -11,10 +11,7 @@ import { userConfig } from "@/lib/user-config";
 
 import {
   RiLogoutCircleLine,
-  RiTimer2Line,
   RiUserLine,
-  RiFindReplaceLine,
-  RiPulseLine,
 } from "@remixicon/react";
 
 export default function UserDropdown() {
@@ -33,7 +30,7 @@ export default function UserDropdown() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="max-w-64 p-2" align="end">
+      <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="flex min-w-0 flex-col py-0 px-1 mb-2">
           <span className="truncate text-sm font-medium text-foreground mb-0.5">
             {userConfig.name}
@@ -50,22 +47,6 @@ export default function UserDropdown() {
             aria-hidden="true"
           />
           <span>Profile</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem className="gap-3 px-1">
-          <RiPulseLine
-            size={20}
-            className="text-muted-foreground/70"
-            aria-hidden="true"
-          />
-          <span>Changelog</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem className="gap-3 px-1">
-          <RiFindReplaceLine
-            size={20}
-            className="text-muted-foreground/70"
-            aria-hidden="true"
-          />
-          <span>History</span>
         </DropdownMenuItem>
         <DropdownMenuItem className="gap-3 px-1">
           <RiLogoutCircleLine

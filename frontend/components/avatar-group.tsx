@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 interface AvatarItem {
   id: number;
   name: string;
-  designation: string;
+  designation?: string;
   image: string;
   linkedin?: string;
 }
@@ -79,9 +79,11 @@ const Avatar = ({
             <div className="font-bold text-gray-900 relative z-30 text-base text-center">
               {item.name}
             </div>
-            <div className="text-gray-600 text-xs text-center">
-              {item.designation}
-            </div>
+            {item.designation && (
+              <div className="text-gray-600 text-xs text-center">
+                {item.designation}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
