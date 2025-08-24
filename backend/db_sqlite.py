@@ -15,6 +15,7 @@ class LocalSQLiteDatabase:
         self.conn: Optional[aiosqlite.Connection] = None
 
     async def connect(self):
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self.conn = await aiosqlite.connect(self.db_path)
         self.conn.row_factory = aiosqlite.Row
         print(f"Connected to SQLite database: {self.db_path}")

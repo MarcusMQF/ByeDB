@@ -229,6 +229,7 @@ yarn-error.log*
 next-env.d.ts
 
 /backend/charts/
+/backend/databases/
 
 /docs/
 /.cursor/

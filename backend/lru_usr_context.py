@@ -1,23 +1,26 @@
+import os.path
 from collections import OrderedDict
 from db_sqlite import LocalSQLiteDatabase
 from llm_sql_agent import SQLAgent
 
 
 class UserSession:
+    USER_DATABASE_ROOT = ".\\databases"
+
     def __init__(self, database: LocalSQLiteDatabase, agent: SQLAgent):
         self.database = database
         self.agent = agent
 
     @classmethod
-    async def create(cls):
-        db = LocalSQLiteDatabase(db_path=":memory:")
+    async def create(cls, user_id: str):
+        db = LocalSQLiteDatabase(db_path=os.path.join(cls.USER_DATABASE_ROOT, f"{user_id}.db"))
         await db.connect()
         agent = SQLAgent(db)
         return cls(db, agent)
 
 
 class LRUUserContext:
-    def __init__(self, capacity=50):
+    def __init__(self, capacity=5):
         self.capacity = capacity
         self.sessions = OrderedDict()  # {user_id: UserSession}
 
@@ -29,7 +32,7 @@ class LRUUserContext:
             if len(self.sessions) >= self.capacity:
                 evicted_user, _ = self.sessions.popitem(last=False)
                 print(f"Evicted user: {evicted_user}")
-            self.sessions[user_id] = await UserSession.create()
+            self.sessions[user_id] = await UserSession.create(user_id)
         return self.sessions[user_id]
 
     async def get_user_database(self, user_id: str) -> LocalSQLiteDatabase:
