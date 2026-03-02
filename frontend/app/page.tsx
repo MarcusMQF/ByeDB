@@ -12,32 +12,39 @@ import { Database, MessageSquare, BarChart3, Shield, Zap, Users, ArrowRight, Spa
 import { useEffect, useState, useRef } from "react";
 
 // Typing effect component
-function TypingPlaceholder({ text, speed = 100 }: { text: string; speed?: number }) {
+const PLACEHOLDER_PROMPTS = [
+  "What's the first thing I should fix on my data?",
+  "How many active users did we have last week?",
+  "Show me the revenue breakdown by region."
+];
+
+// Typing effect component
+function TypingPlaceholder({ texts, speed = 60 }: { texts: string[]; speed?: number }) {
   const [displayText, setDisplayText] = useState('');
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [textIndex, setTextIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
 
   useEffect(() => {
-    if (currentIndex < text.length) {
-      const timer = setTimeout(() => {
-        setDisplayText(prev => prev + text[currentIndex]);
-        setCurrentIndex(prev => prev + 1);
+    if (!texts || texts.length === 0) return;
+
+    const currentString = texts[textIndex];
+
+    if (charIndex < currentString.length) {
+      const timeoutId = setTimeout(() => {
+        setDisplayText((prev) => prev + currentString[charIndex]);
+        setCharIndex((prev) => prev + 1);
       }, speed);
-      return () => clearTimeout(timer);
+      return () => clearTimeout(timeoutId);
     } else {
-      // Reset after 3 seconds when animation completes
-      const resetTimer = setTimeout(() => {
+      // Finished typing, wait then switch
+      const timeoutId = setTimeout(() => {
         setDisplayText('');
-        setCurrentIndex(0);
-      }, 3000);
-      return () => clearTimeout(resetTimer);
+        setCharIndex(0);
+        setTextIndex((prev) => (prev + 1) % texts.length);
+      }, 2000); // 2 seconds delay
+      return () => clearTimeout(timeoutId);
     }
-  }, [currentIndex, text, speed]);
-
-  // Reset animation when text changes
-  useEffect(() => {
-    setDisplayText('');
-    setCurrentIndex(0);
-  }, [text]);
+  }, [charIndex, textIndex, texts, speed]);
 
   return (
     <span className="text-gray-400">
@@ -51,6 +58,7 @@ export default function Home() {
   const [visibleElements, setVisibleElements] = useState(new Set());
   const observerRef = useRef<IntersectionObserver | null>(null);
   const [chatInput, setChatInput] = useState<string>("");
+  const [isFocused, setIsFocused] = useState(false);
   const [chatMode, setChatMode] = useState<'agent' | 'ask'>('agent');
   const [selectedFeature, setSelectedFeature] = useState<number>(1);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -101,9 +109,13 @@ export default function Home() {
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      element.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
+      const headerOffset = 50;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.scrollY - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
       });
     }
   };
@@ -118,11 +130,11 @@ export default function Home() {
   const handleSend = () => {
     // Check if there's input to send
     if (!chatInput.trim()) return;
-    
+
     console.log('Storing message in localStorage:', chatInput.trim());
     // Store the message in localStorage for the dashboard to pick up
     localStorage.setItem('byedb_landing_message', chatInput.trim());
-    
+
     // Navigate to dashboard normally
     window.location.href = '/dashboard';
   };
@@ -151,140 +163,116 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#f5f8fb] relative overflow-hidden">
-      
+
       <div className="relative z-10">
         {/* Header */}
-        <header className={`fixed top-3 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled 
-            ? 'transform -translate-y-full' 
-            : 'transform translate-y-0'
-        }`}>
-          <div className="container mx-auto px-4 sm:px-6 py-2 sm:py-3 relative">
-            <div className="max-w-5xl mx-auto bg-white rounded-2xl px-4 sm:px-8 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.08)]">
-              <div className="flex items-center justify-between">
+        <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-in-out ${isScrolled
+          ? 'pt-4'
+          : 'pt-6'
+          }`}>
+          <div className="container mx-auto px-4 z-50">
+            <div className={`mx-auto relative transition-all duration-700 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] ${isScrolled
+              ? 'max-w-4xl bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-full px-4 py-2.5'
+              : 'max-w-7xl bg-transparent border-transparent px-4 py-2'
+              }`}>
+              <div className="flex items-center justify-between w-full">
+
                 {/* Logo and Brand */}
-                <div 
-                  className="flex items-center gap-3 cursor-pointer hover:opacity-80"
+                <div
+                  className="relative z-10 flex items-center gap-2.5 cursor-pointer group"
                   onClick={scrollToTop}
                 >
-                  <div className="relative">
-                    <img 
-                      src="/icons/crop.png" 
-                      alt="ByeDB Icon" 
-                      className="h-8 w-8 sm:h-10 sm:w-10"
+                  <div className="relative overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-105">
+                    <img
+                      src="/icons/crop.png"
+                      alt="ByeDB Icon"
+                      className="h-9 w-9 object-cover"
                     />
                   </div>
-                  <h1 className="font-medium text-gray-900 text-base sm:text-lg" style={{ fontFamily: 'sans-serif' }}>ByeDB</h1>
-                </div>
-                
-                {/* Desktop Navigation Links - Hidden on mobile */}
-                <div className="hidden md:flex items-center gap-8 absolute left-1/2 transform -translate-x-1/2">
-                  <Button 
-                    variant="ghost" 
-                    className="text-gray-700 hover:text-gray-900 hover:bg-gray-50 px-3 py-2 rounded-lg"
-                    onClick={scrollToTop}
-                  >
-                    Home
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="text-gray-700 hover:text-gray-900 hover:bg-gray-50 px-3 py-2 rounded-lg"
-                    onClick={() => scrollToSection('powerful-section')}
-                  >
-                    Features
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="text-gray-700 hover:text-gray-900 hover:bg-gray-50 px-3 py-2 rounded-lg"
-                    onClick={() => scrollToSection('business-section')}
-                  >
-                    About
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="text-gray-700 hover:text-gray-900 hover:bg-gray-50 px-3 py-2 rounded-lg"
-                    onClick={() => window.open('https://deepwiki.com/MarcusMQF/ByeDB/1-overview', '_blank')}
-                  >
-                    Docs
-                  </Button>
+                  <span className={`font-semibold text-gray-800 text-lg tracking-tight transition-opacity duration-300 ${isScrolled ? 'opacity-100' : 'opacity-100'}`}>ByeDB</span>
                 </div>
 
-                {/* Desktop Support Us Button - Hidden on mobile */}
-                <button
-                  className="hidden md:inline-flex btn-design px-6 py-2 text-base items-center gap-2"
+                {/* Desktop Navigation Links - Pill Design */}
+                <nav className={`hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full p-1.5 transition-all duration-500 ${isScrolled
+                  ? 'bg-black/5 border border-white/20'
+                  : 'bg-white/40 border border-white/20 backdrop-blur-sm'
+                  }`}>
+                  {[
+                    { name: 'Home', action: scrollToTop },
+                    { name: 'About', action: () => scrollToSection('business-section') },
+                    { name: 'Features', action: () => scrollToSection('powerful-section') },
+                    { name: 'Docs', action: () => window.open('https://deepwiki.com/MarcusMQF/ByeDB/1-overview', '_blank') }
+                  ].map((item) => (
+                    <button
+                      key={item.name}
+                      onClick={item.action}
+                      className="px-4 py-1.5 text-sm font-medium text-gray-600 rounded-full hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all duration-200"
+                    >
+                      {item.name}
+                    </button>
+                  ))}
+                </nav>
+
+                {/* Desktop Star on GitHub Button */}
+                <a
+                  href="https://github.com/MarcusMQF/ByeDB"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden md:inline-flex relative z-10 btn-github px-6 py-2 text-base items-center gap-2"
                   style={{ borderRadius: '9999px' }}
-                  onClick={() => window.open('https://github.com/MarcusMQF/ByeDB', '_blank')}
                 >
-                  <Send className="h-4 w-4" />
-                  Support Us
-                </button>
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                  </svg>
+                  Star on GitHub
+                </a>
 
                 {/* Mobile Menu Button */}
                 <button
-                  className="md:hidden p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="md:hidden p-2 rounded-full hover:bg-white/50 transition-colors"
                   onClick={toggleMobileMenu}
                   aria-label="Toggle mobile menu"
                 >
                   {isMobileMenuOpen ? (
-                    <X className="h-6 w-6 text-gray-700" />
+                    <X className="h-5 w-5 text-gray-700" />
                   ) : (
-                    <Menu className="h-6 w-6 text-gray-700" />
+                    <Menu className="h-5 w-5 text-gray-700" />
                   )}
                 </button>
               </div>
 
-              {/* Mobile Menu */}
+              {/* Mobile Menu Dropdown - Floating */}
               {isMobileMenuOpen && (
-                <div className="md:hidden mt-4 pt-4 border-t border-gray-100">
-                  <div className="space-y-2">
-                    <button
-                      className="w-full text-left px-4 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
-                      onClick={() => {
-                        scrollToTop();
-                        closeMobileMenu();
-                      }}
-                    >
-                      Home
-                    </button>
-                    <button
-                      className="w-full text-left px-4 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
-                      onClick={() => {
-                        scrollToSection('powerful-section');
-                        closeMobileMenu();
-                      }}
-                    >
-                      Features
-                    </button>
-                    <button
-                      className="w-full text-left px-4 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
-                      onClick={() => {
-                        scrollToSection('business-section');
-                        closeMobileMenu();
-                      }}
-                    >
-                      About
-                    </button>
-                    <button
-                      className="w-full text-left px-4 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
-                      onClick={() => {
-                        window.open('https://deepwiki.com/MarcusMQF/ByeDB/1-overview', '_blank');
-                        closeMobileMenu();
-                      }}
-                    >
-                      Docs
-                    </button>
-                    <div className="pt-2">
+                <div className="absolute top-full left-0 right-0 mt-3 md:hidden">
+                  <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 overflow-hidden p-2 space-y-1">
+                    {[
+                      { name: 'Home', action: () => { scrollToTop(); closeMobileMenu(); } },
+                      { name: 'About', action: () => { scrollToSection('business-section'); closeMobileMenu(); } },
+                      { name: 'Features', action: () => { scrollToSection('powerful-section'); closeMobileMenu(); } },
+                      { name: 'Docs', action: () => { window.open('https://deepwiki.com/MarcusMQF/ByeDB/1-overview', '_blank'); closeMobileMenu(); } }
+                    ].map((item) => (
                       <button
-                        className="w-full btn-design px-6 py-3 text-base inline-flex items-center justify-center gap-2"
-                        style={{ borderRadius: '9999px' }}
-                        onClick={() => {
-                          window.open('https://github.com/MarcusMQF/ByeDB', '_blank');
-                          closeMobileMenu();
-                        }}
+                        key={item.name}
+                        onClick={item.action}
+                        className="w-full text-center px-4 py-3 text-gray-700 font-medium hover:bg-blue-50 hover:text-blue-600 rounded-2xl transition-colors"
                       >
-                        <Send className="h-4 w-4" />
-                        Support Us
+                        {item.name}
                       </button>
+                    ))}
+                    <div className="pt-2 pb-1 px-2">
+                      <a
+                        href="https://github.com/MarcusMQF/ByeDB"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full btn-github px-6 py-3 text-base inline-flex items-center justify-center gap-2"
+                        style={{ borderRadius: '9999px' }}
+                        onClick={closeMobileMenu}
+                      >
+                        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                          <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                        </svg>
+                        Star on GitHub
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -293,9 +281,11 @@ export default function Home() {
           </div>
         </header>
 
-                {/* Hero Section */}
-        <section className="container mx-auto px-6 py-20 pt-40 text-center relative">
-          <div className="max-w-5xl mx-auto relative overflow-hidden">
+
+
+        {/* Hero Section */}
+        < section className="container mx-auto px-6 pt-24 sm:pt-28 lg:pt-32 pb-5 sm:pb-6 min-h-[100svh] flex items-center text-center relative" >
+          <div className="max-w-5xl w-full mx-auto relative overflow-hidden">
             {/* Centered flickering grid background for hero */}
             <FlickeringGrid
               className="absolute left-1/2 -translate-x-1/2 top-2 w-[1200px] h-[620px] z-0 [mask-image:radial-gradient(650px_circle_at_center,white,transparent)] opacity-75 pointer-events-none"
@@ -310,53 +300,50 @@ export default function Home() {
 
 
             {/* Icon Badge */}
-            <div 
+            <div
               id="hero-badge"
               data-animate
-              className={`inline-flex items-center justify-center mb-8 transition-all duration-1000 ${
-                isVisible('hero-badge') 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
+              className={`inline-flex items-center justify-center mb-[clamp(0.75rem,3vh,2rem)] transition-all duration-1000 ${isVisible('hero-badge')
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-8'
+                }`}
             >
-              <img 
-                src="/icons/white_icon.png" 
-                alt="ByeDB Icon" 
-                className="h-28 w-27"
+              <img
+                src="/icons/white_icon.png"
+                alt="ByeDB Icon"
+                className="h-[clamp(3.5rem,8.5vh,7.25rem)] w-[clamp(3.5rem,8.5vh,7.25rem)]"
               />
             </div>
-            
-            <h2 
+
+            <h2
               id="hero-title"
               data-animate
-              className={`text-4xl sm:text-5xl md:text-6xl lg:text-[64px] xl:text-[76px] font-normal mb-6 sm:mb-8 leading-tight -mt-2 sm:-mt-4 md:-mt-6 transition-all duration-1000 delay-200 ${
-                isVisible('hero-title') 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
+              className={`text-[clamp(1.8rem,4.2vw,4.6rem)] font-normal mb-[clamp(0.75rem,2.5vh,1.5rem)] leading-tight -mt-1 transition-all duration-1000 delay-200 ${isVisible('hero-title')
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-8'
+                }`}
             >
               <span className="text-gray-900">
                 Turn Natural Language into{" "}
               </span>
-              <GradientText 
+              <GradientText
                 colors={["#60a5fa", "#06b6d4", "#3b82f6", "#06b6d4", "#60a5fa"]}
                 animationSpeed={6}
-                className="text-4xl sm:text-5xl md:text-6xl lg:text-[64px] xl:text-[76px] font-normal"
+                className="text-[clamp(1.8rem,4.2vw,4.6rem)] font-normal"
               >
                 Powerful SQL
               </GradientText>
             </h2>
-            
-            <p 
+
+            <p
               id="hero-description"
               data-animate
-              className={`text-sm md:text-base text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed -mt-2 md:-mt-4 transition-all duration-1000 delay-400 ${
-                isVisible('hero-description') 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
+              className={`text-[clamp(0.85rem,1.6vw,1rem)] text-gray-600 mb-[clamp(0.75rem,2.5vh,1.5rem)] max-w-3xl mx-auto leading-relaxed -mt-1 transition-all duration-1000 delay-400 ${isVisible('hero-description')
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-8'
+                }`}
             >
-              Ask questions in plain English and get instant SQL queries, visualizations, and insights. 
+              Ask questions in plain English and get instant SQL queries, visualizations, and insights.
               No coding required — just natural conversation with your data.
             </p>
 
@@ -364,24 +351,25 @@ export default function Home() {
             <div
               id="hero-chat"
               data-animate
-              className={`mx-auto max-w-3xl mb-8 transition-all duration-1000 delay-500 ${
-                isVisible('hero-chat') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-              }`}
+              className={`mx-auto max-w-3xl mb-[clamp(0.75rem,2.5vh,1.5rem)] transition-all duration-1000 delay-500 ${isVisible('hero-chat') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+                }`}
             >
-              <div className="relative rounded-2xl bg-white shadow-[0_6px_24px_rgba(0,0,0,0.06)] p-4 sm:p-5">
+              <div className="relative rounded-2xl bg-white shadow-[0_6px_24px_rgba(0,0,0,0.06)] p-3 sm:p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex-1">
-                    <div className="relative w-full min-h-[80px]">
+                    <div className="relative w-full min-h-[clamp(52px,9vh,80px)]">
                       <textarea
                         value={chatInput}
                         onChange={(e) => setChatInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        className="w-full resize-none outline-none bg-transparent text-gray-800 text-base sm:text-lg min-h-[80px] absolute inset-0 z-10"
-                        style={{ caretColor: chatInput ? 'auto' : 'transparent' }}
+                        onFocus={() => setIsFocused(true)}
+                        onBlur={() => setIsFocused(false)}
+                        className="w-full resize-none outline-none bg-transparent text-gray-800 text-[clamp(0.85rem,1.6vw,1rem)] min-h-[clamp(52px,9vh,80px)] absolute inset-0 z-10"
+                        style={{ caretColor: (chatInput || isFocused) ? 'auto' : 'transparent' }}
                       />
-                      {!chatInput && (
-                        <div className="absolute inset-0 pointer-events-none text-base sm:text-lg min-h-[80px] flex items-start pt-0 pl-0">
-                          <TypingPlaceholder text="What's the first thing I should fix on my data?" speed={30} />
+                      {!chatInput && !isFocused && (
+                        <div className="absolute inset-0 pointer-events-none text-[clamp(0.85rem,1.6vw,1rem)] min-h-[clamp(52px,9vh,80px)] flex items-start pt-0 pl-0">
+                          <TypingPlaceholder texts={PLACEHOLDER_PROMPTS} speed={40} />
                         </div>
                       )}
                     </div>
@@ -392,9 +380,8 @@ export default function Home() {
                         <button
                           type="button"
                           onClick={() => setChatMode('agent')}
-                          className={`pl-3 pr-2 py-1.5 rounded-full text-sm flex items-center gap-1.5 border transition-all shadow-sm bg-white hover:shadow-md hover:-translate-y-[1px] ${
-                            chatMode === 'agent' ? 'text-gray-800 border-gray-300' : 'text-gray-600 border-gray-300'
-                          }`}
+                          className={`pl-3 pr-2 py-1.5 rounded-full text-sm flex items-center gap-1.5 border transition-all shadow-sm bg-white hover:shadow-md hover:-translate-y-[1px] ${chatMode === 'agent' ? 'text-gray-800 border-gray-300' : 'text-gray-600 border-gray-300'
+                            }`}
                         >
                           <Bot className="h-4 w-4" />
                           <span className="font-medium">Agent</span>
@@ -416,17 +403,16 @@ export default function Home() {
             </div>
 
             {/* CTA Button */}
-            <div 
+            <div
               id="hero-cta"
               data-animate
-              className={`flex justify-center mt-6 transition-all duration-1000 delay-500 ${
-                isVisible('hero-cta') 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
+              className={`flex justify-center mt-[clamp(0.5rem,2vh,1.25rem)] transition-all duration-1000 delay-500 ${isVisible('hero-cta')
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-8'
+                }`}
             >
               <button
-                                  className="btn-design px-8 py-4 text-lg inline-flex items-center gap-2"
+                className="btn-design px-5 sm:px-7 py-2.5 sm:py-3 text-[clamp(0.9rem,1.6vw,1.05rem)] inline-flex items-center gap-2"
                 style={{ borderRadius: '9999px' }}
                 onClick={() => window.location.href = '/dashboard'}
               >
@@ -436,106 +422,105 @@ export default function Home() {
             </div>
             <p
               id="powered-by"
-              className="relative z-20 mt-8 text-sm text-gray-600 inline-flex items-center justify-center gap-2"
+              className="relative z-20 mt-[clamp(0.75rem,2.5vh,2rem)] text-[clamp(0.75rem,1.5vw,0.9rem)] text-gray-600 inline-flex items-center justify-center gap-2"
             >
               <Bot className="h-4 w-4" />
               Powered by Advanced AI Agent
             </p>
           </div>
-        </section>
+        </section >
 
-        <section id="business-section" className="py-42 relative bg-[#f5f8fb]">
+        <section id="business-section" className="py-[clamp(2.5rem,8vh,10.5rem)] relative bg-[#f5f8fb]">
           <div className="container mx-auto px-6">
-            <div 
+            <div
               id="marketing-features"
               data-animate
-              className={`relative mx-auto max-w-7xl transition-all duration-1000 ${
-                isVisible('marketing-features') 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
+              className={`relative mx-auto max-w-7xl transition-all duration-1000 ${isVisible('marketing-features')
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-8'
+                }`}
             >
-              <div className="rounded-3xl bg-[#e3e9ed] px-10 pt-20 pb-12 md:px-16 md:pt-24 md:pb-16">
+              <div className="rounded-3xl bg-[#e3e9ed] px-[clamp(1.5rem,4vw,4rem)] pt-[clamp(2.5rem,7vh,6rem)] pb-[clamp(2rem,5vh,4rem)]">
                 {/* Section badge */}
-                <div className="flex justify-center -mt-10">
-                  <span className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-full bg-[#edf6fc] text-gray-700 border border-gray-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                <div className="flex justify-center -mt-[clamp(1rem,3vh,2.5rem)]">
+                  <span className="inline-flex items-center gap-2 text-[clamp(0.75rem,1.4vw,0.9rem)] font-medium px-[clamp(0.75rem,2vw,1rem)] py-[clamp(0.35rem,1.2vh,0.5rem)] rounded-full bg-[#edf6fc] text-gray-700 border border-gray-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
                     </svg>
                     Business Application
                   </span>
                 </div>
 
                 {/* Headline and subtext */}
-                <h2 className="text-center text-4xl md:text-5xl font-normal text-gray-900 mt-6">
+                <h2 className="text-center text-[clamp(1.75rem,3.8vw,3rem)] font-normal text-gray-900 mt-[clamp(0.75rem,2.5vh,1.5rem)]">
                   AI-Powered Data Intelligence
                 </h2>
-                <p className="text-center text-gray-600 mt-6">
+                <p className="text-center text-gray-600 mt-[clamp(0.75rem,2.5vh,1.5rem)] text-[clamp(0.9rem,1.6vw,1rem)]">
                   Help you analyze your data and get insights with a second.
                 </p>
 
                 {/* Feature grid 3 cards */}
-                <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="mt-[clamp(1.5rem,4.5vh,3rem)] grid grid-cols-1 md:grid-cols-3 gap-[clamp(1rem,2.5vw,2rem)]">
                   {/* Card 1 */}
-                  <div className="relative bg-[#f6fbff] rounded-2xl p-8 h-100 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <div className="relative bg-[#f6fbff] rounded-2xl p-[clamp(1.25rem,2.8vw,2rem)] shadow-lg hover:shadow-xl transition-all duration-300">
                     <div className="absolute -top-3 -left-3 bg-white p-2 rounded-lg shadow-lg">
                       <Bot className="h-5 w-5 text-blue-500" />
                     </div>
-                    <h3 className="text-4xl font-normal text-gray-900">Self-Correcting AI</h3>
-                    <p className="text-base text-gray-600 mt-15">GPT can generate code, and when it works, it's great. But what if it doesn't? ByeDB.AI saves you from this frustrating loop. Our platform's function calls go back to the model itself, allowing it to learn and self-correct, ensuring a more reliable experience.</p>
+                    <h3 className="text-[clamp(1.4rem,2.8vw,2.25rem)] font-normal text-gray-900">Self-Correcting AI</h3>
+                    <p className="text-[clamp(0.9rem,1.6vw,1rem)] text-gray-600 mt-[clamp(0.75rem,2vh,1.25rem)]">GPT can generate code, and when it works, it's great. But what if it doesn't? ByeDB.AI saves you from this frustrating loop. Our platform's function calls go back to the model itself, allowing it to learn and self-correct, ensuring a more reliable experience.</p>
                   </div>
 
                   {/* Card 2 */}
-                  <div className="relative bg-[#f6fbff] rounded-2xl p-8 h-100 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <div className="relative bg-[#f6fbff] rounded-2xl p-[clamp(1.25rem,2.8vw,2rem)] shadow-lg hover:shadow-xl transition-all duration-300">
                     <div className="absolute -top-3 -left-3 bg-white p-2 rounded-lg shadow-lg">
                       <Zap className="h-5 w-5 text-blue-500" />
                     </div>
-                    <h3 className="text-4xl font-normal text-gray-900">Execution Confirmation</h3>
-                    <p className="text-base text-gray-600 mt-15">Don't know SQL but need a database for your hackathon? ByeDB creates it for you. With execution confirmation, you review the query and click a button — simple as that. No fear of the model screwing up.</p>
+                    <h3 className="text-[clamp(1.4rem,2.8vw,2.25rem)] font-normal text-gray-900">Execution Confirmation</h3>
+                    <p className="text-[clamp(0.9rem,1.6vw,1rem)] text-gray-600 mt-[clamp(0.75rem,2vh,1.25rem)]">Don't know SQL but need a database for your hackathon? ByeDB creates it for you. With execution confirmation, you review the query and click a button — simple as that. No fear of the model screwing up.</p>
                   </div>
 
                   {/* Card 3 */}
-                  <div className="relative bg-[#f6fbff] rounded-2xl p-8 h-100 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <div className="relative bg-[#f6fbff] rounded-2xl p-[clamp(1.25rem,2.8vw,2rem)] shadow-lg hover:shadow-xl transition-all duration-300">
                     <div className="absolute -top-3 -left-3 bg-white p-2 rounded-lg shadow-lg">
                       <Settings className="h-5 w-5 text-blue-500" />
                     </div>
-                    <h3 className="text-4xl font-normal text-gray-900">Your Technical Assistant</h3>
-                    <p className="text-base text-gray-600 mt-15">Non-technical and your coworker is on leave? Can't trust unknown GPT queries? ByeDB acts like a real technical person — straightforward, helpful, and equipped with visualization tools to draw insights for you.</p>
+                    <h3 className="text-[clamp(1.4rem,2.8vw,2.25rem)] font-normal text-gray-900">Your Technical Assistant</h3>
+                    <p className="text-[clamp(0.9rem,1.6vw,1rem)] text-gray-600 mt-[clamp(0.75rem,2vh,1.25rem)]">Non-technical and your coworker is on leave? Can't trust unknown GPT queries? ByeDB acts like a real technical person — straightforward, helpful, and equipped with visualization tools to draw insights for you.</p>
                   </div>
                 </div>
 
                 {/* Additional Features Section */}
-                <div className="mt-16">
-                  <div className="flex items-center justify-center gap-8 text-gray-700">
+                <div className="mt-[clamp(1.5rem,5vh,4rem)]">
+                  <div className="flex flex-col md:flex-row items-center justify-center gap-[clamp(1rem,3vw,2rem)] text-gray-700">
                     {/* Seamless Automation */}
                     <div className="flex items-center gap-3">
                       <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+                        <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" />
                       </svg>
-                      <span className="text-base font-medium">Seamless Automation</span>
+                      <span className="text-[clamp(0.9rem,1.6vw,1rem)] font-medium">Seamless Automation</span>
                     </div>
 
                     {/* Divider */}
-                    <div className="w-px h-6 bg-gray-300"></div>
+                    <div className="hidden md:block w-px h-6 bg-gray-300"></div>
 
                     {/* Real-Time Data Sync */}
                     <div className="flex items-center gap-3">
                       <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>
-                        <path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+                        <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" />
+                        <path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
                       </svg>
-                      <span className="text-base font-medium">Real-Time Data Sync</span>
+                      <span className="text-[clamp(0.9rem,1.6vw,1rem)] font-medium">Real-Time Data Sync</span>
                     </div>
 
                     {/* Divider */}
-                    <div className="w-px h-6 bg-gray-300"></div>
+                    <div className="hidden md:block w-px h-6 bg-gray-300"></div>
 
                     {/* Secure Data Interaction */}
                     <div className="flex items-center gap-3">
                       <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10z"/>
+                        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10z" />
                       </svg>
-                      <span className="text-base font-medium">Secure Data Interaction</span>
+                      <span className="text-[clamp(0.9rem,1.6vw,1rem)] font-medium">Secure Data Interaction</span>
                     </div>
                   </div>
                 </div>
@@ -545,69 +530,64 @@ export default function Home() {
         </section>
 
         {/* Another Aspect Section */}
-        <section id="powerful-section" className="py-32 relative bg-[#f5f8fb]">
+        <section id="powerful-section" className="pt-[clamp(2.5rem,8vh,10.5rem)] pb-[clamp(8rem,15vh,16rem)] relative bg-[#f5f8fb]">
           <div className="container mx-auto px-6">
-            <div 
+            <div
               id="another-aspect-header"
               data-animate
-              className={`text-center mb-8 transition-all duration-1000 ${
-                isVisible('another-aspect-header') 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
+              className={`text-center mb-8 transition-all duration-1000 ${isVisible('another-aspect-header')
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-8'
+                }`}
             >
               <h2 className="text-4xl md:text-5xl font-normal text-gray-900 mb-4">
                 What makes ByeDB Powerful?
               </h2>
               <p className="text-base text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Your AI-powered SQL Agent that transforms natural language questions into actionable insights and beautiful visualizations—effortlessly.
+                Your AI-powered SQL Agent that transforms natural language questions into actionable insights and beautiful visualizations effortlessly.
               </p>
             </div>
 
-            <div 
+            <div
               id="powerful-content"
               data-animate
-              className={`grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto transition-all duration-1000 delay-200 ${
-                isVisible('powerful-content') 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
+              className={`grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto transition-all duration-1000 delay-200 ${isVisible('powerful-content')
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-8'
+                }`}
             >
               {/* Left Side - Features */}
               <div className="space-y-6">
-                <div 
-                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-300 ${
-                    selectedFeature === 1 ? 'bg-white shadow-lg' : 'hover:bg-gray-50'
-                  }`}
+                <div
+                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-300 ${selectedFeature === 1 ? 'bg-white shadow-lg' : 'hover:bg-gray-50'
+                    }`}
                   onClick={() => setSelectedFeature(1)}
                 >
                   <img src="/icons/agent.png" alt="Agent" className="w-18 h-18 mt-3" />
                   <div className="max-w-lg">
                     <h3 className="text-lg font-normal text-gray-900 mb-1">Multiagent AI Orchestration</h3>
                     <p className="text-sm text-gray-600 leading-relaxed">
-                    The system runs in two modes: ASK Mode, where the AI provides direct answers and explanations, and Agent Mode, where autonomous AI agents can interact with your dataset to complete user tasks.                    </p>
+                      The system runs in two modes: ASK Mode, where the AI provides direct answers and explanations, and Agent Mode, where autonomous AI agents can interact with your dataset to complete user tasks.                    </p>
                   </div>
                 </div>
 
-                <div 
-                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-300 ${
-                    selectedFeature === 2 ? 'bg-white shadow-lg' : 'hover:bg-gray-50'
-                  }`}
+                <div
+                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-300 ${selectedFeature === 2 ? 'bg-white shadow-lg' : 'hover:bg-gray-50'
+                    }`}
                   onClick={() => setSelectedFeature(2)}
                 >
                   <img src="/icons/data.png" alt="Agent" className="w-18 h-18" />
                   <div className="max-w-lg">
                     <h3 className="text-lg font-normal text-gray-900 mb-1">Real-time Data Visualization</h3>
                     <p className="text-sm text-gray-600 leading-relaxed">
-                     Real-time visualization engine with dynamic charts, graphs, and analytics dashboards.
+                      Real-time visualization engine with dynamic charts, graphs, and analytics dashboards.
                     </p>
                   </div>
                 </div>
 
-                <div 
-                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-300 ${
-                    selectedFeature === 3 ? 'bg-white shadow-lg' : 'hover:bg-gray-50'
-                  }`}
+                <div
+                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-300 ${selectedFeature === 3 ? 'bg-white shadow-lg' : 'hover:bg-gray-50'
+                    }`}
                   onClick={() => setSelectedFeature(3)}
                 >
                   <img src="/icons/confirm.png" alt="Data" className="w-18 h-18 mt-1" />
@@ -619,39 +599,37 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div 
-                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-300 ${
-                    selectedFeature === 4 ? 'bg-white shadow-lg' : 'hover:bg-gray-50'
-                  }`}
+                <div
+                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-300 ${selectedFeature === 4 ? 'bg-white shadow-lg' : 'hover:bg-gray-50'
+                    }`}
                   onClick={() => setSelectedFeature(4)}
                 >
                   <img src="/icons/education.png" alt="Export" className="w-18 h-18 mt-1" />
                   <div className="max-w-lg">
                     <h3 className="text-lg font-normal text-gray-900 mb-1">Educational Transparency</h3>
                     <p className="text-sm text-gray-600 leading-relaxed">
-                       AI decision explanation with a step-by-step reasoning breakdown, and full transparency on the exact SQL queries executed to perform user tasks. 
+                      AI decision explanation with a step-by-step reasoning breakdown, and full transparency on the exact SQL queries executed to perform user tasks.
                     </p>
                   </div>
                 </div>
 
-                <div 
-                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-300 ${
-                    selectedFeature === 5 ? 'bg-white shadow-lg' : 'hover:bg-gray-50'
-                  }`}
+                <div
+                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-300 ${selectedFeature === 5 ? 'bg-white shadow-lg' : 'hover:bg-gray-50'
+                    }`}
                   onClick={() => setSelectedFeature(5)}
                 >
                   <img src="/icons/prompt.png" alt="Export" className="w-18 h-18 mt-1" />
                   <div className="max-w-lg">
                     <h3 className="text-lg font-normal text-gray-900 mb-1">Prompt Enhancement</h3>
                     <p className="text-sm text-gray-600 leading-relaxed">
-                       Advanced prompt engineering with semantic optimization for superior AI performance.
+                      Advanced prompt engineering with semantic optimization for superior AI performance.
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Right Side - Dynamic Content */}
-              <div className="bg-gray-900 rounded-3xl p-6 shadow-xl h-[625px] flex items-center justify-center overflow-hidden ml-8">
+              <div className="bg-gray-900 rounded-3xl p-6 shadow-xl h-[625px] flex items-center justify-center overflow-hidden lg:ml-8">
                 {selectedFeature === 1 && (
                   <img src="/images/agent.svg" alt="Agent" className="w-82 h-82" />
                 )}
@@ -683,65 +661,51 @@ export default function Home() {
           </div>
         </section>
 
-          {/* Footer */}
-          <footer className="relative py-12 overflow-hidden bg-[#f5f8fb]">
+        {/* Footer */}
+        <footer className="relative py-12 overflow-hidden bg-[#f5f8fb]">
           <div className="container mx-auto px-6">
-            <div 
+            <div
               id="footer-content"
               className="relative mx-auto max-w-7xl relative z-10"
             >
               {/* Main Footer Content */}
-              <div className="flex flex-col lg:flex-row items-start justify-between gap-8 mb-8">
+              <div className="flex flex-col lg:flex-row items-center lg:items-start justify-between gap-8 mb-8">
                 {/* Brand Section */}
-                <div className="flex items-start gap-4 -ml-2">
+                <div className="flex flex-col lg:flex-row items-center lg:items-start gap-4 lg:-ml-2">
                   <div className="relative">
-                    <img 
-                      src="/icons/crop.png" 
-                      alt="ByeDB Icon" 
+                    <img
+                      src="/icons/crop.png"
+                      alt="ByeDB Icon"
                       className="h-12 w-12"
                     />
                     <div className="absolute inset-0 h-10 w-10 bg-blue-400/20 blur-md rounded-full"></div>
                   </div>
-                  <div className="flex flex-col">
+                  <div className="flex flex-col items-center lg:items-start">
                     <h3 className="text-2xl font-normal text-gray-900 mb-1">ByeDB.AI</h3>
-                    <p className="text-gray-600 leading-relaxed max-w-md text-sm">
+                    <p className="text-gray-600 leading-relaxed max-w-md text-sm text-center lg:text-left">
                       Natural Language to SQL Made Simple. Transform your data queries with AI-powered intelligence.
                     </p>
                   </div>
                 </div>
 
-                {/* GitHub Section */}
-                <div className="flex items-start">
-                  <a 
-                    href="https://github.com/MarcusMQF/ByeDB" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="btn-github inline-flex items-center gap-3"
-                    style={{ borderRadius: '9999px' }}
-                  >
-                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-                    </svg>
-                    Star on GitHub
-                  </a>
-                </div>
+
               </div>
 
               {/* Bottom Section */}
               <div className="pt-10 border-t border-gray-200">
                 <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
                   {/* Developer Credits */}
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap justify-center items-center gap-4">
                     <span className="text-gray-600 font-medium">Built with ❤️ by</span>
-                    <AvatarGroup 
-                      items={developers} 
+                    <AvatarGroup
+                      items={developers}
                       size="lg"
                       className="flex-shrink-0"
                     />
                   </div>
-                  
+
                   {/* Copyright */}
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="flex flex-wrap justify-center items-center gap-2 text-sm text-gray-500">
                     <span>© 2025 ByeDB.AI</span>
                     <span className="hidden sm:inline">•</span>
                     <span>All rights reserved.</span>
@@ -751,7 +715,7 @@ export default function Home() {
             </div>
           </div>
         </footer>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }
